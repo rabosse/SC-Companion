@@ -177,19 +177,14 @@ const Fleet = () => {
             >
               <Link to={`/ships/${item.ship_id}`}>
                 <div className="h-48 relative overflow-hidden bg-gradient-to-br from-cyan-500/20 to-blue-600/20">
-                  <img 
-                    src={item.image || 'https://via.placeholder.com/400x300/1a1a2e/00d4ff?text=Ship'} 
-                    alt={item.ship_name}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = 'https://via.placeholder.com/400x300/1a1a2e/00d4ff?text=Ship';
-                    }}
-                  />
+                  {(() => {
+                    const shipData = ships.find(s => s.id === item.ship_id);
+                    const imgUrl = shipData?.image;
+                    return imgUrl ? (
+                      <img src={imgUrl} alt={item.ship_name} className="w-full h-full object-cover" onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; }} />
+                    ) : null;
+                  })()}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <SpaceshipIcon className="w-20 h-20 text-cyan-500 opacity-20" />
-                  </div>
                 </div>
               </Link>
 
