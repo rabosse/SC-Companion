@@ -1,136 +1,123 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
-import axios from 'axios';
-import { Lock } from 'lucide-react';
+import { Lock, User, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Login = () => {
-  const [email, setEmail] = useState('');
-  const [token, setToken] = useState('');
+  const { login } = useAuth();
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { login, API } = useAuth();
-  const navigate = useNavigate();
+  const [isRegister, setIsRegister] = useState(false);
 
-  const handleLogin = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!username.trim() || !password.trim()) {
+      toast.error('Please fill in all fields');
+      return;
+    }
     setLoading(true);
-
     try {
-      const response = await axios.post(`${API}/auth/login`, {
-        email,
-        star_citizen_token: token,
-      });
-
-      login(response.data.access_token, response.data.user);
-      toast.success('Welcome to Star Citizen Fleet Manager');
-      navigate('/');
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Login failed');
+      await login(username.trim(), password);
+    } catch {
+      toast.error(isRegister ? 'Registration failed' : 'Login failed');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden" style={{ background: '#050508' }}>
-      {/* Background effects */}
-      <div className="absolute inset-0 radial-glow opacity-30"></div>
-      <div className="absolute top-0 left-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl"></div>
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"></div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-gray-900 to-blue-950 p-4">
+      <div className="w-full max-w-md">
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <img
+            src="https://media.robertsspaceindustries.com/logo/SC-Logo-white-transparent.png"
+            alt="Star Citizen"
+            className="h-16 mx-auto mb-4 opacity-90"
+            onError={(e) => { e.target.style.display = 'none'; }}
+          />
+          <h1
+            className="text-3xl font-bold uppercase tracking-wider"
+            style={{ fontFamily: 'Rajdhani, sans-serif', color: '#00D4FF' }}
+          >
+            Fleet Manager
+          </h1>
+          <p className="text-gray-500 mt-2 text-sm">Track your ships, loadouts, and fleet</p>
+        </div>
 
-      <div className="relative z-10 w-full max-w-md px-6">
-        <div className="glass-panel rounded-3xl p-8 sm:p-12">
-          {/* Logo */}
-          <div className="flex justify-center mb-8">
-            <img 
-              src="https://media.robertsspaceindustries.com/logo/SC-Logo-white.png" 
-              alt="Star Citizen Logo"
-              className="h-20 w-auto"
-              onError={(e) => {
-                e.target.style.display = 'none';
-              }}
-            />
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="glass-panel rounded-2xl p-8 space-y-6">
+          <div>
+            <label className="text-sm text-gray-400 mb-2 block">Username</label>
+            <div className="relative">
+              <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Enter your username"
+                data-testid="username-input"
+                className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
+                autoComplete="username"
+              />
+            </div>
           </div>
 
-          {/* Title */}
-          <h1 className="text-4xl font-bold text-center mb-2 uppercase" style={{ fontFamily: 'Rajdhani, sans-serif', color: '#00D4FF' }}>
-            Star Citizen Fleet Manager
-          </h1>
-          <p className="text-center text-gray-400 mb-8" style={{ fontFamily: 'Inter, sans-serif' }}>
-            Manage your Star Citizen fleet with precision
+          <div>
+            <label className="text-sm text-gray-400 mb-2 block">Password</label>
+            <div className="relative">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                data-testid="password-input"
+                className="w-full pl-12 pr-12 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
+                autoComplete={isRegister ? 'new-password' : 'current-password'}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
+                data-testid="toggle-password"
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            data-testid="login-button"
+            className="w-full py-3 rounded-xl font-bold text-black uppercase tracking-wider transition-all disabled:opacity-50"
+            style={{
+              background: 'linear-gradient(135deg, #00D4FF, #00A8CC)',
+              fontFamily: 'Rajdhani, sans-serif',
+            }}
+          >
+            {loading ? 'Connecting...' : (isRegister ? 'Create Account' : 'Access Fleet')}
+          </button>
+
+          <p className="text-center text-gray-500 text-sm">
+            {isRegister ? 'Already have an account?' : "Don't have an account?"}{' '}
+            <button
+              type="button"
+              onClick={() => setIsRegister(!isRegister)}
+              className="text-cyan-500 hover:text-cyan-400 transition-colors"
+              data-testid="toggle-auth-mode"
+            >
+              {isRegister ? 'Sign In' : 'Register'}
+            </button>
           </p>
 
-          {/* Login Form */}
-          <form onSubmit={handleLogin} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2" htmlFor="email">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                data-testid="email-input"
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
-                placeholder="your@email.com"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2" htmlFor="token">
-                Star Citizen API Token
-              </label>
-              <input
-                id="token"
-                type="text"
-                value={token}
-                onChange={(e) => setToken(e.target.value)}
-                required
-                data-testid="token-input"
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
-                placeholder="Your API token"
-              />
-            </div>
-
-            <p className="text-xs text-gray-500 text-center">
-              Get your token from{' '}
-              <a
-                href="https://star-citizen.wiki"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-cyan-500 hover:underline"
-              >
-                star-citizen.wiki
-              </a>
-            </p>
-
-            <button
-              type="submit"
-              disabled={loading}
-              data-testid="login-button"
-              className="w-full btn-origin flex items-center justify-center space-x-2"
-            >
-              {loading ? (
-                <span>Authenticating...</span>
-              ) : (
-                <>
-                  <Lock className="w-4 h-4" />
-                  <span>Access Fleet</span>
-                </>
-              )}
-            </button>
-          </form>
-
-          {/* Demo info */}
-          <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
-            <p className="text-xs text-center text-gray-400">
-              <strong className="text-cyan-500">Demo Mode:</strong> Use any email and token to explore the app
-            </p>
-          </div>
-        </div>
+          <p className="text-center text-gray-600 text-xs">
+            New users are automatically registered on first login
+          </p>
+        </form>
       </div>
     </div>
   );
