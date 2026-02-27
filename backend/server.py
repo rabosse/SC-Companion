@@ -50,8 +50,12 @@ class UserFleet(BaseModel):
     added_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class LoginRequest(BaseModel):
-    email: str
-    star_citizen_token: str
+    username: str
+    password: str
+
+class RegisterRequest(BaseModel):
+    username: str
+    password: str
 
 class LoginResponse(BaseModel):
     access_token: str
