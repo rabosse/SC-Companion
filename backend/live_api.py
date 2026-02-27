@@ -87,11 +87,39 @@ def _normalize_vehicle(v: dict) -> dict:
     # Estimate price from size
     price_map = {"Snub": 50000, "Small": 100000, "Medium": 500000, "Large": 2000000, "Capital": 10000000}
 
+    # Extract hardpoint sizing from power_pools
+    power_pools = v.get("power_pools", {})
+    weapon_pool_size = power_pools.get("WeaponGun", {}).get("size", 0)
+    raw_size_class = v.get("size_class", 0)
+
+    # Derive component slot sizes from size_class
+    # size_class: 1=Snub, 2=Small, 3=Medium, 4=Large, 5=Capital
+    SLOT_MAP = {
+        0: {"shield_size": 1, "power_size": 1, "cooler_size": 1, "qd_size": 1, "shield_count": 1, "power_count": 1, "cooler_count": 1, "qd_count": 1, "weapon_slots": []},
+        1: {"shield_size": 0, "power_size": 0, "cooler_size": 0, "qd_size": 0, "shield_count": 0, "power_count": 0, "cooler_count": 0, "qd_count": 0, "weapon_slots": [1, 1]},
+        2: {"shield_size": 1, "power_size": 1, "cooler_size": 1, "qd_size": 1, "shield_count": 1, "power_count": 1, "cooler_count": 1, "qd_count": 1, "weapon_slots": [3, 3, 3]},
+        3: {"shield_size": 2, "power_size": 2, "cooler_size": 2, "qd_size": 2, "shield_count": 1, "power_count": 1, "cooler_count": 2, "qd_count": 1, "weapon_slots": [4, 4, 3, 3]},
+        4: {"shield_size": 2, "power_size": 2, "cooler_size": 2, "qd_size": 2, "shield_count": 2, "power_count": 1, "cooler_count": 2, "qd_count": 1, "weapon_slots": [5, 5, 4, 4]},
+        5: {"shield_size": 3, "power_size": 3, "cooler_size": 3, "qd_size": 3, "shield_count": 2, "power_count": 1, "cooler_count": 2, "qd_count": 1, "weapon_slots": [6, 6, 5, 5, 4, 4]},
+    }
+    slots = SLOT_MAP.get(raw_size_class, SLOT_MAP[0])
+
+    # If weapon_pool_size is available, distribute across weapon slots more accurately
+    weapon_slots = slots["weapon_slots"]
+    if weapon_pool_size > 0 and weapon_slots:
+        # Distribute the pool budget across slots (largest first)
+        n = len(weapon_slots)
+        avg = weapon_pool_size // n
+        remainder = weapon_pool_size % n
+        weapon_slots = [min(avg + (1 if i < remainder else 0), 9) for i in range(n)]
+        weapon_slots.sort(reverse=True)
+
     return {
         "id": v.get("slug", v.get("uuid", "")),
         "name": v.get("name", ""),
         "manufacturer": manufacturer_name,
         "size": size_class,
+        "size_class": raw_size_class,
         "length": round(length, 1),
         "beam": round(beam, 1),
         "height": round(height, 1),
@@ -109,6 +137,14 @@ def _normalize_vehicle(v: dict) -> dict:
         "description": (v.get("description", {}).get("en_EN", "") if isinstance(v.get("description"), dict) else "") or f"The {v.get('name', '')} is a versatile vessel.",
         "is_ground_vehicle": is_ground,
         "image": "",
+        # Hardpoint data for loadout builder
+        "hardpoints": {
+            "shield": {"size": slots["shield_size"], "count": slots["shield_count"]},
+            "power_plant": {"size": slots["power_size"], "count": slots["power_count"]},
+            "cooler": {"size": slots["cooler_size"], "count": slots["cooler_count"]},
+            "quantum_drive": {"size": slots["qd_size"], "count": slots["qd_count"]},
+            "weapons": weapon_slots,
+        },
     }
 
 
