@@ -276,8 +276,8 @@ async def get_vehicles(user_id: str = Depends(get_current_user)):
     mock_vehicles = [
         {"id": "cyclone", "name": "Cyclone", "manufacturer": "Tumbril", "type": "Ground", "crew": "2", "image": get_vehicle_image("Cyclone")},
         {"id": "nox", "name": "Nox", "manufacturer": "Aopoa", "type": "Hover", "crew": "1", "image": get_vehicle_image("Nox")},
-        {"id": "ursa", "name": "Ursa Rover", "manufacturer": "Roberts Space Industries", "type": "Ground", "crew": "6", "image": get_vehicle_image("Ursa Rover")},
-        {"id": "nova", "name": "Nova Tank", "manufacturer": "Roberts Space Industries", "type": "Ground", "crew": "2", "image": get_vehicle_image("Nova Tank")},
+        {"id": "ursa", "name": "Ursa Rover", "manufacturer": "Roberts Space Industries", "type": "Ground", "crew": "6", "image": get_vehicle_image("Ursa")},
+        {"id": "nova", "name": "Nova Tank", "manufacturer": "Roberts Space Industries", "type": "Ground", "crew": "2", "image": get_vehicle_image("Nova")},
     ]
     return {"success": True, "data": mock_vehicles}
 
