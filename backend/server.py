@@ -136,15 +136,24 @@ async def get_ships(user_id: str = Depends(get_current_user)):
     """Fetch all ships - live API with mock fallback"""
     live_vehicles = await fetch_live_vehicles()
     if live_vehicles:
-        # Filter to ships only (not ground vehicles), add wiki images
         ships = [v for v in live_vehicles if not v.get("is_ground_vehicle")]
         for s in ships:
             img = get_ship_image(s["id"])
             if img:
                 s["image"] = img
+            # Add purchase info
+            pinfo = get_purchase_info(s["name"])
+            s["price_auec"] = pinfo["price_auec"]
+            s["purchase_locations"] = pinfo["dealers"]
+            # Add RSI pledge info from live API data
+            s["price_usd"] = s.get("msrp", 0)
+            s["pledge_url"] = s.get("pledge_url", "")
         return {"success": True, "data": ships, "source": "live"}
-    # Fallback to mock data
     ships = enhance_ship_data(get_comprehensive_ship_list())
+    for s in ships:
+        pinfo = get_purchase_info(s["name"])
+        s["price_auec"] = pinfo["price_auec"]
+        s["purchase_locations"] = pinfo["dealers"]
     return {"success": True, "data": ships, "source": "mock"}
 
 def get_comprehensive_ship_list():
