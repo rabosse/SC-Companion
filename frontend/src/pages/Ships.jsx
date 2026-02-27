@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../App';
 import axios from 'axios';
-import { Ship, Plus, Search } from 'lucide-react';
+import { Ship, Plus, Search, Scale } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 const Ships = () => {
