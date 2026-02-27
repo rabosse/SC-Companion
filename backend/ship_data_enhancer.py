@@ -1,94 +1,244 @@
-"""Ship data enhancer - adds comprehensive details and images to ship data"""
+"""Ship data enhancer - fetches images from Star Citizen Wiki and adds details to ship data"""
 
-def get_rsi_ship_image(ship_name, ship_id):
-    """
-    Generate RSI media image URLs for ships
-    RSI uses predictable patterns for ship images
-    """
-    # Clean up ship name for URL
-    clean_name = ship_name.lower().replace(' ', '-').replace("'", '')
-    
-    # Common RSI image patterns
-    base_urls = [
-        f"https://media.robertsspaceindustries.com/3hg47bynkbq0k/{clean_name}.jpg",
-        f"https://robertsspaceindustries.com/media/3hg47bynkbq0k/{clean_name}.jpg",
-        f"https://media.robertsspaceindustries.com/83865eedb618a5d2b0cb32e517cf46e7349fb1d6/source.webp",
-    ]
-    
-    # Return first available pattern (RSI media server)
-    return f"https://media.robertsspaceindustries.com/ship/{clean_name}/isometric.jpg"
+import httpx
+import logging
 
-# Real RSI ship image URLs - actual links from RSI pledge store
-SHIP_IMAGE_MAP = {
-    # Carrack - from RSI page
-    "carrack": "https://robertsspaceindustries.com/i/5a176dc57589f18effd841146ef5a37e88892aee/resize(910,512,cover)/source.webp",
-    
-    # Origin Jumpworks  
-    "100i": "https://robertsspaceindustries.com/i/7f9004f2c94c4156d17c76945d93da1a9166f4cb/resize(910,512,cover)/source.webp",
-    "125a": "https://robertsspaceindustries.com/i/4edda30724031a5f9d8bd270d13f83e92814a058/resize(910,512,cover)/source.webp",
-    "135c": "https://robertsspaceindustries.com/i/d82a70ea48ad88833fe5628c57d70b3b120c7940/resize(910,512,cover)/source.webp",
-    "300i": "https://robertsspaceindustries.com/i/83865eedb618a5d2b0cb32e517cf46e7349fb1d6/resize(910,512,cover)/source.webp",
-    "315p": "https://robertsspaceindustries.com/i/0c33cf326d2d140c2103355c1015a8c5cb638ec3/resize(910,512,cover)/source.webp",
-    "325a": "https://robertsspaceindustries.com/i/5de627d4948ba4767cb81eff709a5c241ba9b1e9/resize(910,512,cover)/source.webp",
-    "350r": "https://robertsspaceindustries.com/i/c53b0b87bd3e60484b0e2b5630dfdf99be81de11/resize(910,512,cover)/source.webp",
-    "400i": "https://robertsspaceindustries.com/i/9d14626a2e20de191de73a4b3343b14141df9647/resize(910,512,cover)/source.webp",
-    "600i": "https://robertsspaceindustries.com/i/34bd9cbbe87a33a675aa9dc003a93f3149eb9a3b/resize(910,512,cover)/source.webp",
-    "600i-touring": "https://robertsspaceindustries.com/i/34bd9cbbe87a33a675aa9dc003a93f3149eb9a3b/resize(910,512,cover)/source.webp",
-    
+logger = logging.getLogger(__name__)
+
+WIKI_API = "https://starcitizen.tools/api.php"
+THUMB_SIZE = 600
+
+# ship_id -> wiki page title mapping
+SHIP_WIKI_MAP = {
+    # Origin Jumpworks
+    "85x": "85X",
+    "100i": "100i",
+    "125a": "125a",
+    "135c": "135c",
+    "300i": "300i",
+    "315p": "315p",
+    "325a": "325a",
+    "350r": "350r",
+    "400i": "400i",
+    "600i": "600i Explorer",
+    "600i-touring": "600i Explorer",
+    "890jump": "890 Jump",
     # Anvil Aerospace
-    "arrow": "https://robertsspaceindustries.com/i/9861febc81cadf49dfe3010d59d270f64385c6b6/resize(910,512,cover)/source.webp",
-    
-    # Aegis Dynamics  
-    "avenger-stalker": "https://robertsspaceindustries.com/i/848e8f0e436fbe127b89c045631df35d77e217c6/resize(910,512,cover)/source.webp",
-    "avenger-titan": "https://robertsspaceindustries.com/i/1f89e0b864e04b347a0a60026b5aa0ab4c558c5e/resize(910,512,cover)/source.webp",
-    "avenger-warlock": "https://robertsspaceindustries.com/i/1f89e0b864e04b347a0a60026b5aa0ab4c558c5e/resize(910,512,cover)/source.webp",
-    
-    # RSI
-    "aurora-cl": "https://robertsspaceindustries.com/i/0114f0fb9054675e89892c020aa657a4f3a4a641/resize(910,512,cover)/source.webp",
-    "aurora-es": "https://robertsspaceindustries.com/i/e58de32282770d79c8b1fb29c7b552a199cc18a0/resize(910,512,cover)/source.webp",
-    "aurora-ln": "https://robertsspaceindustries.com/i/814e36cadcd3e7e033883e05dcdadc79d48193fe/resize(910,512,cover)/source.webp",
-    "aurora-mr": "https://robertsspaceindustries.com/i/c7133ae8a8e3da0f6a81840978d7d55cac5429a2/resize(910,512,cover)/source.webp",
-    "aurora-lx": "https://robertsspaceindustries.com/i/c7133ae8a8e3da0f6a81840978d7d55cac5429a2/resize(910,512,cover)/source.webp",
-    
-    # Crusader
-    "spirit-c1": "https://robertsspaceindustries.com/i/f374f5e3a81a903af77aaf920079480890e8b259/resize(910,512,cover)/source.webp",
+    "arrow": "Arrow",
+    "hawk": "Hawk",
+    "hornet-f7c": "F7C Hornet Mk II",
+    "hornet-f7cm": "F7C-M Super Hornet Mk II",
+    "hornet-f7cs": "F7C-S Hornet Ghost Mk II",
+    "hornet-f7a": "F7A Hornet Mk II",
+    "gladiator": "Gladiator",
+    "hurricane": "Hurricane",
+    "terrapin": "Terrapin",
+    "valkyrie": "Valkyrie",
+    "carrack": "Carrack",
+    "liberator": "Liberator",
+    "crucible": "Crucible",
+    # Roberts Space Industries
+    "aurora-ln": "Aurora LN",
+    "aurora-mr": "Aurora MR",
+    "aurora-cl": "Aurora CL",
+    "aurora-lx": "Aurora LX",
+    "aurora-es": "Aurora ES",
+    "mantis": "Mantis",
+    "scorpius": "Scorpius",
+    "constellation-andromeda": "Constellation Andromeda",
+    "constellation-aquila": "Constellation Aquila",
+    "constellation-taurus": "Constellation Taurus",
+    "constellation-phoenix": "Constellation Phoenix",
+    "perseus": "Perseus",
+    "polaris": "Polaris",
+    "galaxy": "Galaxy",
+    # Aegis Dynamics
+    "avenger-titan": "Avenger Titan",
+    "avenger-stalker": "Avenger Stalker",
+    "avenger-warlock": "Avenger Warlock",
+    "sabre": "Sabre",
+    "sabre-comet": "Sabre Comet",
+    "gladius": "Gladius",
+    "vanguard-warden": "Vanguard Warden",
+    "vanguard-sentinel": "Vanguard Sentinel",
+    "vanguard-harbinger": "Vanguard Harbinger",
+    "vanguard-hoplite": "Vanguard Hoplite",
+    "eclipse": "Eclipse",
+    "retaliator": "Retaliator",
+    "redeemer": "Redeemer",
+    "hammerhead": "Hammerhead",
+    "reclaimer": "Reclaimer",
+    "nautilus": "Nautilus",
+    "idris-p": "Idris-P",
+    "idris-m": "Idris-M",
+    "javelin": "Javelin",
+    # Drake Interplanetary
+    "dragonfly-black": "Dragonfly",
+    "dragonfly-yellow": "Dragonfly",
+    "buccaneer": "Buccaneer",
+    "herald": "Herald",
+    "cutlass-black": "Cutlass Black",
+    "cutlass-red": "Cutlass Red",
+    "cutlass-blue": "Cutlass Blue",
+    "corsair": "Corsair",
+    "caterpillar": "Caterpillar",
+    "vulture": "Vulture",
+    "kraken": "Kraken",
+    # Crusader Industries
+    "ares-ion": "Ares Star Fighter Ion",
+    "ares-inferno": "Ares Star Fighter Inferno",
+    "spirit-a1": "Spirit",
+    "spirit-c1": "Spirit",
+    "mercury": "Mercury Star Runner",
+    "starlifter-m2": "M2 Hercules Starlifter",
+    "starlifter-c2": "C2 Hercules Starlifter",
+    "starlifter-a2": "A2 Hercules Starlifter",
+    "genesis": "Genesis Starliner",
+    "odyssey": "Odyssey",
+    # MISC
+    "prospector": "Prospector",
+    "razor": "Razor",
+    "reliant-kore": "Reliant Kore",
+    "reliant-tana": "Reliant Tana",
+    "reliant-sen": "Reliant Sen",
+    "reliant-mako": "Reliant Mako",
+    "freelancer": "Freelancer",
+    "freelancer-dur": "Freelancer DUR",
+    "freelancer-max": "Freelancer MAX",
+    "freelancer-mis": "Freelancer MIS",
+    "hull-a": "Hull A",
+    "hull-b": "Hull B",
+    "hull-c": "Hull C",
+    "starfarer": "Starfarer",
+    "starfarer-gemini": "Starfarer Gemini",
+    "endeavor": "Endeavor",
+    # Aopoa
+    "nox": "Nox",
+    "nox-kue": "Nox Kue",
+    "khartu-al": "Khartu-al",
+    "san-tok-yai": "San'tok.yāi",
+    # Banu
+    "defender": "Defender",
+    "merchantman": "Merchantman",
+    # Esperia
+    "blade": "Blade",
+    "glaive": "Glaive",
+    "prowler": "Prowler",
+    "talon": "Talon",
+    "talon-shrike": "Talon Shrike",
+    # Argo Astronautics
+    "mpuv-cargo": "MPUV Cargo",
+    "mpuv-personnel": "MPUV Personnel",
+    "mole": "MOLE",
+    "raft": "RAFT",
+    # Consolidated Outland
+    "mustang-alpha": "Mustang Alpha",
+    "mustang-beta": "Mustang Beta",
+    "mustang-gamma": "Mustang Gamma",
+    "mustang-delta": "Mustang Delta",
+    "mustang-omega": "Mustang Omega",
+    "nomad": "Nomad",
+    "pioneer": "Pioneer",
 }
 
+VEHICLE_WIKI_MAP = {
+    "cyclone": "Cyclone",
+    "nox": "Nox",
+    "ursa": "Ursa",
+    "nova": "Nova",
+}
+
+# In-memory image cache: wiki_title -> thumbnail_url
+_image_cache = {}
+_cache_loaded = False
+
+
+async def fetch_all_wiki_images():
+    """Batch-fetch all ship/vehicle images from starcitizen.tools wiki API."""
+    global _image_cache, _cache_loaded
+    if _cache_loaded:
+        return
+
+    all_titles = set(SHIP_WIKI_MAP.values()) | set(VEHICLE_WIKI_MAP.values())
+    title_list = list(all_titles)
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        # Wiki API supports up to 50 titles per request
+        for i in range(0, len(title_list), 50):
+            batch = title_list[i:i + 50]
+            titles_param = "|".join(t.replace(" ", "_") for t in batch)
+            try:
+                resp = await client.get(WIKI_API, params={
+                    "action": "query",
+                    "prop": "pageimages",
+                    "piprop": "thumbnail|original",
+                    "pithumbsize": THUMB_SIZE,
+                    "titles": titles_param,
+                    "format": "json",
+                }, follow_redirects=True)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    pages = data.get("query", {}).get("pages", {})
+                    for page in pages.values():
+                        title = page.get("title", "")
+                        thumb = page.get("thumbnail", {}).get("source")
+                        original = page.get("original", {}).get("source")
+                        if thumb or original:
+                            _image_cache[title] = original or thumb
+                            logger.info(f"Cached image for: {title}")
+            except Exception as e:
+                logger.error(f"Wiki image fetch error for batch {i}: {e}")
+
+    _cache_loaded = True
+    logger.info(f"Wiki image cache loaded: {len(_image_cache)} images cached")
+
+
+def get_ship_image(ship_id):
+    """Get cached wiki image URL for a ship."""
+    wiki_title = SHIP_WIKI_MAP.get(ship_id.lower(), "")
+    return _image_cache.get(wiki_title, "")
+
+
+def get_vehicle_image(vehicle_name):
+    """Get cached wiki image URL for a vehicle."""
+    # Try exact match by name key
+    key = vehicle_name.lower().replace(" ", "").replace("rover", "").replace("tank", "").strip()
+    for vid, wiki_title in VEHICLE_WIKI_MAP.items():
+        if vid in key or key in vid:
+            return _image_cache.get(wiki_title, "")
+    # Direct title lookup
+    return _image_cache.get(vehicle_name, "")
+
+
 def enhance_ship_data(ships):
-    """Add comprehensive details to ship list"""
+    """Add comprehensive details to ship list."""
     for ship in ships:
-        # Use mapped RSI image if available
-        ship_id_lower = ship['id'].lower()
-        if ship_id_lower in SHIP_IMAGE_MAP:
-            ship["image"] = SHIP_IMAGE_MAP[ship_id_lower]
-        elif not ship.get('image'):
-            # Try to generate RSI URL pattern
-            ship["image"] = get_rsi_ship_image(ship['name'], ship['id'])
-        
+        # Use wiki image from cache
+        img = get_ship_image(ship["id"])
+        if img:
+            ship["image"] = img
+        elif not ship.get("image"):
+            ship["image"] = ""
+
         # Add missing fields with defaults
         if "beam" not in ship:
-            ship["beam"] = round(ship["length"] * 0.6, 1)
+            ship["beam"] = round(ship.get("length", 20) * 0.6, 1)
         if "height" not in ship:
-            ship["height"] = round(ship["length"] * 0.3, 1)
+            ship["height"] = round(ship.get("length", 20) * 0.3, 1)
         if "mass" not in ship:
-            ship["mass"] = int(ship["length"] * 1000)
+            ship["mass"] = int(ship.get("length", 20) * 1000)
         if "max_speed" not in ship:
-            ship["max_speed"] = 220 if ship["size"] == "Small" else (180 if ship["size"] == "Medium" else 150)
+            ship["max_speed"] = 220 if ship.get("size") == "Small" else (180 if ship.get("size") == "Medium" else 150)
         if "role" not in ship:
             ship["role"] = "Multi-role"
         if "description" not in ship:
-            ship["description"] = f"The {ship['name']} by {ship['manufacturer']} is a {ship['size'].lower()}-class vessel designed for versatility and performance."
+            ship["description"] = f"The {ship['name']} by {ship['manufacturer']} is a {ship.get('size', 'multi').lower()}-class vessel designed for versatility and performance."
         if "price" not in ship:
             price_map = {"Snub": 50000, "Small": 100000, "Medium": 500000, "Large": 2000000, "Capital": 10000000}
-            ship["price"] = price_map.get(ship["size"], 100000)
+            ship["price"] = price_map.get(ship.get("size"), 100000)
         if "armor" not in ship:
-            ship["armor"] = "Medium" if ship["size"] in ["Medium", "Large"] else "Light"
+            ship["armor"] = "Medium" if ship.get("size") in ["Medium", "Large"] else "Light"
         if "manufacturer_code" not in ship:
             ship["manufacturer_code"] = ship["manufacturer"].split()[0][:3].upper()
-            
-    return ships
 
-def get_vehicle_image(vehicle_name):
-    """Get vehicle image - use RSI pattern or fallback"""
-    clean_name = vehicle_name.lower().replace(' ', '-')
-    return f"https://media.robertsspaceindustries.com/vehicle/{clean_name}/isometric.jpg"
+    return ships
