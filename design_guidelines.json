@@ -1,0 +1,163 @@
+{
+  "design_system": {
+    "identity": {
+      "name": "Origin Fleet Manager",
+      "aesthetic": "Origin Jumpworks Luxury",
+      "description": "A premium, high-fidelity fleet management dashboard inspired by Star Citizen's Origin Jumpworks. Combines the elegance of a luxury yacht with the precision of a spacecraft.",
+      "emotion": "Elite, Clean, Precision, Expensive",
+      "mode": "dark",
+      "theme_strategy": "Executive Dark: Deep obsidian backgrounds with high-gloss white panels and ice-blue holographic accents."
+    },
+    "typography": {
+      "font_family": {
+        "headings": "Rajdhani, sans-serif",
+        "body": "Inter, sans-serif",
+        "mono": "JetBrains Mono, monospace"
+      },
+      "scale": {
+        "h1": "text-6xl font-bold tracking-tight uppercase",
+        "h2": "text-4xl font-semibold tracking-wide uppercase",
+        "h3": "text-2xl font-medium tracking-wide",
+        "body": "text-base font-normal leading-relaxed text-gray-300",
+        "caption": "text-xs font-mono tracking-widest text-cyan-500/70 uppercase"
+      }
+    },
+    "colors": {
+      "background": {
+        "app": "#050508",
+        "card": "#0F0F13",
+        "panel": "#14141A",
+        "glass": "rgba(20, 20, 30, 0.6)"
+      },
+      "text": {
+        "primary": "#FFFFFF",
+        "secondary": "#A1A1AA",
+        "muted": "#52525B",
+        "accent": "#00D4FF"
+      },
+      "borders": {
+        "subtle": "#1E1E24",
+        "highlight": "rgba(0, 212, 255, 0.3)",
+        "active": "#00D4FF"
+      },
+      "accents": {
+        "primary": "#00D4FF",
+        "secondary": "#D4AF37",
+        "success": "#00FF9D",
+        "warning": "#FFAE00",
+        "error": "#FF0055"
+      },
+      "gradients": {
+        "hero": "linear-gradient(135deg, #0F0F13 0%, #050508 100%)",
+        "glass": "linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%)",
+        "glow": "radial-gradient(circle at center, rgba(0, 212, 255, 0.15) 0%, transparent 70%)"
+      }
+    },
+    "spacing": {
+      "container_padding": "p-8 md:p-12 lg:p-16",
+      "grid_gap": "gap-6 md:gap-8",
+      "component_spacing": "space-y-6"
+    },
+    "layout": {
+      "grid_system": "Bento Grid with Asymmetrical Spans",
+      "container_width": "max-w-7xl mx-auto",
+      "border_radius": {
+        "outer": "rounded-3xl",
+        "inner": "rounded-xl",
+        "button": "rounded-full"
+      }
+    },
+    "shadows": {
+      "card": "0 20px 40px -10px rgba(0,0,0,0.5)",
+      "glow": "0 0 20px rgba(0, 212, 255, 0.15)",
+      "neon": "0 0 10px #00D4FF, 0 0 20px #00D4FF"
+    },
+    "motion": {
+      "hover": "transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg hover:shadow-cyan-500/10",
+      "click": "active:scale-95 duration-100",
+      "entrance": "animate-in fade-in slide-in-from-bottom-4 duration-700"
+    }
+  },
+  "components": [
+    {
+      "name": "ShipCard",
+      "description": "A premium card displaying a ship. Uses a 'glass' effect with a holographic border.",
+      "path": "src/components/ships/ShipCard.jsx",
+      "props": ["shipData", "onSelect"],
+      "styling": "bg-card/50 backdrop-blur-md border border-white/5 hover:border-cyan-500/50 rounded-2xl overflow-hidden group relative"
+    },
+    {
+      "name": "HoloStatBar",
+      "description": "A progress bar that looks like a laser beam.",
+      "path": "src/components/ui/HoloStatBar.jsx",
+      "props": ["label", "value", "max", "color"],
+      "styling": "h-1 bg-gray-800/50 rounded-full overflow-hidden relative"
+    },
+    {
+      "name": "ComponentHexGrid",
+      "description": "A hexagonal grid layout for displaying ship components (Shields, Coolers, Power).",
+      "path": "src/components/loadout/ComponentHexGrid.jsx",
+      "props": ["components"],
+      "styling": "grid grid-cols-2 md:grid-cols-4 gap-4"
+    },
+    {
+      "name": "OriginButton",
+      "description": "A pill-shaped button with a sleek hover fill effect.",
+      "path": "src/components/ui/OriginButton.jsx",
+      "props": ["children", "variant", "onClick"],
+      "styling": "rounded-full px-8 py-3 font-rajdhani font-bold tracking-widest uppercase border border-cyan-500/30 hover:bg-cyan-500 hover:text-black transition-colors"
+    },
+    {
+      "name": "FleetDashboard",
+      "description": "The main dashboard view. Bento grid layout.",
+      "path": "src/pages/Dashboard.jsx",
+      "styling": "grid grid-cols-1 md:grid-cols-12 gap-6 p-8"
+    }
+  ],
+  "visual_assets": {
+    "backgrounds": [
+      {
+        "url": "https://images.unsplash.com/photo-1755707005738-618811caf708?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MjJ8MHwxfHNlYXJjaHwyfHxzY2ktZmklMjBzcGFjZXNoaXAlMjBzaGllbGQlMjBnZW5lcmF0b3IlMjBjb21wb25lbnQlMjB3ZWFwb24lMjBob2xvZ3JhcGhpY3xlbnwwfHx8fDE3NzIyMDYyOTl8MA&ixlib=rb-4.1.0&q=85",
+        "usage": "Hero Section Background (Overlay with dark gradient)",
+        "alt": "Abstract Metallic Structure"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1750793463866-33f42a408c6e?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzR8MHwxfHNlYXJjaHwzfHxmdXR1cmlzdGljJTIwc2NpLWZpJTIwbHV4dXJ5JTIwc3BhY2VzaGlwJTIwaW50ZXJpb3IlMjB3aGl0ZSUyMGJsdWUlMjBob2xvZ3JhcGhpYyUyMHVpfGVufDB8fHx8MTc3MjIwNjI5OHww&ixlib=rb-4.1.0&q=85",
+        "usage": "Login Page Background",
+        "alt": "Blue Lighting Interior"
+      }
+    ],
+    "icons": "Use 'lucide-react' for UI icons (Chevron, User, Settings) and 'react-icons/si' (Simple Icons) for brands if needed. Use thin strokes.",
+    "3d_strategy": "Use high-quality 2D images with 'Parallax Tilt' effect (react-parallax-tilt) instead of full 3D to maintain performance while keeping the premium feel."
+  },
+  "rules": {
+    "universal": [
+      "No gradients on text unless it's a very subtle shine.",
+      "Use 'backdrop-blur-xl' for all glass panels.",
+      "All borders must be 1px and very subtle (opacity 0.1 to 0.3).",
+      "Text hierarchy: Headings = Rajdhani (Uppercase), Body = Inter.",
+      "Never use pure black (#000000). Use #050508."
+    ],
+    "accessibility": [
+      "Ensure text contrast is at least 4.5:1 on dark backgrounds.",
+      "Interactive elements must have a focus ring (cyan color).",
+      "Use semantic HTML (section, article, main)."
+    ]
+  },
+  "instructions_to_main_agent": [
+    "1. Install 'lucide-react', 'framer-motion', 'clsx', 'tailwind-merge' first.",
+    "2. Add the 'Rajdhani' font from Google Fonts via import in index.css.",
+    "3. Create the 'OriginButton' and 'GlassCard' primitive components first.",
+    "4. Build the Layout using a Sidebar (Left) and Main Content (Right).",
+    "5. For the API integration, create a service file 'src/services/api.js' to handle the 'api.star-citizen.wiki' calls.",
+    "6. Use the provided background images for the Landing/Login page.",
+    "7. Mock the OAuth flow if actual keys are missing, but structure the code to accept a token."
+  ],
+  "universal_guidelines": [
+    "You tend to converge toward generic outputs. Avoid this.",
+    "Don't make generic centered layouts.",
+    "Create depth through layered design elements with z-index hierarchy.",
+    "Use glass-morphism effects with backdrop filters.",
+    "Every interaction needs micro-animations."
+  ]
+}
