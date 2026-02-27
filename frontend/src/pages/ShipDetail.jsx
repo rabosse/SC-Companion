@@ -169,6 +169,78 @@ const ShipDetail = () => {
         </div>
       </motion.div>
 
+      {/* Purchase Locations */}
+      {(ship.purchase_locations?.length > 0 || ship.msrp > 0 || ship.pledge_url) && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="glass-panel rounded-3xl p-8"
+          data-testid="purchase-section"
+        >
+          <h2 className="text-3xl font-bold mb-6 uppercase" style={{ fontFamily: 'Rajdhani, sans-serif', color: '#D4AF37' }}>
+            Where to Buy
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* In-Game Dealers */}
+            {ship.purchase_locations?.length > 0 && (
+              <div>
+                <h3 className="text-lg font-bold text-cyan-400 mb-3" style={{ fontFamily: 'Rajdhani, sans-serif' }}>In-Game Dealers</h3>
+                <div className="space-y-3">
+                  {ship.purchase_locations.map((dealer, i) => (
+                    <div key={i} className="p-4 bg-white/5 rounded-xl border border-white/10 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <MapPin className="w-5 h-5 text-cyan-400 shrink-0" />
+                        <span className="text-white font-medium">{dealer}</span>
+                      </div>
+                      {ship.price_auec > 0 && (
+                        <span className="text-yellow-400 font-bold" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
+                          {ship.price_auec.toLocaleString()} aUEC
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* RSI Pledge Store */}
+            {(ship.msrp > 0 || ship.pledge_url) && (
+              <div>
+                <h3 className="text-lg font-bold text-yellow-400 mb-3" style={{ fontFamily: 'Rajdhani, sans-serif' }}>RSI Pledge Store</h3>
+                <div className="p-4 bg-white/5 rounded-xl border border-white/10 space-y-3">
+                  {ship.msrp > 0 && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-400">Pledge Price</span>
+                      <span className="text-2xl font-bold text-green-400" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
+                        ${ship.msrp} USD
+                      </span>
+                    </div>
+                  )}
+                  {ship.pledge_url && (
+                    <a
+                      href={ship.pledge_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      data-testid="pledge-link"
+                      className="block text-center py-3 rounded-xl font-bold uppercase tracking-wider transition-all hover:opacity-90"
+                      style={{ background: 'linear-gradient(135deg, #D4AF37, #B8860B)', color: '#000', fontFamily: 'Rajdhani, sans-serif' }}
+                    >
+                      View on RSI Store
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {ship.purchase_locations?.length === 0 && ship.price_auec === 0 && (
+            <p className="text-gray-500">No in-game purchase locations found for this ship.</p>
+          )}
+        </motion.div>
+      )}
+
       {/* Recommended Upgrades */}
       <div>
         <h2 className="text-3xl font-bold mb-6 uppercase" style={{ fontFamily: 'Rajdhani, sans-serif', color: '#FFFFFF' }}>
