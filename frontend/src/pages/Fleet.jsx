@@ -80,7 +80,7 @@ const Fleet = () => {
   }, { totalCargo: 0, totalCrew: 0, totalValue: 0 });
 
   const statsCards = [
-    { icon: Ship, label: 'Total Ships', value: fleet.length, color: '#00D4FF' },
+    { icon: SpaceshipIcon, label: 'Total Ships', value: fleet.length, color: '#00D4FF' },
     { icon: Package, label: 'Total Cargo (SCU)', value: fleetStats.totalCargo, color: '#D4AF37' },
     { icon: Users, label: 'Total Crew', value: fleetStats.totalCrew, color: '#00FF9D' },
     { icon: DollarSign, label: 'Fleet Value (UEC)', value: fleetStats.totalValue.toLocaleString(), color: '#FFAE00' },
