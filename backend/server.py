@@ -375,85 +375,85 @@ def get_comprehensive_weapons_list():
     """Comprehensive list of Star Citizen weapons"""
     return [
         # Energy Weapons - Size 1
-        {"id": "weapon_badger", "name": "CF-117 Badger Repeater", "type": "Energy", "manufacturer": "Klaus & Werner", "size": "1", "damage": 38, "rate": 600},
-        {"id": "weapon_attrition1", "name": "Attrition-1", "type": "Energy", "manufacturer": "Hurston Dynamics", "size": "1", "damage": 42, "rate": 550},
-        {"id": "weapon_scorpion", "name": "Scorpion GT-215", "type": "Energy", "manufacturer": "Banu", "size": "1", "damage": 40, "rate": 580},
-        {"id": "weapon_suckerpunch", "name": "Suckerpunch Distortion", "type": "Energy", "manufacturer": "Kastak Arms", "size": "1", "damage": 35, "rate": 620},
+        {"id": "weapon_badger", "name": "CF-117 Badger Repeater", "type": "Energy", "manufacturer": "Klaus & Werner", "size": "1", "damage": 38, "rate": 600, "location": "Port Olisar", "cost_auec": 4800},
+        {"id": "weapon_attrition1", "name": "Attrition-1", "type": "Energy", "manufacturer": "Hurston Dynamics", "size": "1", "damage": 42, "rate": 550, "location": "Lorville", "cost_auec": 5200},
+        {"id": "weapon_scorpion", "name": "Scorpion GT-215", "type": "Energy", "manufacturer": "Banu", "size": "1", "damage": 40, "rate": 580, "location": "Area18", "cost_auec": 5600},
+        {"id": "weapon_suckerpunch", "name": "Suckerpunch Distortion", "type": "Energy", "manufacturer": "Kastak Arms", "size": "1", "damage": 35, "rate": 620, "location": "GrimHEX", "cost_auec": 4400},
         
         # Energy Weapons - Size 2
-        {"id": "weapon_panther", "name": "CF-227 Panther Repeater", "type": "Energy", "manufacturer": "Klaus & Werner", "size": "2", "damage": 62, "rate": 550},
-        {"id": "weapon_attrition2", "name": "Attrition-2", "type": "Energy", "manufacturer": "Hurston Dynamics", "size": "2", "damage": 68, "rate": 500},
-        {"id": "weapon_omnisky6", "name": "Omnisky VI", "type": "Energy", "manufacturer": "Klaus & Werner", "size": "2", "damage": 185, "rate": 180},
-        {"id": "weapon_nn14", "name": "NN-14 Neutron Repeater", "type": "Energy", "manufacturer": "Neutron", "size": "2", "damage": 70, "rate": 350},
+        {"id": "weapon_panther", "name": "CF-227 Panther Repeater", "type": "Energy", "manufacturer": "Klaus & Werner", "size": "2", "damage": 62, "rate": 550, "location": "New Babbage", "cost_auec": 9600},
+        {"id": "weapon_attrition2", "name": "Attrition-2", "type": "Energy", "manufacturer": "Hurston Dynamics", "size": "2", "damage": 68, "rate": 500, "location": "Lorville", "cost_auec": 10400},
+        {"id": "weapon_omnisky6", "name": "Omnisky VI", "type": "Energy", "manufacturer": "Klaus & Werner", "size": "2", "damage": 185, "rate": 180, "location": "Port Olisar", "cost_auec": 12800},
+        {"id": "weapon_nn14", "name": "NN-14 Neutron Repeater", "type": "Energy", "manufacturer": "Neutron", "size": "2", "damage": 70, "rate": 350, "location": "Area18", "cost_auec": 11200},
         
         # Energy Weapons - Size 3
-        {"id": "weapon_m6a", "name": "M6A Laser Cannon", "type": "Energy", "manufacturer": "Klaus & Werner", "size": "3", "damage": 210, "rate": 300},
-        {"id": "weapon_attrition3", "name": "Attrition-3", "type": "Energy", "manufacturer": "Hurston Dynamics", "size": "3", "damage": 225, "rate": 280},
-        {"id": "weapon_omnisky9", "name": "Omnisky IX", "type": "Energy", "manufacturer": "Klaus & Werner", "size": "3", "damage": 305, "rate": 150},
-        {"id": "weapon_nn13", "name": "NN-13 Neutron Cannon", "type": "Energy", "manufacturer": "Neutron", "size": "3", "damage": 240, "rate": 260},
+        {"id": "weapon_m6a", "name": "M6A Laser Cannon", "type": "Energy", "manufacturer": "Klaus & Werner", "size": "3", "damage": 210, "rate": 300, "location": "New Babbage", "cost_auec": 24800},
+        {"id": "weapon_attrition3", "name": "Attrition-3", "type": "Energy", "manufacturer": "Hurston Dynamics", "size": "3", "damage": 225, "rate": 280, "location": "Lorville", "cost_auec": 26400},
+        {"id": "weapon_omnisky9", "name": "Omnisky IX", "type": "Energy", "manufacturer": "Klaus & Werner", "size": "3", "damage": 305, "rate": 150, "location": "Port Olisar", "cost_auec": 32000},
+        {"id": "weapon_nn13", "name": "NN-13 Neutron Cannon", "type": "Energy", "manufacturer": "Neutron", "size": "3", "damage": 240, "rate": 260, "location": "Area18", "cost_auec": 28800},
         
         # Energy Weapons - Size 4
-        {"id": "weapon_m7a", "name": "M7A Laser Cannon", "type": "Energy", "manufacturer": "Klaus & Werner", "size": "4", "damage": 350, "rate": 280},
-        {"id": "weapon_attrition4", "name": "Attrition-4", "type": "Energy", "manufacturer": "Hurston Dynamics", "size": "4", "damage": 375, "rate": 260},
-        {"id": "weapon_c788", "name": "C-788 Ballistic Cannon", "type": "Energy", "manufacturer": "Behring", "size": "4", "damage": 420, "rate": 200},
+        {"id": "weapon_m7a", "name": "M7A Laser Cannon", "type": "Energy", "manufacturer": "Klaus & Werner", "size": "4", "damage": 350, "rate": 280, "location": "New Babbage", "cost_auec": 52000},
+        {"id": "weapon_attrition4", "name": "Attrition-4", "type": "Energy", "manufacturer": "Hurston Dynamics", "size": "4", "damage": 375, "rate": 260, "location": "Lorville", "cost_auec": 56000},
+        {"id": "weapon_c788", "name": "C-788 Ballistic Cannon", "type": "Energy", "manufacturer": "Behring", "size": "4", "damage": 420, "rate": 200, "location": "Port Olisar", "cost_auec": 64000},
         
         # Ballistic Weapons - Size 1
-        {"id": "weapon_s38", "name": "S-38 Pistol", "type": "Ballistic", "manufacturer": "Gemini", "size": "1", "damage": 50, "rate": 400, "ammo_per_mag": 60},
-        {"id": "weapon_longsword", "name": "Longsword-1", "type": "Ballistic", "manufacturer": "Behring", "size": "1", "damage": 52, "rate": 380, "ammo_per_mag": 55},
-        {"id": "weapon_sawbuck", "name": "Sawbuck Repeater", "type": "Ballistic", "manufacturer": "Gallenson Tactical", "size": "1", "damage": 48, "rate": 420, "ammo_per_mag": 65},
+        {"id": "weapon_s38", "name": "S-38 Pistol", "type": "Ballistic", "manufacturer": "Gemini", "size": "1", "damage": 50, "rate": 400, "ammo_per_mag": 60, "location": "Lorville", "cost_auec": 3800},
+        {"id": "weapon_longsword", "name": "Longsword-1", "type": "Ballistic", "manufacturer": "Behring", "size": "1", "damage": 52, "rate": 380, "ammo_per_mag": 55, "location": "Area18", "cost_auec": 4200},
+        {"id": "weapon_sawbuck", "name": "Sawbuck Repeater", "type": "Ballistic", "manufacturer": "Gallenson Tactical", "size": "1", "damage": 48, "rate": 420, "ammo_per_mag": 65, "location": "Port Olisar", "cost_auec": 3600},
         
         # Ballistic Weapons - Size 2
-        {"id": "weapon_panther_ballistic", "name": "CF-337 Panther", "type": "Ballistic", "manufacturer": "Behring", "size": "2", "damage": 85, "rate": 700, "ammo_per_mag": 300},
-        {"id": "weapon_mantis", "name": "Mantis GT-220", "type": "Ballistic", "manufacturer": "Behring", "size": "2", "damage": 90, "rate": 650, "ammo_per_mag": 280},
-        {"id": "weapon_revenant", "name": "Revenant Gatling", "type": "Ballistic", "manufacturer": "Apocalypse Arms", "size": "2", "damage": 45, "rate": 1200, "ammo_per_mag": 1500},
-        {"id": "weapon_deadbolt2", "name": "Deadbolt II", "type": "Ballistic", "manufacturer": "Klaus & Werner", "size": "2", "damage": 220, "rate": 100, "ammo_per_mag": 40},
+        {"id": "weapon_panther_ballistic", "name": "CF-337 Panther", "type": "Ballistic", "manufacturer": "Behring", "size": "2", "damage": 85, "rate": 700, "ammo_per_mag": 300, "location": "New Babbage", "cost_auec": 8800},
+        {"id": "weapon_mantis", "name": "Mantis GT-220", "type": "Ballistic", "manufacturer": "Behring", "size": "2", "damage": 90, "rate": 650, "ammo_per_mag": 280, "location": "Lorville", "cost_auec": 9400},
+        {"id": "weapon_revenant", "name": "Revenant Gatling", "type": "Ballistic", "manufacturer": "Apocalypse Arms", "size": "2", "damage": 45, "rate": 1200, "ammo_per_mag": 1500, "location": "GrimHEX", "cost_auec": 12600},
+        {"id": "weapon_deadbolt2", "name": "Deadbolt II", "type": "Ballistic", "manufacturer": "Klaus & Werner", "size": "2", "damage": 220, "rate": 100, "ammo_per_mag": 40, "location": "Area18", "cost_auec": 14200},
         
         # Ballistic Weapons - Size 3
-        {"id": "weapon_longsword3", "name": "Longsword-3", "type": "Ballistic", "manufacturer": "Behring", "size": "3", "damage": 180, "rate": 400, "ammo_per_mag": 200},
-        {"id": "weapon_sledge2", "name": "Sledge II Mass Driver", "type": "Ballistic", "manufacturer": "Klaus & Werner", "size": "3", "damage": 450, "rate": 75, "ammo_per_mag": 30},
-        {"id": "weapon_sawbuck3", "name": "Sawbuck Repeater III", "type": "Ballistic", "manufacturer": "Gallenson Tactical", "size": "3", "damage": 95, "rate": 650, "ammo_per_mag": 350},
+        {"id": "weapon_longsword3", "name": "Longsword-3", "type": "Ballistic", "manufacturer": "Behring", "size": "3", "damage": 180, "rate": 400, "ammo_per_mag": 200, "location": "Port Olisar", "cost_auec": 22400},
+        {"id": "weapon_sledge2", "name": "Sledge II Mass Driver", "type": "Ballistic", "manufacturer": "Klaus & Werner", "size": "3", "damage": 450, "rate": 75, "ammo_per_mag": 30, "location": "New Babbage", "cost_auec": 34000},
+        {"id": "weapon_sawbuck3", "name": "Sawbuck Repeater III", "type": "Ballistic", "manufacturer": "Gallenson Tactical", "size": "3", "damage": 95, "rate": 650, "ammo_per_mag": 350, "location": "Lorville", "cost_auec": 18600},
         
         # Ballistic Weapons - Size 4
-        {"id": "weapon_combine", "name": "C-788 Combine Ballistic Cannon", "type": "Ballistic", "manufacturer": "Apocalypse Arms", "size": "4", "damage": 740, "rate": 120, "ammo_per_mag": 80},
-        {"id": "weapon_m6a_ballistic", "name": "M6A Autocannon", "type": "Ballistic", "manufacturer": "Behring", "size": "4", "damage": 380, "rate": 350, "ammo_per_mag": 400},
+        {"id": "weapon_combine", "name": "C-788 Combine Ballistic Cannon", "type": "Ballistic", "manufacturer": "Apocalypse Arms", "size": "4", "damage": 740, "rate": 120, "ammo_per_mag": 80, "location": "GrimHEX", "cost_auec": 68000},
+        {"id": "weapon_m6a_ballistic", "name": "M6A Autocannon", "type": "Ballistic", "manufacturer": "Behring", "size": "4", "damage": 380, "rate": 350, "ammo_per_mag": 400, "location": "Area18", "cost_auec": 48000},
         
         # Ballistic Weapons - Size 5
-        {"id": "weapon_ad5b", "name": "AD5B Ballistic Cannon", "type": "Ballistic", "manufacturer": "Apocalypse Arms", "size": "5", "damage": 1200, "rate": 80, "ammo_per_mag": 60},
-        {"id": "weapon_m8a", "name": "M8A Autocannon", "type": "Ballistic", "manufacturer": "Behring", "size": "5", "damage": 550, "rate": 280, "ammo_per_mag": 500},
+        {"id": "weapon_ad5b", "name": "AD5B Ballistic Cannon", "type": "Ballistic", "manufacturer": "Apocalypse Arms", "size": "5", "damage": 1200, "rate": 80, "ammo_per_mag": 60, "location": "GrimHEX", "cost_auec": 96000},
+        {"id": "weapon_m8a", "name": "M8A Autocannon", "type": "Ballistic", "manufacturer": "Behring", "size": "5", "damage": 550, "rate": 280, "ammo_per_mag": 500, "location": "New Babbage", "cost_auec": 84000},
         
         # Missiles - Size 1
-        {"id": "missile_spark1", "name": "Spark I", "type": "Missile", "manufacturer": "A&R", "size": "1", "damage": 1200, "rate": 1},
-        {"id": "missile_ignite1", "name": "Ignite I", "type": "Missile", "manufacturer": "A&R", "size": "1", "damage": 1350, "rate": 1},
-        {"id": "missile_rattler1", "name": "Rattler I", "type": "Missile", "manufacturer": "Behring", "size": "1", "damage": 1180, "rate": 1},
+        {"id": "missile_spark1", "name": "Spark I", "type": "Missile", "manufacturer": "A&R", "size": "1", "damage": 1200, "rate": 1, "location": "Port Olisar", "cost_auec": 800},
+        {"id": "missile_ignite1", "name": "Ignite I", "type": "Missile", "manufacturer": "A&R", "size": "1", "damage": 1350, "rate": 1, "location": "Area18", "cost_auec": 950},
+        {"id": "missile_rattler1", "name": "Rattler I", "type": "Missile", "manufacturer": "Behring", "size": "1", "damage": 1180, "rate": 1, "location": "New Babbage", "cost_auec": 750},
         
         # Missiles - Size 2
-        {"id": "missile_spark2", "name": "Spark II", "type": "Missile", "manufacturer": "A&R", "size": "2", "damage": 2400, "rate": 1},
-        {"id": "missile_ignite2", "name": "Ignite II", "type": "Missile", "manufacturer": "A&R", "size": "2", "damage": 2700, "rate": 1},
-        {"id": "missile_marksman", "name": "Marksman I", "type": "Missile", "manufacturer": "Behring", "size": "2", "damage": 2500, "rate": 1},
+        {"id": "missile_spark2", "name": "Spark II", "type": "Missile", "manufacturer": "A&R", "size": "2", "damage": 2400, "rate": 1, "location": "Port Olisar", "cost_auec": 1600},
+        {"id": "missile_ignite2", "name": "Ignite II", "type": "Missile", "manufacturer": "A&R", "size": "2", "damage": 2700, "rate": 1, "location": "Lorville", "cost_auec": 1900},
+        {"id": "missile_marksman", "name": "Marksman I", "type": "Missile", "manufacturer": "Behring", "size": "2", "damage": 2500, "rate": 1, "location": "Area18", "cost_auec": 1750},
         
         # Missiles - Size 3
-        {"id": "missile_talon", "name": "Talon IR Missile", "type": "Missile", "manufacturer": "Behring", "size": "3", "damage": 4500, "rate": 1},
-        {"id": "missile_tempest", "name": "Tempest II", "type": "Missile", "manufacturer": "Behring", "size": "3", "damage": 4800, "rate": 1},
-        {"id": "missile_arrow3", "name": "Arrow III", "type": "Missile", "manufacturer": "A&R", "size": "3", "damage": 4200, "rate": 1},
+        {"id": "missile_talon", "name": "Talon IR Missile", "type": "Missile", "manufacturer": "Behring", "size": "3", "damage": 4500, "rate": 1, "location": "New Babbage", "cost_auec": 3200},
+        {"id": "missile_tempest", "name": "Tempest II", "type": "Missile", "manufacturer": "Behring", "size": "3", "damage": 4800, "rate": 1, "location": "Lorville", "cost_auec": 3600},
+        {"id": "missile_arrow3", "name": "Arrow III", "type": "Missile", "manufacturer": "A&R", "size": "3", "damage": 4200, "rate": 1, "location": "Port Olisar", "cost_auec": 2800},
         
         # Missiles - Size 4
-        {"id": "missile_pioneer", "name": "Pioneer", "type": "Missile", "manufacturer": "Behring", "size": "4", "damage": 8500, "rate": 1},
-        {"id": "missile_raptor", "name": "Raptor", "type": "Missile", "manufacturer": "A&R", "size": "4", "damage": 9000, "rate": 1},
+        {"id": "missile_pioneer", "name": "Pioneer", "type": "Missile", "manufacturer": "Behring", "size": "4", "damage": 8500, "rate": 1, "location": "Area18", "cost_auec": 6400},
+        {"id": "missile_raptor", "name": "Raptor", "type": "Missile", "manufacturer": "A&R", "size": "4", "damage": 9000, "rate": 1, "location": "GrimHEX", "cost_auec": 7200},
         
         # Torpedoes - Size 5
-        {"id": "torpedo_argos5", "name": "Argos V", "type": "Missile", "manufacturer": "Behring", "size": "5", "damage": 28000, "rate": 1},
-        {"id": "torpedo_seeker5", "name": "Seeker V", "type": "Missile", "manufacturer": "A&R", "size": "5", "damage": 30000, "rate": 1},
+        {"id": "torpedo_argos5", "name": "Argos V", "type": "Missile", "manufacturer": "Behring", "size": "5", "damage": 28000, "rate": 1, "location": "New Babbage", "cost_auec": 18000},
+        {"id": "torpedo_seeker5", "name": "Seeker V", "type": "Missile", "manufacturer": "A&R", "size": "5", "damage": 30000, "rate": 1, "location": "Lorville", "cost_auec": 20000},
         
         # Torpedoes - Size 9
-        {"id": "torpedo_argos9", "name": "Argos IX Torpedo", "type": "Missile", "manufacturer": "Behring", "size": "9", "damage": 125000, "rate": 1},
-        {"id": "torpedo_seeker9", "name": "Seeker IX Torpedo", "type": "Missile", "manufacturer": "A&R", "size": "9", "damage": 135000, "rate": 1},
+        {"id": "torpedo_argos9", "name": "Argos IX Torpedo", "type": "Missile", "manufacturer": "Behring", "size": "9", "damage": 125000, "rate": 1, "location": "Area18", "cost_auec": 85000},
+        {"id": "torpedo_seeker9", "name": "Seeker IX Torpedo", "type": "Missile", "manufacturer": "A&R", "size": "9", "damage": 135000, "rate": 1, "location": "GrimHEX", "cost_auec": 92000},
         
         # Special Weapons
-        {"id": "weapon_mass_driver", "name": "Sledge Mass Driver", "type": "Ballistic", "manufacturer": "Klaus & Werner", "size": "4", "damage": 850, "rate": 60, "ammo_per_mag": 25},
-        {"id": "weapon_plasma", "name": "Plasma Projector", "type": "Energy", "manufacturer": "Sakura Sun", "size": "4", "damage": 680, "rate": 90},
-        {"id": "weapon_emp", "name": "Suckerpunch EMP", "type": "Energy", "manufacturer": "Kastak Arms", "size": "3", "damage": 0, "rate": 30},
-        {"id": "weapon_mining_laser", "name": "Hofstede-S1 Mining Laser", "type": "Energy", "manufacturer": "Greycat Industrial", "size": "2", "damage": 0, "rate": 1},
-        {"id": "weapon_tractor", "name": "MaxLift Tractor Beam", "type": "Energy", "manufacturer": "Greycat Industrial", "size": "1", "damage": 0, "rate": 1},
+        {"id": "weapon_mass_driver", "name": "Sledge Mass Driver", "type": "Ballistic", "manufacturer": "Klaus & Werner", "size": "4", "damage": 850, "rate": 60, "ammo_per_mag": 25, "location": "Port Olisar", "cost_auec": 72000},
+        {"id": "weapon_plasma", "name": "Plasma Projector", "type": "Energy", "manufacturer": "Sakura Sun", "size": "4", "damage": 680, "rate": 90, "location": "New Babbage", "cost_auec": 58000},
+        {"id": "weapon_emp", "name": "Suckerpunch EMP", "type": "Energy", "manufacturer": "Kastak Arms", "size": "3", "damage": 0, "rate": 30, "location": "GrimHEX", "cost_auec": 38000},
+        {"id": "weapon_mining_laser", "name": "Hofstede-S1 Mining Laser", "type": "Energy", "manufacturer": "Greycat Industrial", "size": "2", "damage": 0, "rate": 1, "location": "Lorville", "cost_auec": 15000},
+        {"id": "weapon_tractor", "name": "MaxLift Tractor Beam", "type": "Energy", "manufacturer": "Greycat Industrial", "size": "1", "damage": 0, "rate": 1, "location": "Area18", "cost_auec": 8000},
     ]
 
 @api_router.get("/upgrades/{ship_id}")
