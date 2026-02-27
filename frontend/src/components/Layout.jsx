@@ -1,7 +1,8 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../App';
-import { Ship, Users, Box, Crosshair, LogOut, Menu, X, Briefcase } from 'lucide-react';
+import { Users, Box, Crosshair, LogOut, Menu, X, Briefcase } from 'lucide-react';
 import { useState } from 'react';
+import SpaceshipIcon from './SpaceshipIcon';
 
 const Layout = ({ children }) => {
   const { user, logout } = useAuth();
@@ -9,9 +10,9 @@ const Layout = ({ children }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navItems = [
-    { path: '/', label: 'Dashboard', icon: Ship },
+    { path: '/', label: 'Dashboard', icon: SpaceshipIcon },
     { path: '/fleet', label: 'My Fleet', icon: Briefcase },
-    { path: '/ships', label: 'Ships', icon: Ship },
+    { path: '/ships', label: 'Ships', icon: SpaceshipIcon },
     { path: '/vehicles', label: 'Vehicles', icon: Users },
     { path: '/components', label: 'Components', icon: Box },
     { path: '/weapons', label: 'Weapons', icon: Crosshair },
@@ -29,9 +30,15 @@ const Layout = ({ children }) => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
-                <Ship className="w-6 h-6 text-white" />
-              </div>
+              <img 
+                src="https://robertsspaceindustries.com/rsi/static/images/account/avatar_default_big.jpg" 
+                alt="Star Citizen Logo"
+                className="w-10 h-10 rounded-full"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = "https://media.robertsspaceindustries.com/logo/SC-Logo-white.png";
+                }}
+              />
               <h1 className="text-2xl font-bold tracking-tight uppercase" style={{ fontFamily: 'Rajdhani, sans-serif', color: '#00D4FF' }}>
                 Star Citizen Fleet Manager
               </h1>
