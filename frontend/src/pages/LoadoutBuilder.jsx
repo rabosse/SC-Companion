@@ -1,306 +1,423 @@
-import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../App';
 import axios from 'axios';
-import { ArrowLeft, Save, RotateCcw } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Ship, Search, X, Check, Shield, Zap, Cpu, Box, Crosshair, AlertTriangle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 
+const SLOT_TYPES = [
+  { key: 'shield', label: 'Shields', icon: Shield, color: '#00D4FF', componentType: 'Shield' },
+  { key: 'power_plant', label: 'Power Plant', icon: Zap, color: '#FFAE00', componentType: 'Power' },
+  { key: 'cooler', label: 'Coolers', icon: Box, color: '#00FF9D', componentType: 'Cooler' },
+  { key: 'quantum_drive', label: 'Quantum Drive', icon: Cpu, color: '#D4AF37', componentType: 'Quantum' },
+];
+
 const LoadoutBuilder = () => {
-  const { shipId } = useParams();
   const { API } = useAuth();
-  const [ship, setShip] = useState(null);
+  const [ships, setShips] = useState([]);
+  const [selectedShip, setSelectedShip] = useState(null);
   const [components, setComponents] = useState([]);
   const [weapons, setWeapons] = useState([]);
-  const [loadout, setLoadout] = useState({
-    shields: [],
-    power: null,
-    coolers: [],
-    quantum: null,
-    weapons: [],
-  });
-  const [loading, setLoading] = useState(true);
+  const [loadout, setLoadout] = useState({});
+  const [activeSlot, setActiveSlot] = useState(null);
+  const [shipSearch, setShipSearch] = useState('');
+  const [itemSearch, setItemSearch] = useState('');
 
   useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [shipsRes, compsRes, weaponsRes] = await Promise.all([
+          axios.get(`${API}/ships`),
+          axios.get(`${API}/components`),
+          axios.get(`${API}/weapons`),
+        ]);
+        setShips(shipsRes.data.data || []);
+        setComponents(compsRes.data.data || []);
+        setWeapons(weaponsRes.data.data || []);
+      } catch {
+        toast.error('Failed to load data');
+      }
+    };
     fetchData();
-  }, [shipId]);
+  }, [API]);
 
-  const fetchData = async () => {
-    try {
-      const [shipsRes, componentsRes, weaponsRes] = await Promise.all([
-        axios.get(`${API}/ships`),
-        axios.get(`${API}/components`),
-        axios.get(`${API}/weapons`),
-      ]);
+  const hardpoints = selectedShip?.hardpoints || {};
+  const weaponSlots = hardpoints.weapons || [];
 
-      const foundShip = shipsRes.data.data.find((s) => s.id === shipId);
-      setShip(foundShip);
-      setComponents(componentsRes.data.data || []);
-      setWeapons(weaponsRes.data.data || []);
+  // Build slot definitions from ship hardpoints
+  const slotDefs = useMemo(() => {
+    if (!selectedShip) return [];
+    const defs = [];
 
-      // Load saved loadout
-      const saved = localStorage.getItem(`loadout_${shipId}`);
-      if (saved) {
-        setLoadout(JSON.parse(saved));
+    SLOT_TYPES.forEach(st => {
+      const hp = hardpoints[st.key];
+      if (hp && hp.count > 0) {
+        for (let i = 0; i < hp.count; i++) {
+          defs.push({
+            id: `${st.key}_${i}`,
+            type: 'component',
+            componentType: st.componentType,
+            maxSize: hp.size,
+            label: `${st.label} ${hp.count > 1 ? i + 1 : ''}`.trim(),
+            icon: st.icon,
+            color: st.color,
+          });
+        }
       }
-    } catch (error) {
-      toast.error('Failed to load data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const saveLoadout = () => {
-    localStorage.setItem(`loadout_${shipId}`, JSON.stringify(loadout));
-    toast.success('Loadout saved successfully!');
-  };
-
-  const resetLoadout = () => {
-    setLoadout({
-      shields: [],
-      power: null,
-      coolers: [],
-      quantum: null,
-      weapons: [],
     });
-    localStorage.removeItem(`loadout_${shipId}`);
-    toast.success('Loadout reset to default');
-  };
 
-  const selectComponent = (type, component) => {
-    if (type === 'power' || type === 'quantum') {
-      setLoadout({ ...loadout, [type]: component });
+    weaponSlots.forEach((maxSize, i) => {
+      defs.push({
+        id: `weapon_${i}`,
+        type: 'weapon',
+        maxSize,
+        label: `Weapon Hardpoint ${i + 1}`,
+        icon: Crosshair,
+        color: '#FF0055',
+      });
+    });
+
+    return defs;
+  }, [selectedShip, hardpoints, weaponSlots]);
+
+  // Get compatible items for a slot
+  const getCompatibleItems = (slot) => {
+    const q = itemSearch.toLowerCase();
+    if (slot.type === 'weapon') {
+      return weapons.filter(w => {
+        const wSize = parseInt(w.size) || 0;
+        if (wSize > slot.maxSize || wSize <= 0) return false;
+        if (q && !w.name.toLowerCase().includes(q) && !w.manufacturer.toLowerCase().includes(q)) return false;
+        return true;
+      });
     } else {
-      // For arrays (shields, coolers, weapons)
-      const maxSlots = type === 'shields' ? 2 : type === 'coolers' ? 2 : 4;
-      if (loadout[type].length < maxSlots) {
-        setLoadout({ ...loadout, [type]: [...loadout[type], component] });
-      } else {
-        toast.error(`Maximum ${maxSlots} ${type} slots`);
-      }
+      return components.filter(c => {
+        const cSize = parseInt(c.size) || 0;
+        if (cSize !== slot.maxSize) return false;
+        if (c.type !== slot.componentType) return false;
+        if (q && !c.name.toLowerCase().includes(q) && !c.manufacturer.toLowerCase().includes(q)) return false;
+        return true;
+      });
     }
   };
 
-  const removeComponent = (type, index) => {
-    if (type === 'power' || type === 'quantum') {
-      setLoadout({ ...loadout, [type]: null });
-    } else {
-      const newArray = loadout[type].filter((_, i) => i !== index);
-      setLoadout({ ...loadout, [type]: newArray });
-    }
+  const assignItem = (slotId, item) => {
+    setLoadout(prev => ({ ...prev, [slotId]: item }));
+    setActiveSlot(null);
+    setItemSearch('');
+    toast.success(`${item.name} equipped`);
   };
 
-  if (loading) {
+  const removeItem = (slotId) => {
+    setLoadout(prev => {
+      const copy = { ...prev };
+      delete copy[slotId];
+      return copy;
+    });
+  };
+
+  const clearLoadout = () => {
+    setLoadout({});
+    toast.success('Loadout cleared');
+  };
+
+  const selectShip = (ship) => {
+    setSelectedShip(ship);
+    setLoadout({});
+    setActiveSlot(null);
+    setShipSearch('');
+  };
+
+  const filteredShips = useMemo(() => {
+    if (!shipSearch) return ships;
+    const q = shipSearch.toLowerCase();
+    return ships.filter(s => s.name.toLowerCase().includes(q) || s.manufacturer.toLowerCase().includes(q));
+  }, [ships, shipSearch]);
+
+  // Calculate loadout total cost
+  const totalCost = Object.values(loadout).reduce((sum, item) => sum + (item.cost_auec || 0), 0);
+
+  // Ship selection view
+  if (!selectedShip) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading loadout builder...</p>
+      <div className="space-y-8" data-testid="loadout-ship-select">
+        <div>
+          <h1 className="text-4xl sm:text-5xl font-bold mb-4 uppercase" style={{ fontFamily: 'Rajdhani, sans-serif', color: '#00D4FF' }}>
+            Loadout Builder
+          </h1>
+          <p className="text-gray-400">Select a ship to customize its loadout. Only compatible parts will be shown.</p>
+        </div>
+
+        <div className="relative max-w-lg">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+          <input
+            type="text"
+            value={shipSearch}
+            onChange={e => setShipSearch(e.target.value)}
+            placeholder="Search ships..."
+            data-testid="ship-search-input"
+            className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 transition-all"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          {filteredShips.map(ship => {
+            const hp = ship.hardpoints || {};
+            const wSlots = hp.weapons || [];
+            const hasSlots = wSlots.length > 0 || (hp.shield?.count > 0);
+
+            return (
+              <button
+                key={ship.id}
+                onClick={() => hasSlots && selectShip(ship)}
+                data-testid={`select-ship-${ship.id}`}
+                className={`glass-panel rounded-xl p-3 text-left transition-all group ${hasSlots ? 'hover:border-cyan-500/50 cursor-pointer' : 'opacity-40 cursor-not-allowed'}`}
+              >
+                <div className="h-24 bg-gradient-to-br from-cyan-500/10 to-blue-600/10 rounded-lg overflow-hidden mb-2">
+                  {ship.image ? (
+                    <img src={ship.image} alt={ship.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" onError={e => { e.target.onerror = null; e.target.style.display = 'none'; }} />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center"><Ship className="w-8 h-8 text-cyan-500/20" /></div>
+                  )}
+                </div>
+                <div className="font-bold text-white text-sm truncate">{ship.name}</div>
+                <div className="text-xs text-gray-500 truncate">{ship.manufacturer}</div>
+                {hasSlots && (
+                  <div className="flex items-center gap-1 mt-1 flex-wrap">
+                    {wSlots.length > 0 && (
+                      <span className="text-[10px] px-1.5 py-0.5 bg-red-500/20 text-red-400 rounded">{wSlots.length}x wpn</span>
+                    )}
+                    {hp.shield?.count > 0 && (
+                      <span className="text-[10px] px-1.5 py-0.5 bg-cyan-500/20 text-cyan-400 rounded">S{hp.shield.size} shld</span>
+                    )}
+                  </div>
+                )}
+                {!hasSlots && (
+                  <div className="text-[10px] text-gray-600 mt-1">No slots</div>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
     );
   }
 
-  if (!ship) return <div>Ship not found</div>;
-
-  const componentsByType = {
-    shields: components.filter(c => c.type === 'Shield'),
-    power: components.filter(c => c.type === 'Power'),
-    coolers: components.filter(c => c.type === 'Cooler'),
-    quantum: components.filter(c => c.type === 'Quantum'),
-  };
-
+  // Loadout builder view
   return (
-    <div className="space-y-8" data-testid="loadout-builder-page">
+    <div className="space-y-6" data-testid="loadout-builder">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <Link to={`/ships/${shipId}`} className="inline-flex items-center space-x-2 text-gray-400 hover:text-cyan-500 transition-colors mb-4">
-            <ArrowLeft className="w-4 h-4" />
-            <span>Back to {ship.name}</span>
-          </Link>
-          <h1 className="text-5xl font-bold uppercase" style={{ fontFamily: 'Rajdhani, sans-serif', color: '#00D4FF' }}>
-            Loadout Builder
-          </h1>
-          <p className="text-gray-400 mt-2">Customize components and weapons for {ship.name}</p>
-        </div>
-        <div className="flex space-x-3">
-          <button onClick={resetLoadout} className="px-6 py-3 rounded-full border border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white transition-all" style={{ fontFamily: 'Rajdhani, sans-serif', fontWeight: 600 }}>
-            <RotateCcw className="w-5 h-5 inline mr-2" />
-            Reset
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-4">
+          <button onClick={() => { setSelectedShip(null); setLoadout({}); }} data-testid="back-to-ships-btn" className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+            <X className="w-6 h-6 text-gray-400" />
           </button>
-          <button onClick={saveLoadout} className="btn-origin">
-            <Save className="w-5 h-5 inline mr-2" />
-            Save Loadout
-          </button>
-        </div>
-      </div>
-
-      {/* Ship Preview */}
-      <div className="glass-panel rounded-2xl p-6">
-        <div className="flex items-center space-x-6">
-          <img src={ship.image} alt={ship.name} className="w-48 h-32 object-cover rounded-xl" />
           <div>
-            <h2 className="text-3xl font-bold mb-2" style={{ fontFamily: 'Rajdhani, sans-serif', color: '#FFFFFF' }}>
-              {ship.name}
-            </h2>
-            <p className="text-gray-400">{ship.manufacturer} • {ship.size} Class</p>
+            <h1 className="text-3xl sm:text-4xl font-bold uppercase" style={{ fontFamily: 'Rajdhani, sans-serif', color: '#00D4FF' }}>
+              {selectedShip.name}
+            </h1>
+            <p className="text-gray-400 text-sm">{selectedShip.manufacturer} - {selectedShip.size} class</p>
           </div>
         </div>
-      </div>
-
-      {/* Loadout Sections */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Shields */}
-        <LoadoutSection
-          title="Shields"
-          slots={loadout.shields}
-          maxSlots={2}
-          availableComponents={componentsByType.shields}
-          onSelect={(comp) => selectComponent('shields', comp)}
-          onRemove={(index) => removeComponent('shields', index)}
-          color="#00D4FF"
-        />
-
-        {/* Power Plant */}
-        <LoadoutSection
-          title="Power Plant"
-          slots={loadout.power ? [loadout.power] : []}
-          maxSlots={1}
-          availableComponents={componentsByType.power}
-          onSelect={(comp) => selectComponent('power', comp)}
-          onRemove={() => removeComponent('power')}
-          color="#FFAE00"
-        />
-
-        {/* Coolers */}
-        <LoadoutSection
-          title="Coolers"
-          slots={loadout.coolers}
-          maxSlots={2}
-          availableComponents={componentsByType.coolers}
-          onSelect={(comp) => selectComponent('coolers', comp)}
-          onRemove={(index) => removeComponent('coolers', index)}
-          color="#00FF9D"
-        />
-
-        {/* Quantum Drive */}
-        <LoadoutSection
-          title="Quantum Drive"
-          slots={loadout.quantum ? [loadout.quantum] : []}
-          maxSlots={1}
-          availableComponents={componentsByType.quantum}
-          onSelect={(comp) => selectComponent('quantum', comp)}
-          onRemove={() => removeComponent('quantum')}
-          color="#D4AF37"
-        />
-
-        {/* Weapons */}
-        <div className="lg:col-span-2">
-          <LoadoutSection
-            title="Weapons"
-            slots={loadout.weapons}
-            maxSlots={4}
-            availableComponents={weapons}
-            onSelect={(comp) => selectComponent('weapons', comp)}
-            onRemove={(index) => removeComponent('weapons', index)}
-            color="#FF0055"
-          />
+        <div className="flex items-center gap-3">
+          {totalCost > 0 && (
+            <div className="text-sm text-yellow-400 font-semibold" data-testid="total-cost">
+              Total: {totalCost.toLocaleString()} aUEC
+            </div>
+          )}
+          {Object.keys(loadout).length > 0 && (
+            <button onClick={clearLoadout} data-testid="clear-loadout-btn" className="px-3 py-1.5 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors text-sm">
+              Clear All
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Ship image + slots */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Ship preview */}
+        <div className="glass-panel rounded-2xl overflow-hidden">
+          <div className="h-48 bg-gradient-to-br from-cyan-500/10 to-blue-600/10">
+            {selectedShip.image && (
+              <img src={selectedShip.image} alt={selectedShip.name} className="w-full h-full object-cover" onError={e => { e.target.onerror = null; e.target.style.display = 'none'; }} />
+            )}
+          </div>
+          <div className="p-4 space-y-2 text-sm">
+            <div className="flex justify-between"><span className="text-gray-500">Size Class</span><span className="text-white">{selectedShip.size}</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">Weapon Hardpoints</span><span className="text-white">{weaponSlots.length}</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">Component Slots</span><span className="text-white">{slotDefs.filter(s => s.type === 'component').length}</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">Loadout Filled</span><span className="text-white">{Object.keys(loadout).length}/{slotDefs.length}</span></div>
+          </div>
+        </div>
+
+        {/* Slot list */}
+        <div className="lg:col-span-2 space-y-3">
+          {slotDefs.length === 0 && (
+            <div className="glass-panel rounded-2xl p-8 text-center">
+              <AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto mb-3" />
+              <p className="text-gray-400">This ship has no customizable hardpoints.</p>
+            </div>
+          )}
+
+          {/* Component Slots */}
+          {SLOT_TYPES.map(st => {
+            const slots = slotDefs.filter(s => s.type === 'component' && s.componentType === st.componentType);
+            if (slots.length === 0) return null;
+            return (
+              <div key={st.key}>
+                <h3 className="text-sm font-semibold text-gray-400 uppercase mb-2 flex items-center gap-2">
+                  <st.icon className="w-4 h-4" style={{ color: st.color }} />
+                  {st.label} (Size {slots[0].maxSize})
+                </h3>
+                <div className="space-y-2">
+                  {slots.map(slot => (
+                    <SlotRow key={slot.id} slot={slot} item={loadout[slot.id]} onSelect={() => { setActiveSlot(slot); setItemSearch(''); }} onRemove={() => removeItem(slot.id)} />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Weapon Slots */}
+          {weaponSlots.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-gray-400 uppercase mb-2 flex items-center gap-2">
+                <Crosshair className="w-4 h-4 text-red-500" />
+                Weapon Hardpoints
+              </h3>
+              <div className="space-y-2">
+                {slotDefs.filter(s => s.type === 'weapon').map(slot => (
+                  <SlotRow key={slot.id} slot={slot} item={loadout[slot.id]} onSelect={() => { setActiveSlot(slot); setItemSearch(''); }} onRemove={() => removeItem(slot.id)} />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Item Selector Modal */}
+      <AnimatePresence>
+        {activeSlot && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={e => { if (e.target === e.currentTarget) { setActiveSlot(null); setItemSearch(''); } }}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="glass-panel rounded-3xl max-w-3xl w-full max-h-[80vh] overflow-hidden"
+              data-testid="item-selector-modal"
+            >
+              <div className="p-6 border-b border-white/10 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl font-bold" style={{ fontFamily: 'Rajdhani, sans-serif', color: activeSlot.color }}>
+                      {activeSlot.label} - Max Size {activeSlot.maxSize}
+                    </h2>
+                    <p className="text-sm text-gray-400">
+                      {activeSlot.type === 'weapon'
+                        ? `Only weapons size ${activeSlot.maxSize} or smaller`
+                        : `Only size ${activeSlot.maxSize} ${activeSlot.componentType} components`}
+                    </p>
+                  </div>
+                  <button onClick={() => { setActiveSlot(null); setItemSearch(''); }} className="p-2 hover:bg-white/10 rounded-lg"><X className="w-6 h-6 text-gray-400" /></button>
+                </div>
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                  <input
+                    type="text"
+                    value={itemSearch}
+                    onChange={e => setItemSearch(e.target.value)}
+                    placeholder="Search compatible items..."
+                    data-testid="item-search-input"
+                    className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 transition-all"
+                    autoFocus
+                  />
+                </div>
+              </div>
+              <div className="p-4 overflow-y-auto max-h-[55vh]">
+                {(() => {
+                  const items = getCompatibleItems(activeSlot);
+                  if (items.length === 0) return <p className="text-center text-gray-500 py-8">No compatible items found for this slot</p>;
+                  return (
+                    <div className="space-y-2">
+                      {items.map(item => (
+                        <button
+                          key={item.id}
+                          onClick={() => assignItem(activeSlot.id, item)}
+                          data-testid={`equip-item-${item.id}`}
+                          className="w-full glass-panel rounded-xl p-4 hover:border-cyan-500/50 transition-all text-left flex items-center justify-between group"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-bold text-white text-sm">{item.name}</span>
+                              <span className="text-[10px] px-1.5 py-0.5 rounded border" style={{ color: activeSlot.color, borderColor: `${activeSlot.color}40`, backgroundColor: `${activeSlot.color}15` }}>
+                                S{item.size}
+                              </span>
+                            </div>
+                            <div className="text-xs text-gray-500">{item.manufacturer}</div>
+                            <div className="flex items-center gap-4 mt-1 text-xs text-gray-400">
+                              {item.damage > 0 && <span>DMG: {item.damage}</span>}
+                              {item.rate > 0 && <span>Rate: {item.rate}</span>}
+                              {item.output > 0 && <span>Output: {item.output}</span>}
+                              {item.speed > 0 && <span>Speed: {item.speed.toLocaleString()}</span>}
+                              {item.location && <span className="text-cyan-400">{item.location}</span>}
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0 ml-4">
+                            {item.cost_auec > 0 && (
+                              <div className="text-yellow-400 font-semibold text-sm">{item.cost_auec.toLocaleString()} aUEC</div>
+                            )}
+                            <div className="opacity-0 group-hover:opacity-100 transition-opacity text-cyan-500 text-xs mt-1">Equip</div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
 
-const LoadoutSection = ({ title, slots, maxSlots, availableComponents, onSelect, onRemove, color }) => {
-  const [showSelector, setShowSelector] = useState(false);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="glass-panel rounded-2xl p-6"
-    >
-      <h3 className="text-2xl font-bold mb-4" style={{ fontFamily: 'Rajdhani, sans-serif', color }}>
-        {title} ({slots.length}/{maxSlots})
-      </h3>
-
-      {/* Installed Slots */}
-      <div className="space-y-3 mb-4">
-        {slots.map((component, index) => (
-          <div key={index} className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10">
-            <div>
-              <div className="font-semibold text-white">{component.name}</div>
-              <div className="text-sm text-gray-400">{component.manufacturer} • Size {component.size}</div>
-            </div>
-            <button
-              onClick={() => onRemove(index)}
-              className="px-3 py-1 rounded-full bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all text-sm"
-            >
-              Remove
-            </button>
+const SlotRow = ({ slot, item, onSelect, onRemove }) => (
+  <div
+    className="glass-panel rounded-xl p-4 flex items-center justify-between gap-3 group"
+    data-testid={`slot-${slot.id}`}
+  >
+    <div className="flex items-center gap-3 min-w-0 flex-1">
+      <slot.icon className="w-5 h-5 shrink-0" style={{ color: slot.color }} />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-gray-300">{slot.label}</span>
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-gray-500">
+            {slot.type === 'weapon' ? `Max S${slot.maxSize}` : `S${slot.maxSize}`}
+          </span>
+        </div>
+        {item ? (
+          <div className="flex items-center gap-2 mt-0.5">
+            <Check className="w-3 h-3 text-green-500 shrink-0" />
+            <span className="text-sm text-white font-semibold truncate">{item.name}</span>
+            {item.cost_auec > 0 && <span className="text-xs text-yellow-400 shrink-0">{item.cost_auec.toLocaleString()} aUEC</span>}
           </div>
-        ))}
-        {Array.from({ length: maxSlots - slots.length }).map((_, i) => (
-          <div key={`empty-${i}`} className="p-3 border-2 border-dashed border-white/10 rounded-xl text-center text-gray-500">
-            Empty Slot
-          </div>
-        ))}
+        ) : (
+          <span className="text-xs text-gray-600">Empty - click to equip</span>
+        )}
       </div>
-
-      {/* Add Component Button */}
-      {slots.length < maxSlots && (
-        <button
-          onClick={() => setShowSelector(true)}
-          className="w-full py-2 rounded-full border border-cyan-500/30 text-cyan-500 hover:bg-cyan-500 hover:text-black transition-all"
-          style={{ fontFamily: 'Rajdhani, sans-serif', fontWeight: 600 }}
-        >
-          Add {title}
+    </div>
+    <div className="flex items-center gap-2 shrink-0">
+      {item && (
+        <button onClick={onRemove} data-testid={`remove-${slot.id}`} className="p-1.5 hover:bg-red-500/20 rounded-lg transition-colors">
+          <X className="w-4 h-4 text-red-500" />
         </button>
       )}
-
-      {/* Component Selector */}
-      {showSelector && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="glass-panel rounded-3xl max-w-4xl w-full max-h-[80vh] overflow-hidden"
-          >
-            <div className="p-6 border-b border-white/10 flex items-center justify-between">
-              <h3 className="text-2xl font-bold" style={{ fontFamily: 'Rajdhani, sans-serif', color }}>
-                Select {title}
-              </h3>
-              <button onClick={() => setShowSelector(false)} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
-                <ArrowLeft className="w-6 h-6 text-gray-400" />
-              </button>
-            </div>
-            <div className="p-6 overflow-y-auto max-h-[60vh]">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {availableComponents.map(component => (
-                  <button
-                    key={component.id}
-                    onClick={() => {
-                      onSelect(component);
-                      setShowSelector(false);
-                    }}
-                    className="glass-panel rounded-xl p-4 hover:border-cyan-500/50 transition-all text-left"
-                  >
-                    <div className="font-bold text-white mb-1">{component.name}</div>
-                    <div className="text-sm text-gray-400 mb-2">{component.manufacturer}</div>
-                    <div className="flex items-center space-x-2 text-xs">
-                      <span className="px-2 py-1 bg-white/10 rounded">Size {component.size}</span>
-                      <span className="px-2 py-1 bg-white/10 rounded">Grade {component.grade || 'A'}</span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      )}
-    </motion.div>
-  );
-};
+      <button onClick={onSelect} data-testid={`equip-${slot.id}`} className="px-3 py-1.5 bg-cyan-500/10 text-cyan-500 rounded-lg hover:bg-cyan-500/20 transition-colors text-xs font-semibold">
+        {item ? 'Change' : 'Equip'}
+      </button>
+    </div>
+  </div>
+);
 
 export default LoadoutBuilder;
