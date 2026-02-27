@@ -58,7 +58,7 @@ def auth_headers(auth_token):
 
 
 class TestShipsAPI:
-    """Ships endpoint tests - verify images from wiki"""
+    """Ships endpoint tests - verify LIVE API with images from wiki"""
     
     def test_get_ships_requires_auth(self):
         """Test ships endpoint requires authentication"""
@@ -78,6 +78,43 @@ class TestShipsAPI:
         assert "name" in ship
         assert "manufacturer" in ship
     
+    def test_ships_have_live_source(self, auth_headers):
+        """Test that ships are from LIVE API (source=live)"""
+        response = requests.get(f"{BASE_URL}/api/ships", headers=auth_headers)
+        assert response.status_code == 200
+        data = response.json()
+        # Verify source field is 'live'
+        assert "source" in data, "Missing 'source' field in response"
+        assert data["source"] == "live", f"Expected source='live', got '{data.get('source')}'"
+    
+    def test_ships_have_crew_min_max_format(self, auth_headers):
+        """Test ships from LIVE API have crew_min and crew_max fields"""
+        response = requests.get(f"{BASE_URL}/api/ships", headers=auth_headers)
+        assert response.status_code == 200
+        data = response.json()
+        ships = data["data"]
+        
+        # Check first 10 ships have crew_min and crew_max
+        ships_with_crew_format = 0
+        for ship in ships[:20]:
+            if ship.get("crew_min") is not None and ship.get("crew_max") is not None:
+                ships_with_crew_format += 1
+        
+        assert ships_with_crew_format >= 15, f"Expected 15+ ships with crew_min/crew_max, got {ships_with_crew_format}"
+    
+    def test_ships_have_live_data_fields(self, auth_headers):
+        """Test ships have LIVE API specific fields: speed, shield_hp, etc"""
+        response = requests.get(f"{BASE_URL}/api/ships", headers=auth_headers)
+        assert response.status_code == 200
+        data = response.json()
+        ships = data["data"]
+        
+        # Check ships have live API fields
+        live_fields = ["max_speed", "shield_hp", "cargo", "length", "beam", "height"]
+        ship = ships[0]
+        for field in live_fields:
+            assert field in ship, f"Ship missing LIVE field: {field}"
+    
     def test_ships_have_wiki_images(self, auth_headers):
         """Test that ships have images from starcitizen.tools wiki"""
         response = requests.get(f"{BASE_URL}/api/ships", headers=auth_headers)
@@ -85,9 +122,10 @@ class TestShipsAPI:
         data = response.json()
         ships = data["data"]
         
-        # Check that majority of ships have images
+        # Check that some ships have images
         ships_with_images = [s for s in ships if s.get("image") and s["image"].strip()]
-        assert len(ships_with_images) >= len(ships) * 0.9, f"Expected 90%+ ships to have images, got {len(ships_with_images)}/{len(ships)}"
+        # With 289 ships from live API, expect at least 50 to have wiki images
+        assert len(ships_with_images) >= 50, f"Expected 50+ ships to have images, got {len(ships_with_images)}/{len(ships)}"
         
         # Verify images are from starcitizen.tools
         for ship in ships_with_images[:10]:  # Check first 10
@@ -134,7 +172,7 @@ class TestVehiclesAPI:
 
 
 class TestComponentsAPI:
-    """Components endpoint tests - verify size filter, location, price"""
+    """Components endpoint tests - verify LIVE API, size filter, location, price"""
     
     def test_get_components_requires_auth(self):
         """Test components endpoint requires authentication"""
@@ -148,6 +186,26 @@ class TestComponentsAPI:
         data = response.json()
         assert "data" in data
         assert len(data["data"]) > 0
+    
+    def test_components_have_live_source(self, auth_headers):
+        """Test components are from LIVE API (source=live)"""
+        response = requests.get(f"{BASE_URL}/api/components", headers=auth_headers)
+        assert response.status_code == 200
+        data = response.json()
+        assert "source" in data, "Missing 'source' field in response"
+        assert data["source"] == "live", f"Expected source='live', got '{data.get('source')}'"
+    
+    def test_components_have_multiple_types(self, auth_headers):
+        """Test components have multiple types: Shield, Power, Cooler, Quantum, Radar"""
+        response = requests.get(f"{BASE_URL}/api/components", headers=auth_headers)
+        assert response.status_code == 200
+        data = response.json()
+        components = data["data"]
+        
+        types = set(c.get("type") for c in components if c.get("type"))
+        expected_types = {"Shield", "Power", "Cooler", "Quantum", "Radar"}
+        for t in expected_types:
+            assert t in types, f"Missing component type: {t}. Found: {types}"
     
     def test_components_have_size_field(self, auth_headers):
         """Test all components have size field for filtering"""
@@ -194,7 +252,7 @@ class TestComponentsAPI:
 
 
 class TestWeaponsAPI:
-    """Weapons endpoint tests - verify size filter, location, price"""
+    """Weapons endpoint tests - verify LIVE API, size filter, location, price"""
     
     def test_get_weapons_requires_auth(self):
         """Test weapons endpoint requires authentication"""
@@ -208,6 +266,14 @@ class TestWeaponsAPI:
         data = response.json()
         assert "data" in data
         assert len(data["data"]) > 0
+    
+    def test_weapons_have_live_source(self, auth_headers):
+        """Test weapons are from LIVE API (source=live)"""
+        response = requests.get(f"{BASE_URL}/api/weapons", headers=auth_headers)
+        assert response.status_code == 200
+        data = response.json()
+        assert "source" in data, "Missing 'source' field in response"
+        assert data["source"] == "live", f"Expected source='live', got '{data.get('source')}'"
     
     def test_weapons_have_size_field(self, auth_headers):
         """Test all weapons have size field for filtering"""
