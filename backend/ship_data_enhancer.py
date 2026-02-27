@@ -18,8 +18,11 @@ def get_rsi_ship_image(ship_name, ship_id):
     # Return first available pattern (RSI media server)
     return f"https://media.robertsspaceindustries.com/ship/{clean_name}/isometric.jpg"
 
-# Real RSI ship image URLs - these are actual links from RSI website
+# Real RSI ship image URLs - actual links from RSI pledge store
 SHIP_IMAGE_MAP = {
+    # Carrack - from RSI page
+    "carrack": "https://robertsspaceindustries.com/i/5a176dc57589f18effd841146ef5a37e88892aee/resize(910,512,cover)/source.webp",
+    
     # Origin Jumpworks  
     "100i": "https://robertsspaceindustries.com/i/7f9004f2c94c4156d17c76945d93da1a9166f4cb/resize(910,512,cover)/source.webp",
     "125a": "https://robertsspaceindustries.com/i/4edda30724031a5f9d8bd270d13f83e92814a058/resize(910,512,cover)/source.webp",
