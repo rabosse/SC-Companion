@@ -67,7 +67,7 @@ function App() {
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, token, login, logout, API }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, token, login, logout, API, authLoading }}>
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
