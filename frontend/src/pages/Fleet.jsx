@@ -176,9 +176,20 @@ const Fleet = () => {
               data-testid={`fleet-item-${item.id}`}
             >
               <Link to={`/ships/${item.ship_id}`}>
-                <div className="h-48 bg-gradient-to-br from-cyan-500/20 to-blue-600/20 flex items-center justify-center relative overflow-hidden">
-                  <div className="absolute inset-0 radial-glow opacity-50"></div>
-                  <Ship className="w-20 h-20 text-cyan-500 relative z-10" />
+                <div className="h-48 relative overflow-hidden bg-gradient-to-br from-cyan-500/20 to-blue-600/20">
+                  <img 
+                    src={item.image || 'https://via.placeholder.com/400x300/1a1a2e/00d4ff?text=Ship'} 
+                    alt={item.ship_name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = 'https://via.placeholder.com/400x300/1a1a2e/00d4ff?text=Ship';
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <SpaceshipIcon className="w-20 h-20 text-cyan-500 opacity-20" />
+                  </div>
                 </div>
               </Link>
 
