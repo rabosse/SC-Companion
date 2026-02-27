@@ -267,16 +267,21 @@ const LoadoutBuilder = () => {
             <p className="text-gray-400 text-sm">{selectedShip.manufacturer} - {selectedShip.size} class</p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           {totalCost > 0 && (
             <div className="text-sm text-yellow-400 font-semibold" data-testid="total-cost">
               Total: {totalCost.toLocaleString()} aUEC
             </div>
           )}
           {Object.keys(loadout).length > 0 && (
-            <button onClick={clearLoadout} data-testid="clear-loadout-btn" className="px-3 py-1.5 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors text-sm">
-              Clear All
-            </button>
+            <>
+              <button onClick={() => setShowSaveDialog(true)} data-testid="save-loadout-btn" className="px-3 py-1.5 bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30 transition-colors text-sm font-semibold">
+                Save Loadout
+              </button>
+              <button onClick={clearLoadout} data-testid="clear-loadout-btn" className="px-3 py-1.5 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors text-sm">
+                Clear All
+              </button>
+            </>
           )}
         </div>
       </div>
