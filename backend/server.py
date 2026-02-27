@@ -371,8 +371,11 @@ def get_comprehensive_components_list():
 
 @api_router.get("/weapons")
 async def get_weapons(user_id: str = Depends(get_current_user)):
-    """Fetch all weapons"""
-    return {"success": True, "data": get_comprehensive_weapons_list()}
+    """Fetch all weapons - live API with mock fallback"""
+    live = await fetch_live_weapons()
+    if live:
+        return {"success": True, "data": live, "source": "live"}
+    return {"success": True, "data": get_comprehensive_weapons_list(), "source": "mock"}
 
 def get_comprehensive_weapons_list():
     """Comprehensive list of Star Citizen weapons"""
