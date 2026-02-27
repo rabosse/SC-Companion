@@ -1,53 +1,81 @@
-import { useEffect } from "react";
-import "@/App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import axios from "axios";
+import { useState, useEffect, createContext, useContext } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import axios from 'axios';
+import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import Ships from './pages/Ships';
+import Vehicles from './pages/Vehicles';
+import Components from './pages/Components';
+import Weapons from './pages/Weapons';
+import ShipDetail from './pages/ShipDetail';
+import Layout from './components/Layout';
+import { Toaster } from './components/ui/sonner';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-const Home = () => {
-  const helloWorldApi = async () => {
-    try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
-    }
-  };
+const AuthContext = createContext(null);
 
-  useEffect(() => {
-    helloWorldApi();
-  }, []);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error('useAuth must be used within AuthProvider');
+  return context;
+};
 
-  return (
-    <div>
-      <header className="App-header">
-        <a
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
-    </div>
-  );
+const PrivateRoute = ({ children }) => {
+  const { isAuthenticated } = useAuth();
+  return isAuthenticated ? children : <Navigate to="/login" />;
 };
 
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(null);
+
+  useEffect(() => {
+    const storedToken = localStorage.getItem('token');
+    const storedUser = localStorage.getItem('user');
+    if (storedToken && storedUser) {
+      setToken(storedToken);
+      setUser(JSON.parse(storedUser));
+      setIsAuthenticated(true);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+    }
+  }, []);
+
+  const login = (token, userData) => {
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(userData));
+    setToken(token);
+    setUser(userData);
+    setIsAuthenticated(true);
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  };
+
+  const logout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setToken(null);
+    setUser(null);
+    setIsAuthenticated(false);
+    delete axios.defaults.headers.common['Authorization'];
+  };
+
   return (
-    <div className="App">
+    <AuthContext.Provider value={{ isAuthenticated, user, token, login, logout, API }}>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
+          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<PrivateRoute><Layout><Dashboard /></Layout></PrivateRoute>} />
+          <Route path="/ships" element={<PrivateRoute><Layout><Ships /></Layout></PrivateRoute>} />
+          <Route path="/ships/:shipId" element={<PrivateRoute><Layout><ShipDetail /></Layout></PrivateRoute>} />
+          <Route path="/vehicles" element={<PrivateRoute><Layout><Vehicles /></Layout></PrivateRoute>} />
+          <Route path="/components" element={<PrivateRoute><Layout><Components /></Layout></PrivateRoute>} />
+          <Route path="/weapons" element={<PrivateRoute><Layout><Weapons /></Layout></PrivateRoute>} />
         </Routes>
+        <Toaster position="top-right" />
       </BrowserRouter>
-    </div>
+    </AuthContext.Provider>
   );
 }
 
