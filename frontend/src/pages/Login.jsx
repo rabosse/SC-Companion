@@ -50,7 +50,7 @@ const Login = () => {
 
           {/* Title */}
           <h1 className="text-4xl font-bold text-center mb-2 uppercase" style={{ fontFamily: 'Rajdhani, sans-serif', color: '#00D4FF' }}>
-            Origin Fleet Manager
+            Star Citizen Fleet Manager
           </h1>
           <p className="text-center text-gray-400 mb-8" style={{ fontFamily: 'Inter, sans-serif' }}>
             Manage your Star Citizen fleet with precision
