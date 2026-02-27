@@ -9,6 +9,8 @@ import Vehicles from './pages/Vehicles';
 import Components from './pages/Components';
 import Weapons from './pages/Weapons';
 import ShipDetail from './pages/ShipDetail';
+import Compare from './pages/Compare';
+import LoadoutBuilder from './pages/LoadoutBuilder';
 import Layout from './components/Layout';
 import { Toaster } from './components/ui/sonner';
 
