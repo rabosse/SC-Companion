@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
-import { Ship, ArrowLeft, Zap, Shield, Cpu, TrendingUp } from 'lucide-react';
+import { Ship, ArrowLeft, Zap, Shield, Cpu, TrendingUp, Package, Users, Ruler, Weight, Gauge, DollarSign } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 
@@ -63,6 +63,17 @@ const ShipDetail = () => {
     { key: 'quantum', label: 'Quantum Drive', icon: Cpu, color: '#D4AF37' },
   ];
 
+  const specs = [
+    { icon: Users, label: 'Crew', value: ship.crew, color: '#00D4FF' },
+    { icon: Package, label: 'Cargo (SCU)', value: ship.cargo, color: '#D4AF37' },
+    { icon: Ruler, label: 'Length (m)', value: ship.length, color: '#00FF9D' },
+    { icon: Ruler, label: 'Beam (m)', value: ship.beam || 'N/A', color: '#00FF9D' },
+    { icon: Ruler, label: 'Height (m)', value: ship.height || 'N/A', color: '#00FF9D' },
+    { icon: Weight, label: 'Mass (kg)', value: ship.mass?.toLocaleString() || 'N/A', color: '#FFAE00' },
+    { icon: Gauge, label: 'Max Speed (m/s)', value: ship.max_speed || 'N/A', color: '#FF0055' },
+    { icon: DollarSign, label: 'Price (UEC)', value: ship.price?.toLocaleString() || 'TBD', color: '#D4AF37' },
+  ];
+
   return (
     <div className="space-y-8" data-testid="ship-detail-page">
       {/* Back Button */}
@@ -75,51 +86,67 @@ const ShipDetail = () => {
         <span>Back to Ships</span>
       </Link>
 
-      {/* Ship Header */}
+      {/* Ship Header with Image */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="glass-panel rounded-3xl overflow-hidden"
       >
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Ship Image */}
-          <div className="h-96 bg-gradient-to-br from-cyan-500/20 to-blue-600/20 flex items-center justify-center relative overflow-hidden">
-            <div className="absolute inset-0 radial-glow opacity-50"></div>
-            <Ship className="w-40 h-40 text-cyan-500 relative z-10" />
-          </div>
-
-          {/* Ship Info */}
-          <div className="p-8 flex flex-col justify-center">
-            <div className="flex items-center space-x-3 mb-4">
-              <h1 className="text-5xl font-bold uppercase" style={{ fontFamily: 'Rajdhani, sans-serif', color: '#00D4FF' }}>
-                {ship.name}
-              </h1>
-              <span className="px-3 py-1 bg-cyan-500/20 text-cyan-500 rounded-full border border-cyan-500/30 text-sm">
+        {/* Hero Image */}
+        <div className="relative h-96 overflow-hidden">
+          <img
+            src={ship.image}
+            alt={ship.name}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent"></div>
+          <div className="absolute bottom-0 left-0 right-0 p-8">
+            <div className="flex items-center space-x-3 mb-2">
+              <span className="px-3 py-1 bg-cyan-500/20 text-cyan-500 rounded-full border border-cyan-500/30 text-sm backdrop-blur-sm">
                 {ship.size}
               </span>
+              <span className="px-3 py-1 bg-white/10 text-white rounded-full text-sm backdrop-blur-sm">
+                {ship.role || 'Multi-role'}
+              </span>
             </div>
-            <p className="text-xl text-gray-400 mb-8">{ship.manufacturer}</p>
+            <h1 className="text-6xl font-bold uppercase mb-2" style={{ fontFamily: 'Rajdhani, sans-serif', color: '#00D4FF' }}>
+              {ship.name}
+            </h1>
+            <p className="text-2xl text-gray-300">{ship.manufacturer}</p>
+          </div>
+        </div>
 
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <span className="text-sm text-gray-500 block mb-1">Crew Capacity</span>
-                <span className="text-2xl font-bold text-white" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                  {ship.crew}
-                </span>
-              </div>
-              <div>
-                <span className="text-sm text-gray-500 block mb-1">Cargo (SCU)</span>
-                <span className="text-2xl font-bold text-white" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                  {ship.cargo}
-                </span>
-              </div>
-              <div>
-                <span className="text-sm text-gray-500 block mb-1">Length (m)</span>
-                <span className="text-2xl font-bold text-white" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                  {ship.length}
-                </span>
-              </div>
-            </div>
+        {/* Description */}
+        <div className="p-8 border-b border-white/5">
+          <p className="text-lg text-gray-300 leading-relaxed">
+            {ship.description || `The ${ship.name} by ${ship.manufacturer} is a ${ship.size.toLowerCase()}-class vessel designed for versatility and performance in the Star Citizen universe.`}
+          </p>
+        </div>
+
+        {/* Specifications Grid */}
+        <div className="p-8">
+          <h2 className="text-3xl font-bold mb-6 uppercase" style={{ fontFamily: 'Rajdhani, sans-serif', color: '#FFFFFF' }}>
+            Technical Specifications
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {specs.map((spec, index) => {
+              const Icon = spec.icon;
+              return (
+                <motion.div
+                  key={spec.label}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="p-4 bg-white/5 rounded-xl border border-white/10"
+                >
+                  <Icon className="w-6 h-6 mb-2" style={{ color: spec.color }} />
+                  <div className="text-xs text-gray-500 mb-1">{spec.label}</div>
+                  <div className="text-2xl font-bold" style={{ fontFamily: 'Rajdhani, sans-serif', color: spec.color }}>
+                    {spec.value}
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </motion.div>
