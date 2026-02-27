@@ -375,6 +375,43 @@ const LoadoutBuilder = () => {
         </div>
       </div>
 
+      {/* Save Loadout Dialog */}
+      <AnimatePresence>
+        {showSaveDialog && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={e => { if (e.target === e.currentTarget) setShowSaveDialog(false); }}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="glass-panel rounded-2xl p-6 max-w-md w-full"
+              data-testid="save-loadout-dialog"
+            >
+              <h2 className="text-xl font-bold mb-4" style={{ fontFamily: 'Rajdhani, sans-serif', color: '#00D4FF' }}>
+                Save Loadout
+              </h2>
+              <input
+                type="text"
+                value={loadoutName}
+                onChange={e => setLoadoutName(e.target.value)}
+                placeholder="Loadout name (e.g. PvP Build, Mining Setup)"
+                data-testid="loadout-name-input"
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 transition-all mb-4"
+                autoFocus
+                onKeyDown={e => e.key === 'Enter' && saveLoadout()}
+              />
+              <div className="flex gap-3">
+                <button onClick={saveLoadout} data-testid="confirm-save-btn" className="flex-1 py-2.5 rounded-xl font-bold text-black" style={{ background: 'linear-gradient(135deg, #00D4FF, #00A8CC)' }}>
+                  Save
+                </button>
+                <button onClick={() => setShowSaveDialog(false)} className="px-6 py-2.5 bg-white/5 text-gray-400 rounded-xl hover:bg-white/10 transition-colors">
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Item Selector Modal */}
       <AnimatePresence>
         {activeSlot && (
