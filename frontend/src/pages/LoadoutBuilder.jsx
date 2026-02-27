@@ -124,11 +124,56 @@ const LoadoutBuilder = () => {
     toast.success('Loadout cleared');
   };
 
-  const selectShip = (ship) => {
+  const selectShip = async (ship) => {
     setSelectedShip(ship);
     setLoadout({});
     setActiveSlot(null);
     setShipSearch('');
+    // Fetch saved loadouts for this ship
+    try {
+      const res = await axios.get(`${API}/loadouts/${ship.id}`);
+      setSavedLoadouts(res.data.data || []);
+    } catch {
+      setSavedLoadouts([]);
+    }
+  };
+
+  const saveLoadout = async () => {
+    if (!loadoutName.trim()) {
+      toast.error('Please enter a loadout name');
+      return;
+    }
+    try {
+      await axios.post(`${API}/loadouts/save`, {
+        ship_id: selectedShip.id,
+        ship_name: selectedShip.name,
+        loadout_name: loadoutName.trim(),
+        slots: loadout,
+      });
+      toast.success(`Loadout "${loadoutName}" saved!`);
+      setShowSaveDialog(false);
+      setLoadoutName('');
+      // Refresh saved loadouts
+      const res = await axios.get(`${API}/loadouts/${selectedShip.id}`);
+      setSavedLoadouts(res.data.data || []);
+    } catch {
+      toast.error('Failed to save loadout');
+    }
+  };
+
+  const loadSavedLoadout = (saved) => {
+    setLoadout(saved.slots || {});
+    toast.success(`Loaded "${saved.loadout_name}"`);
+  };
+
+  const deleteSavedLoadout = async (loadoutId, name) => {
+    try {
+      await axios.delete(`${API}/loadouts/${loadoutId}`);
+      setSavedLoadouts(prev => prev.filter(l => l.id !== loadoutId));
+      toast.success(`Deleted "${name}"`);
+    } catch {
+      toast.error('Failed to delete loadout');
+    }
   };
 
   const filteredShips = useMemo(() => {
