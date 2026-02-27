@@ -101,30 +101,19 @@ async def login(login_data: LoginRequest):
 
 @api_router.get("/ships")
 async def get_ships(user_id: str = Depends(get_current_user)):
-    """Fetch all ships from Star Citizen API"""
-    try:
-        async with httpx.AsyncClient(timeout=30.0) as http_client:
-            headers = {}
-            if SC_API_KEY:
-                headers["Authorization"] = f"Bearer {SC_API_KEY}"
-            
-            response = await http_client.get(
-                f"{SC_API_BASE}/api/v2/ships",
-                headers=headers,
-                params={"mode": "cache", "limit": 100}
-            )
-            
-            if response.status_code == 200:
-                data = response.json()
-                ships = enhance_ship_data(data.get("data", []))
-                return {"success": True, "data": ships}
-            else:
-                ships = enhance_ship_data(get_comprehensive_ship_list())
-                return {"success": True, "data": ships}
-    except Exception as e:
-        logging.error(f"Error fetching ships: {str(e)}")
-        ships = enhance_ship_data(get_comprehensive_ship_list())
-        return {"success": True, "data": ships}
+    """Fetch all ships - live API with mock fallback"""
+    live_vehicles = await fetch_live_vehicles()
+    if live_vehicles:
+        # Filter to ships only (not ground vehicles), add wiki images
+        ships = [v for v in live_vehicles if not v.get("is_ground_vehicle")]
+        for s in ships:
+            img = get_ship_image(s["id"])
+            if img:
+                s["image"] = img
+        return {"success": True, "data": ships, "source": "live"}
+    # Fallback to mock data
+    ships = enhance_ship_data(get_comprehensive_ship_list())
+    return {"success": True, "data": ships, "source": "mock"}
 
 def get_comprehensive_ship_list():
     """Comprehensive list of Star Citizen ships"""
