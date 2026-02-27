@@ -68,6 +68,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<PrivateRoute><Layout><Dashboard /></Layout></PrivateRoute>} />
+          <Route path="/fleet" element={<PrivateRoute><Layout><Fleet /></Layout></PrivateRoute>} />
           <Route path="/ships" element={<PrivateRoute><Layout><Ships /></Layout></PrivateRoute>} />
           <Route path="/ships/:shipId" element={<PrivateRoute><Layout><ShipDetail /></Layout></PrivateRoute>} />
           <Route path="/vehicles" element={<PrivateRoute><Layout><Vehicles /></Layout></PrivateRoute>} />
