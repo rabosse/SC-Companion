@@ -12,7 +12,7 @@ import uuid
 from datetime import datetime, timezone, timedelta
 from jose import JWTError, jwt
 import httpx
-from ship_data_enhancer import enhance_ship_data, get_vehicle_image
+from ship_data_enhancer import enhance_ship_data, get_vehicle_image, fetch_all_wiki_images
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
