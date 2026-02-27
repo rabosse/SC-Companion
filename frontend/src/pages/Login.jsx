@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
-import { Ship, Lock } from 'lucide-react';
+import { Lock } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Login = () => {
@@ -23,7 +23,7 @@ const Login = () => {
       });
 
       login(response.data.access_token, response.data.user);
-      toast.success('Welcome to Origin Fleet Manager');
+      toast.success('Welcome to Star Citizen Fleet Manager');
       navigate('/');
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Login failed');
@@ -43,9 +43,14 @@ const Login = () => {
         <div className="glass-panel rounded-3xl p-8 sm:p-12">
           {/* Logo */}
           <div className="flex justify-center mb-8">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center neon-glow">
-              <Ship className="w-10 h-10 text-white" />
-            </div>
+            <img 
+              src="https://media.robertsspaceindustries.com/logo/SC-Logo-white.png" 
+              alt="Star Citizen Logo"
+              className="h-20 w-auto"
+              onError={(e) => {
+                e.target.style.display = 'none';
+              }}
+            />
           </div>
 
           {/* Title */}
