@@ -251,10 +251,15 @@ def _normalize_component(item: dict, comp_type: str) -> dict:
     }
 
 
+def _cache_stale() -> bool:
+    """Check if cache needs refresh."""
+    return (time.time() - _last_fetch_time) > CACHE_TTL
+
+
 async def fetch_live_vehicles() -> list:
     """Fetch all vehicles/ships from the live API."""
-    global _vehicles_cache, _api_available
-    if _vehicles_cache:
+    global _vehicles_cache, _api_available, _last_fetch_time
+    if _vehicles_cache and not _cache_stale():
         return _vehicles_cache
 
     try:
@@ -263,38 +268,38 @@ async def fetch_live_vehicles() -> list:
         vehicles = [_normalize_vehicle(v) for v in raw]
         _vehicles_cache = vehicles
         _api_available = True
+        _last_fetch_time = time.time()
         logger.info(f"Live API: fetched {len(vehicles)} vehicles")
         return vehicles
     except Exception as e:
         logger.error(f"Live API vehicles fetch failed: {e}")
         _api_available = False
-        return []
+        return _vehicles_cache or []
 
 
 async def fetch_live_weapons() -> list:
     """Fetch all weapon items from the live API."""
     global _weapons_cache
-    if _weapons_cache:
+    if _weapons_cache and not _cache_stale():
         return _weapons_cache
 
     try:
         logger.info("Fetching live weapon data from Star Citizen Wiki API...")
         raw = await _fetch_paginated("items", {"filter[type]": "WeaponGun"})
         weapons = [_normalize_weapon(w) for w in raw]
-        # Filter out items with no useful data
         weapons = [w for w in weapons if w["name"] and w["damage"] > 0]
         _weapons_cache = weapons
         logger.info(f"Live API: fetched {len(weapons)} weapons")
         return weapons
     except Exception as e:
         logger.error(f"Live API weapons fetch failed: {e}")
-        return []
+        return _weapons_cache or []
 
 
 async def fetch_live_components() -> list:
     """Fetch all component items from the live API."""
     global _components_cache
-    if _components_cache:
+    if _components_cache and not _cache_stale():
         return _components_cache
 
     try:
@@ -305,21 +310,22 @@ async def fetch_live_components() -> list:
             normalized = [_normalize_component(item, comp_type) for item in raw]
             all_components.extend(normalized)
 
-        # Filter out items with no name
         all_components = [c for c in all_components if c["name"]]
         _components_cache = all_components
         logger.info(f"Live API: fetched {len(all_components)} components")
         return all_components
     except Exception as e:
         logger.error(f"Live API components fetch failed: {e}")
-        return []
+        return _components_cache or []
 
 
 async def prefetch_all():
     """Prefetch all data on startup."""
+    global _last_fetch_time
     await fetch_live_vehicles()
     await fetch_live_weapons()
     await fetch_live_components()
+    _last_fetch_time = time.time()
 
 
 def is_api_available() -> bool:
