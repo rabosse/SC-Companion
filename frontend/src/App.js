@@ -26,7 +26,8 @@ export const useAuth = () => {
 };
 
 const PrivateRoute = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, authLoading } = useAuth();
+  if (authLoading) return null;
   return isAuthenticated ? children : <Navigate to="/login" />;
 };
 
