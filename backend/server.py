@@ -514,8 +514,9 @@ logger = logging.getLogger(__name__)
 
 @app.on_event("startup")
 async def startup_event():
-    """Fetch and cache wiki images on startup."""
+    """Fetch and cache wiki images and live API data on startup."""
     await fetch_all_wiki_images()
+    await prefetch_all()
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
