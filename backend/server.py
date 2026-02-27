@@ -551,6 +551,35 @@ async def remove_from_fleet(fleet_id: str, user_id: str = Depends(get_current_us
         return {"success": True, "message": "Ship removed from fleet"}
     raise HTTPException(status_code=404, detail="Ship not found in fleet")
 
+class BulkFleetRequest(BaseModel):
+    ships: list
+
+@api_router.post("/fleet/bulk-add")
+async def bulk_add_to_fleet(data: BulkFleetRequest, user_id: str = Depends(get_current_user)):
+    """Add multiple ships to fleet at once"""
+    added = 0
+    skipped = 0
+    for ship in data.ships:
+        # Check if already in fleet
+        existing = await db.user_fleet.find_one(
+            {"user_id": user_id, "ship_id": ship.get("id")}, {"_id": 0}
+        )
+        if existing:
+            skipped += 1
+            continue
+        fleet_item = UserFleet(
+            user_id=user_id,
+            ship_id=ship.get("id"),
+            ship_name=ship.get("name"),
+            manufacturer=ship.get("manufacturer")
+        )
+        doc = fleet_item.model_dump()
+        doc["added_at"] = doc["added_at"].isoformat()
+        await db.user_fleet.insert_one(doc)
+        added += 1
+    return {"success": True, "message": f"{added} ships added, {skipped} already in fleet", "added": added, "skipped": skipped}
+
+
 # --- Loadout saving endpoints ---
 
 class SaveLoadoutRequest(BaseModel):
