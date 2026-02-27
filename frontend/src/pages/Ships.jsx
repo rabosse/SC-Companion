@@ -183,6 +183,12 @@ const Ships = () => {
                   <span className="text-gray-500 block">Length</span>
                   <span className="text-white font-semibold">{ship.length}m</span>
                 </div>
+                {ship.price_auec > 0 && (
+                  <div>
+                    <span className="text-gray-500 block">Price</span>
+                    <span className="text-yellow-400 font-semibold">{ship.price_auec.toLocaleString()} aUEC</span>
+                  </div>
+                )}
               </div>
 
               <button
