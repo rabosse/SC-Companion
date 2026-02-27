@@ -551,6 +551,53 @@ async def remove_from_fleet(fleet_id: str, user_id: str = Depends(get_current_us
         return {"success": True, "message": "Ship removed from fleet"}
     raise HTTPException(status_code=404, detail="Ship not found in fleet")
 
+# --- Loadout saving endpoints ---
+
+class SaveLoadoutRequest(BaseModel):
+    ship_id: str
+    ship_name: str
+    loadout_name: str
+    slots: Dict[str, Any]
+
+@api_router.post("/loadouts/save")
+async def save_loadout(data: SaveLoadoutRequest, user_id: str = Depends(get_current_user)):
+    """Save or update a custom loadout"""
+    loadout_id = str(uuid.uuid4())
+    doc = {
+        "id": loadout_id,
+        "user_id": user_id,
+        "ship_id": data.ship_id,
+        "ship_name": data.ship_name,
+        "loadout_name": data.loadout_name,
+        "slots": data.slots,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    # Upsert: if same user+ship+name exists, update it
+    result = await db.loadouts.find_one_and_update(
+        {"user_id": user_id, "ship_id": data.ship_id, "loadout_name": data.loadout_name},
+        {"$set": doc},
+        upsert=True,
+        return_document=False,
+    )
+    return {"success": True, "message": "Loadout saved", "id": loadout_id}
+
+@api_router.get("/loadouts/{ship_id}")
+async def get_ship_loadouts(ship_id: str, user_id: str = Depends(get_current_user)):
+    """Get all saved loadouts for a ship"""
+    loadouts = await db.loadouts.find(
+        {"user_id": user_id, "ship_id": ship_id}, {"_id": 0}
+    ).to_list(100)
+    return {"success": True, "data": loadouts}
+
+@api_router.delete("/loadouts/{loadout_id}")
+async def delete_loadout(loadout_id: str, user_id: str = Depends(get_current_user)):
+    """Delete a saved loadout"""
+    result = await db.loadouts.delete_one({"id": loadout_id, "user_id": user_id})
+    if result.deleted_count > 0:
+        return {"success": True, "message": "Loadout deleted"}
+    raise HTTPException(status_code=404, detail="Loadout not found")
+
+
 app.include_router(api_router)
 
 app.add_middleware(
