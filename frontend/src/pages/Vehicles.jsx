@@ -102,16 +102,24 @@ const Vehicles = () => {
             data-testid={`vehicle-card-${vehicle.id}`}
           >
             <div className="h-48 relative overflow-hidden bg-gradient-to-br from-yellow-500/20 to-orange-600/20">
-              <img 
-                src={vehicle.image} 
-                alt={vehicle.name}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = 'https://via.placeholder.com/400x300/1a1a2e/ffc107?text=' + encodeURIComponent(vehicle.name);
-                }}
-              />
+              {vehicle.image && (
+                <img 
+                  src={vehicle.image} 
+                  alt={vehicle.name}
+                  data-testid={`vehicle-image-${vehicle.id}`}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.style.display = 'none';
+                  }}
+                />
+              )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+              {!vehicle.image && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Package className="w-16 h-16 text-yellow-500/30" />
+                </div>
+              )}
             </div>
 
             <div className="p-6">
