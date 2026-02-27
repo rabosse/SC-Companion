@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../App';
 import axios from 'axios';
-import { Package, Search } from 'lucide-react';
+import { Package, Search, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 
@@ -39,6 +39,19 @@ const Vehicles = () => {
     }
   }, [searchQuery, vehicles]);
 
+  const addToFleet = async (vehicle) => {
+    try {
+      await axios.post(`${API}/fleet/add`, {
+        id: vehicle.id,
+        name: vehicle.name,
+        manufacturer: vehicle.manufacturer
+      });
+      toast.success(`${vehicle.name} added to your fleet`);
+    } catch (error) {
+      toast.error('Failed to add vehicle to fleet');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]" data-testid="loading-indicator">
@@ -48,7 +61,7 @@ const Vehicles = () => {
         </div>
       </div>
     );
-  }
+  };
 
   return (
     <div className="space-y-8" data-testid="vehicles-page">
@@ -104,10 +117,20 @@ const Vehicles = () => {
               </div>
               <p className="text-sm text-gray-400 mb-4">{vehicle.manufacturer}</p>
 
-              <div className="text-sm">
+              <div className="text-sm mb-4">
                 <span className="text-gray-500 block">Crew Capacity</span>
                 <span className="text-white font-semibold">{vehicle.crew}</span>
               </div>
+
+              <button
+                onClick={() => addToFleet(vehicle)}
+                data-testid={`add-to-fleet-${vehicle.id}`}
+                className="w-full flex items-center justify-center space-x-2 px-4 py-2 rounded-full border border-cyan-500/30 text-cyan-500 hover:bg-cyan-500 hover:text-black transition-all duration-300"
+                style={{ fontFamily: 'Rajdhani, sans-serif', fontWeight: 600 }}
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add to Fleet</span>
+              </button>
             </div>
           </motion.div>
         ))}
