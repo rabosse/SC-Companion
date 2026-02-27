@@ -22,6 +22,9 @@ const LoadoutBuilder = () => {
   const [activeSlot, setActiveSlot] = useState(null);
   const [shipSearch, setShipSearch] = useState('');
   const [itemSearch, setItemSearch] = useState('');
+  const [savedLoadouts, setSavedLoadouts] = useState([]);
+  const [loadoutName, setLoadoutName] = useState('');
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
