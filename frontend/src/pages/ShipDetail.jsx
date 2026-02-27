@@ -78,14 +78,23 @@ const ShipDetail = () => {
   return (
     <div className="space-y-8" data-testid="ship-detail-page">
       {/* Back Button */}
-      <Link
-        to="/ships"
-        data-testid="back-to-ships"
-        className="inline-flex items-center space-x-2 text-gray-400 hover:text-cyan-500 transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        <span>Back to Ships</span>
-      </Link>
+      <div className="flex items-center justify-between">
+        <Link
+          to="/ships"
+          data-testid="back-to-ships"
+          className="inline-flex items-center space-x-2 text-gray-400 hover:text-cyan-500 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back to Ships</span>
+        </Link>
+        <button
+          onClick={() => navigate(`/ships/${shipId}/loadout`)}
+          className="btn-origin"
+        >
+          <Settings className="w-5 h-5 inline mr-2" />
+          Customize Loadout
+        </button>
+      </div>
 
       {/* Ship Header with Image */}
       <motion.div
