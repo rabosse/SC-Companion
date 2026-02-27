@@ -83,20 +83,46 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
+@api_router.post("/auth/register", response_model=LoginResponse)
+async def register(data: RegisterRequest):
+    """Register a new user"""
+    existing = await db.users.find_one({"username": data.username}, {"_id": 0})
+    if existing:
+        raise HTTPException(status_code=400, detail="Username already taken")
+
+    hashed = bcrypt.hashpw(data.password.encode(), bcrypt.gensalt()).decode()
+    user = User(username=data.username, email=f"{data.username}@fleet.local")
+    user_dict = user.model_dump()
+    user_dict['created_at'] = user_dict['created_at'].isoformat()
+    user_dict['password_hash'] = hashed
+    await db.users.insert_one(user_dict)
+
+    access_token = create_access_token(data={"sub": user.id})
+    return LoginResponse(
+        access_token=access_token,
+        user={"id": user.id, "username": user.username}
+    )
+
 @api_router.post("/auth/login", response_model=LoginResponse)
 async def login(login_data: LoginRequest):
-    """Login or register user with Star Citizen API token"""
-    existing_user = await db.users.find_one({"email": login_data.email}, {"_id": 0})
-    
+    """Login with username and password"""
+    existing_user = await db.users.find_one({"username": login_data.username}, {"_id": 0})
+
     if existing_user:
-        if isinstance(existing_user['created_at'], str):
-            existing_user['created_at'] = datetime.fromisoformat(existing_user['created_at'])
-        user = User(**existing_user)
+        stored_hash = existing_user.get('password_hash', '')
+        if stored_hash and bcrypt.checkpw(login_data.password.encode(), stored_hash.encode()):
+            if isinstance(existing_user['created_at'], str):
+                existing_user['created_at'] = datetime.fromisoformat(existing_user['created_at'])
+            user = User(**existing_user)
+        else:
+            raise HTTPException(status_code=401, detail="Invalid password")
     else:
-        user = User(username=login_data.email.split('@')[0], email=login_data.email)
+        # Auto-register for convenience
+        hashed = bcrypt.hashpw(login_data.password.encode(), bcrypt.gensalt()).decode()
+        user = User(username=login_data.username, email=f"{login_data.username}@fleet.local")
         user_dict = user.model_dump()
         user_dict['created_at'] = user_dict['created_at'].isoformat()
-        user_dict['sc_api_token'] = login_data.star_citizen_token
+        user_dict['password_hash'] = hashed
         await db.users.insert_one(user_dict)
     
     access_token = create_access_token(data={"sub": user.id, "email": user.email})
