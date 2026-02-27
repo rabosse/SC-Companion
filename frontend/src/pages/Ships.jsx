@@ -124,9 +124,13 @@ const Ships = () => {
             data-testid={`ship-card-${ship.id}`}
           >
             <Link to={`/ships/${ship.id}`}>
-              <div className="h-48 bg-gradient-to-br from-cyan-500/20 to-blue-600/20 flex items-center justify-center relative overflow-hidden">
-                <div className="absolute inset-0 radial-glow opacity-50"></div>
-                <Ship className="w-20 h-20 text-cyan-500 relative z-10" />
+              <div className="h-48 relative overflow-hidden">
+                <img 
+                  src={ship.image} 
+                  alt={ship.name}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
               </div>
             </Link>
 
