@@ -16,9 +16,13 @@ const Fleet = () => {
 
   const fetchFleet = async () => {
     try {
-      const response = await axios.get(`${API}/fleet/my`);
-      setFleet(response.data.data || []);
-      setFilteredFleet(response.data.data || []);
+      const [fleetRes, shipsRes] = await Promise.all([
+        axios.get(`${API}/fleet/my`),
+        axios.get(`${API}/ships`)
+      ]);
+      setFleet(fleetRes.data.data || []);
+      setFilteredFleet(fleetRes.data.data || []);
+      setShips(shipsRes.data.data || []);
     } catch (error) {
       toast.error('Failed to load your fleet');
     } finally {
