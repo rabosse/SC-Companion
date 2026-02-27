@@ -73,9 +73,19 @@ const Ships = () => {
     <div className="space-y-8" data-testid="ships-page">
       {/* Header */}
       <div>
-        <h1 className="text-5xl font-bold mb-4 uppercase" style={{ fontFamily: 'Rajdhani, sans-serif', color: '#00D4FF' }}>
-          Ship Database
-        </h1>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-5xl font-bold uppercase" style={{ fontFamily: 'Rajdhani, sans-serif', color: '#00D4FF' }}>
+            Ship Database
+          </h1>
+          <button
+            onClick={() => navigate('/compare')}
+            className="px-6 py-3 rounded-full border border-cyan-500/30 text-cyan-500 hover:bg-cyan-500 hover:text-black transition-all"
+            style={{ fontFamily: 'Rajdhani, sans-serif', fontWeight: 600 }}
+          >
+            <Scale className="w-5 h-5 inline mr-2" />
+            Compare Ships
+          </button>
+        </div>
         <p className="text-gray-400" style={{ fontFamily: 'Inter, sans-serif' }}>
           Explore and manage your spacecraft collection
         </p>
