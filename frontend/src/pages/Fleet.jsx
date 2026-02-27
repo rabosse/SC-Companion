@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../App';
 import axios from 'axios';
-import { Ship, Trash2, Search } from 'lucide-react';
+import { Ship, Trash2, Search, TrendingUp, Package, Users, DollarSign } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -12,6 +12,7 @@ const Fleet = () => {
   const [filteredFleet, setFilteredFleet] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [ships, setShips] = useState([]);
 
   const fetchFleet = async () => {
     try {
