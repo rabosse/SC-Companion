@@ -49,13 +49,15 @@ function App() {
     setAuthLoading(false);
   }, []);
 
-  const login = (token, userData) => {
-    localStorage.setItem('token', token);
+  const login = async (username, password) => {
+    const response = await axios.post(`${API}/auth/login`, { username, password });
+    const { access_token, user: userData } = response.data;
+    localStorage.setItem('token', access_token);
     localStorage.setItem('user', JSON.stringify(userData));
-    setToken(token);
+    setToken(access_token);
     setUser(userData);
     setIsAuthenticated(true);
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
   };
 
   const logout = () => {
