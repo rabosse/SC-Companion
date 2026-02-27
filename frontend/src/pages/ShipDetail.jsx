@@ -108,24 +108,15 @@ const ShipDetail = () => {
             <img
               src={ship.image}
               alt={ship.name}
+              data-testid="ship-detail-image"
               className="w-full h-full object-cover"
               onError={(e) => {
+                e.target.onerror = null;
                 e.target.style.display = 'none';
-                e.target.nextSibling.style.display = 'flex';
               }}
             />
           ) : null}
           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent"></div>
-          {/* Fallback spaceship icon if image fails */}
-          <div className="absolute inset-0 hidden items-center justify-center" style={{ display: ship.image ? 'none' : 'flex' }}>
-            <svg className="w-32 h-32 text-cyan-500 opacity-30" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 2L4 8V14L12 20L20 14V8L12 2Z" fill="currentColor" fillOpacity="0.2" stroke="currentColor" strokeWidth="2"/>
-              <circle cx="12" cy="10" r="2" fill="currentColor" />
-              <path d="M4 10L2 12L4 14" strokeWidth="2" stroke="currentColor"/>
-              <path d="M20 10L22 12L20 14" strokeWidth="2" stroke="currentColor"/>
-              <path d="M10 18L12 22L14 18" strokeWidth="2" stroke="currentColor"/>
-            </svg>
-          </div>
           <div className="absolute bottom-0 left-0 right-0 p-8">
             <div className="flex items-center space-x-3 mb-2">
               <span className="px-3 py-1 bg-cyan-500/20 text-cyan-500 rounded-full border border-cyan-500/30 text-sm backdrop-blur-sm">
