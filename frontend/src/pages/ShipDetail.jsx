@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
-import { Ship, ArrowLeft, Zap, Shield, Cpu, TrendingUp, Package, Users, Ruler, Weight, Gauge, DollarSign, Settings } from 'lucide-react';
+import { Ship, ArrowLeft, Zap, Shield, Cpu, TrendingUp, Package, Users, Ruler, Weight, Gauge, DollarSign, Settings, MapPin } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 
