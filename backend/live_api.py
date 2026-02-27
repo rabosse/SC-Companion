@@ -1,6 +1,7 @@
 """Live Star Citizen Wiki API integration with automatic fallback to mock data."""
 
 import os
+import time
 import httpx
 import logging
 from typing import Optional
@@ -10,12 +11,14 @@ logger = logging.getLogger(__name__)
 SC_API_BASE = "https://api.star-citizen.wiki/api"
 API_KEY = os.environ.get("STAR_CITIZEN_API_KEY", "")
 MAX_PER_PAGE = 200
+CACHE_TTL = 3600  # Refresh data every hour
 
 # Caches
 _vehicles_cache: list = []
 _weapons_cache: list = []
 _components_cache: list = []
 _api_available: Optional[bool] = None
+_last_fetch_time: float = 0
 
 
 def _headers():
