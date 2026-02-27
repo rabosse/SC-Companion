@@ -290,80 +290,80 @@ def get_comprehensive_components_list():
     """Comprehensive list of Star Citizen ship components"""
     return [
         # Shields - Size 1
-        {"id": "shield_allstop", "name": "AllStop", "type": "Shield", "manufacturer": "Mirage", "size": "1", "grade": "A", "power": 0.5},
-        {"id": "shield_shimmer", "name": "Shimmer", "type": "Shield", "manufacturer": "Mirage", "size": "1", "grade": "B", "power": 0.45},
-        {"id": "shield_bulwark", "name": "Bulwark", "type": "Shield", "manufacturer": "A&R", "size": "1", "grade": "A", "power": 0.52},
-        {"id": "shield_vanguard", "name": "Vanguard", "type": "Shield", "manufacturer": "Gorgon Defender", "size": "1", "grade": "C", "power": 0.48},
+        {"id": "shield_allstop", "name": "AllStop", "type": "Shield", "manufacturer": "Mirage", "size": "1", "grade": "A", "power": 0.5, "location": "New Babbage", "cost_auec": 12400},
+        {"id": "shield_shimmer", "name": "Shimmer", "type": "Shield", "manufacturer": "Mirage", "size": "1", "grade": "B", "power": 0.45, "location": "Port Olisar", "cost_auec": 8900},
+        {"id": "shield_bulwark", "name": "Bulwark", "type": "Shield", "manufacturer": "A&R", "size": "1", "grade": "A", "power": 0.52, "location": "Area18", "cost_auec": 13200},
+        {"id": "shield_vanguard", "name": "Vanguard", "type": "Shield", "manufacturer": "Gorgon Defender", "size": "1", "grade": "C", "power": 0.48, "location": "Lorville", "cost_auec": 7500},
         
         # Shields - Size 2
-        {"id": "shield_fr76", "name": "FR-76 Shield Generator", "type": "Shield", "manufacturer": "Gorgon Defender", "size": "2", "grade": "A", "power": 0.8},
-        {"id": "shield_fr86", "name": "FR-86 Shield Generator", "type": "Shield", "manufacturer": "Gorgon Defender", "size": "2", "grade": "B", "power": 0.75},
-        {"id": "shield_rampart", "name": "Rampart", "type": "Shield", "manufacturer": "Mirage", "size": "2", "grade": "A", "power": 0.85},
-        {"id": "shield_palisade", "name": "Palisade", "type": "Shield", "manufacturer": "A&R", "size": "2", "grade": "B", "power": 0.78},
-        {"id": "shield_stronghold", "name": "Stronghold", "type": "Shield", "manufacturer": "A&R", "size": "2", "grade": "C", "power": 0.72},
+        {"id": "shield_fr76", "name": "FR-76 Shield Generator", "type": "Shield", "manufacturer": "Gorgon Defender", "size": "2", "grade": "A", "power": 0.8, "location": "Port Olisar", "cost_auec": 24800},
+        {"id": "shield_fr86", "name": "FR-86 Shield Generator", "type": "Shield", "manufacturer": "Gorgon Defender", "size": "2", "grade": "B", "power": 0.75, "location": "New Babbage", "cost_auec": 18600},
+        {"id": "shield_rampart", "name": "Rampart", "type": "Shield", "manufacturer": "Mirage", "size": "2", "grade": "A", "power": 0.85, "location": "Area18", "cost_auec": 26400},
+        {"id": "shield_palisade", "name": "Palisade", "type": "Shield", "manufacturer": "A&R", "size": "2", "grade": "B", "power": 0.78, "location": "Lorville", "cost_auec": 19800},
+        {"id": "shield_stronghold", "name": "Stronghold", "type": "Shield", "manufacturer": "A&R", "size": "2", "grade": "C", "power": 0.72, "location": "Port Olisar", "cost_auec": 15200},
         
         # Shields - Size 3
-        {"id": "shield_sukoran", "name": "Sukoran Shield", "type": "Shield", "manufacturer": "A&R", "size": "3", "grade": "A", "power": 1.2},
-        {"id": "shield_guardian", "name": "Guardian", "type": "Shield", "manufacturer": "Gorgon Defender", "size": "3", "grade": "B", "power": 1.15},
-        {"id": "shield_citadel", "name": "Citadel", "type": "Shield", "manufacturer": "Mirage", "size": "3", "grade": "A", "power": 1.25},
-        {"id": "shield_fortress", "name": "Fortress", "type": "Shield", "manufacturer": "A&R", "size": "3", "grade": "C", "power": 1.1},
+        {"id": "shield_sukoran", "name": "Sukoran Shield", "type": "Shield", "manufacturer": "A&R", "size": "3", "grade": "A", "power": 1.2, "location": "New Babbage", "cost_auec": 48600},
+        {"id": "shield_guardian", "name": "Guardian", "type": "Shield", "manufacturer": "Gorgon Defender", "size": "3", "grade": "B", "power": 1.15, "location": "Area18", "cost_auec": 38400},
+        {"id": "shield_citadel", "name": "Citadel", "type": "Shield", "manufacturer": "Mirage", "size": "3", "grade": "A", "power": 1.25, "location": "Lorville", "cost_auec": 52800},
+        {"id": "shield_fortress", "name": "Fortress", "type": "Shield", "manufacturer": "A&R", "size": "3", "grade": "C", "power": 1.1, "location": "Port Olisar", "cost_auec": 32200},
         
         # Power Plants - Size 1
-        {"id": "power_breton", "name": "Breton", "type": "Power", "manufacturer": "Sakura Sun", "size": "1", "grade": "A", "output": 3200},
-        {"id": "power_juno", "name": "Juno Starworks", "type": "Power", "manufacturer": "Juno Starworks", "size": "1", "grade": "B", "output": 3000},
-        {"id": "power_lightfire", "name": "Lightfire", "type": "Power", "manufacturer": "Aegis", "size": "1", "grade": "C", "output": 2800},
+        {"id": "power_breton", "name": "Breton", "type": "Power", "manufacturer": "Sakura Sun", "size": "1", "grade": "A", "output": 3200, "location": "New Babbage", "cost_auec": 14200},
+        {"id": "power_juno", "name": "Juno Starworks", "type": "Power", "manufacturer": "Juno Starworks", "size": "1", "grade": "B", "output": 3000, "location": "Area18", "cost_auec": 10800},
+        {"id": "power_lightfire", "name": "Lightfire", "type": "Power", "manufacturer": "Aegis", "size": "1", "grade": "C", "output": 2800, "location": "Port Olisar", "cost_auec": 8400},
         
         # Power Plants - Size 2
-        {"id": "power_genoa", "name": "Genoa", "type": "Power", "manufacturer": "Sakura Sun", "size": "2", "grade": "A", "output": 4200},
-        {"id": "power_beacon", "name": "Beacon", "type": "Power", "manufacturer": "Tyler Design", "size": "2", "grade": "B", "output": 4000},
-        {"id": "power_slipstream", "name": "Slipstream", "type": "Power", "manufacturer": "Wen/Cassel", "size": "2", "grade": "C", "output": 3800},
+        {"id": "power_genoa", "name": "Genoa", "type": "Power", "manufacturer": "Sakura Sun", "size": "2", "grade": "A", "output": 4200, "location": "Lorville", "cost_auec": 28400},
+        {"id": "power_beacon", "name": "Beacon", "type": "Power", "manufacturer": "Tyler Design", "size": "2", "grade": "B", "output": 4000, "location": "New Babbage", "cost_auec": 22600},
+        {"id": "power_slipstream", "name": "Slipstream", "type": "Power", "manufacturer": "Wen/Cassel", "size": "2", "grade": "C", "output": 3800, "location": "Area18", "cost_auec": 18200},
         
         # Power Plants - Size 3
-        {"id": "power_regulus", "name": "Regulus", "type": "Power", "manufacturer": "Aegis", "size": "3", "grade": "A", "output": 5600},
-        {"id": "power_maelstrom", "name": "Maelstrom", "type": "Power", "manufacturer": "Lightning Power", "size": "3", "grade": "B", "output": 5400},
-        {"id": "power_quadracell", "name": "Quadracell", "type": "Power", "manufacturer": "Tyler Design", "size": "3", "grade": "C", "output": 5200},
+        {"id": "power_regulus", "name": "Regulus", "type": "Power", "manufacturer": "Aegis", "size": "3", "grade": "A", "output": 5600, "location": "Port Olisar", "cost_auec": 56800},
+        {"id": "power_maelstrom", "name": "Maelstrom", "type": "Power", "manufacturer": "Lightning Power", "size": "3", "grade": "B", "output": 5400, "location": "Lorville", "cost_auec": 45200},
+        {"id": "power_quadracell", "name": "Quadracell", "type": "Power", "manufacturer": "Tyler Design", "size": "3", "grade": "C", "output": 5200, "location": "New Babbage", "cost_auec": 36400},
         
         # Coolers - Size 1
-        {"id": "cooler_frost", "name": "Frost-Star", "type": "Cooler", "manufacturer": "J-Span", "size": "1", "grade": "A", "rate": 4200},
-        {"id": "cooler_polar", "name": "Polar", "type": "Cooler", "manufacturer": "Seal Corp", "size": "1", "grade": "B", "rate": 4000},
-        {"id": "cooler_thermal", "name": "ThermalCore", "type": "Cooler", "manufacturer": "ACOM", "size": "1", "grade": "C", "rate": 3800},
+        {"id": "cooler_frost", "name": "Frost-Star", "type": "Cooler", "manufacturer": "J-Span", "size": "1", "grade": "A", "rate": 4200, "location": "Area18", "cost_auec": 11200},
+        {"id": "cooler_polar", "name": "Polar", "type": "Cooler", "manufacturer": "Seal Corp", "size": "1", "grade": "B", "rate": 4000, "location": "Port Olisar", "cost_auec": 8600},
+        {"id": "cooler_thermal", "name": "ThermalCore", "type": "Cooler", "manufacturer": "ACOM", "size": "1", "grade": "C", "rate": 3800, "location": "Lorville", "cost_auec": 6800},
         
         # Coolers - Size 2
-        {"id": "cooler_avalanche", "name": "Avalanche", "type": "Cooler", "manufacturer": "J-Span", "size": "2", "grade": "A", "rate": 6800},
-        {"id": "cooler_zero", "name": "Zero-Rush", "type": "Cooler", "manufacturer": "Seal Corp", "size": "2", "grade": "B", "rate": 6500},
-        {"id": "cooler_arctic", "name": "ArcticStorm", "type": "Cooler", "manufacturer": "ACOM", "size": "2", "grade": "C", "rate": 6200},
+        {"id": "cooler_avalanche", "name": "Avalanche", "type": "Cooler", "manufacturer": "J-Span", "size": "2", "grade": "A", "rate": 6800, "location": "New Babbage", "cost_auec": 22400},
+        {"id": "cooler_zero", "name": "Zero-Rush", "type": "Cooler", "manufacturer": "Seal Corp", "size": "2", "grade": "B", "rate": 6500, "location": "Area18", "cost_auec": 17200},
+        {"id": "cooler_arctic", "name": "ArcticStorm", "type": "Cooler", "manufacturer": "ACOM", "size": "2", "grade": "C", "rate": 6200, "location": "Port Olisar", "cost_auec": 13600},
         
         # Coolers - Size 3
-        {"id": "cooler_blizzard", "name": "Blizzard", "type": "Cooler", "manufacturer": "J-Span", "size": "3", "grade": "A", "rate": 8800},
-        {"id": "cooler_icecream", "name": "Ice-Scream", "type": "Cooler", "manufacturer": "Seal Corp", "size": "3", "grade": "B", "rate": 8500},
-        {"id": "cooler_cryo", "name": "CryoStar", "type": "Cooler", "manufacturer": "ACOM", "size": "3", "grade": "C", "rate": 8200},
+        {"id": "cooler_blizzard", "name": "Blizzard", "type": "Cooler", "manufacturer": "J-Span", "size": "3", "grade": "A", "rate": 8800, "location": "Lorville", "cost_auec": 44800},
+        {"id": "cooler_icecream", "name": "Ice-Scream", "type": "Cooler", "manufacturer": "Seal Corp", "size": "3", "grade": "B", "rate": 8500, "location": "New Babbage", "cost_auec": 34400},
+        {"id": "cooler_cryo", "name": "CryoStar", "type": "Cooler", "manufacturer": "ACOM", "size": "3", "grade": "C", "rate": 8200, "location": "Area18", "cost_auec": 27200},
         
         # Quantum Drives - Size 1
-        {"id": "quantum_rush", "name": "Rush", "type": "Quantum", "manufacturer": "Aspro Hangar", "size": "1", "grade": "A", "speed": 121000},
-        {"id": "quantum_yeager", "name": "Yeager", "type": "Quantum", "manufacturer": "Wei-Tek", "size": "1", "grade": "B", "speed": 115000},
-        {"id": "quantum_voyage", "name": "Voyage", "type": "Quantum", "manufacturer": "Eos", "size": "1", "grade": "C", "speed": 110000},
+        {"id": "quantum_rush", "name": "Rush", "type": "Quantum", "manufacturer": "Aspro Hangar", "size": "1", "grade": "A", "speed": 121000, "location": "Port Olisar", "cost_auec": 18400},
+        {"id": "quantum_yeager", "name": "Yeager", "type": "Quantum", "manufacturer": "Wei-Tek", "size": "1", "grade": "B", "speed": 115000, "location": "New Babbage", "cost_auec": 14200},
+        {"id": "quantum_voyage", "name": "Voyage", "type": "Quantum", "manufacturer": "Eos", "size": "1", "grade": "C", "speed": 110000, "location": "Area18", "cost_auec": 11000},
         
         # Quantum Drives - Size 2
-        {"id": "quantum_atlas", "name": "Atlas", "type": "Quantum", "manufacturer": "RSI", "size": "2", "grade": "A", "speed": 141000},
-        {"id": "quantum_bolon", "name": "Bolon", "type": "Quantum", "manufacturer": "Borea", "size": "2", "grade": "B", "speed": 135000},
-        {"id": "quantum_pontes", "name": "Pontes", "type": "Quantum", "manufacturer": "Agni", "size": "2", "grade": "C", "speed": 130000},
+        {"id": "quantum_atlas", "name": "Atlas", "type": "Quantum", "manufacturer": "RSI", "size": "2", "grade": "A", "speed": 141000, "location": "Lorville", "cost_auec": 36800},
+        {"id": "quantum_bolon", "name": "Bolon", "type": "Quantum", "manufacturer": "Borea", "size": "2", "grade": "B", "speed": 135000, "location": "Port Olisar", "cost_auec": 28400},
+        {"id": "quantum_pontes", "name": "Pontes", "type": "Quantum", "manufacturer": "Agni", "size": "2", "grade": "C", "speed": 130000, "location": "New Babbage", "cost_auec": 22000},
         
         # Quantum Drives - Size 3
-        {"id": "quantum_vk00", "name": "VK-00", "type": "Quantum", "manufacturer": "Agni", "size": "3", "grade": "A", "speed": 161000},
-        {"id": "quantum_crossfield", "name": "Crossfield", "type": "Quantum", "manufacturer": "Eos", "size": "3", "grade": "B", "speed": 155000},
-        {"id": "quantum_beacon", "name": "Beacon", "type": "Quantum", "manufacturer": "Wei-Tek", "size": "3", "grade": "C", "speed": 150000},
+        {"id": "quantum_vk00", "name": "VK-00", "type": "Quantum", "manufacturer": "Agni", "size": "3", "grade": "A", "speed": 161000, "location": "Area18", "cost_auec": 73600},
+        {"id": "quantum_crossfield", "name": "Crossfield", "type": "Quantum", "manufacturer": "Eos", "size": "3", "grade": "B", "speed": 155000, "location": "Lorville", "cost_auec": 56800},
+        {"id": "quantum_beacon", "name": "Beacon", "type": "Quantum", "manufacturer": "Wei-Tek", "size": "3", "grade": "C", "speed": 150000, "location": "Port Olisar", "cost_auec": 44000},
         
         # Radars - Size 1
-        {"id": "radar_hawk", "name": "Hawk-3", "type": "Radar", "manufacturer": "Talon Navigation", "size": "1", "grade": "A", "range": 8000},
-        {"id": "radar_scout", "name": "Scout", "type": "Radar", "manufacturer": "Chimera Communications", "size": "1", "grade": "B", "range": 7500},
+        {"id": "radar_hawk", "name": "Hawk-3", "type": "Radar", "manufacturer": "Talon Navigation", "size": "1", "grade": "A", "range": 8000, "location": "New Babbage", "cost_auec": 9200},
+        {"id": "radar_scout", "name": "Scout", "type": "Radar", "manufacturer": "Chimera Communications", "size": "1", "grade": "B", "range": 7500, "location": "Area18", "cost_auec": 7400},
         
         # Radars - Size 2
-        {"id": "radar_eagle", "name": "Eagle-Eye", "type": "Radar", "manufacturer": "Talon Navigation", "size": "2", "grade": "A", "range": 12000},
-        {"id": "radar_optics", "name": "WideView Optics", "type": "Radar", "manufacturer": "Chimera Communications", "size": "2", "grade": "B", "range": 11000},
+        {"id": "radar_eagle", "name": "Eagle-Eye", "type": "Radar", "manufacturer": "Talon Navigation", "size": "2", "grade": "A", "range": 12000, "location": "Port Olisar", "cost_auec": 18400},
+        {"id": "radar_optics", "name": "WideView Optics", "type": "Radar", "manufacturer": "Chimera Communications", "size": "2", "grade": "B", "range": 11000, "location": "Lorville", "cost_auec": 14800},
         
         # Radars - Size 3
-        {"id": "radar_nightjar", "name": "Nightjar", "type": "Radar", "manufacturer": "Talon Navigation", "size": "3", "grade": "A", "range": 16000},
-        {"id": "radar_sentinel", "name": "Sentinel", "type": "Radar", "manufacturer": "Chimera Communications", "size": "3", "grade": "B", "range": 15000},
+        {"id": "radar_nightjar", "name": "Nightjar", "type": "Radar", "manufacturer": "Talon Navigation", "size": "3", "grade": "A", "range": 16000, "location": "New Babbage", "cost_auec": 36800},
+        {"id": "radar_sentinel", "name": "Sentinel", "type": "Radar", "manufacturer": "Chimera Communications", "size": "3", "grade": "B", "range": 15000, "location": "Area18", "cost_auec": 29600},
     ]
 
 @api_router.get("/weapons")
