@@ -74,6 +74,7 @@ function App() {
           <Route path="/ships" element={<PrivateRoute><Layout><Ships /></Layout></PrivateRoute>} />
           <Route path="/ships/:shipId" element={<PrivateRoute><Layout><ShipDetail /></Layout></PrivateRoute>} />
           <Route path="/ships/:shipId/loadout" element={<PrivateRoute><Layout><LoadoutBuilder /></Layout></PrivateRoute>} />
+          <Route path="/loadout" element={<PrivateRoute><Layout><LoadoutBuilder /></Layout></PrivateRoute>} />
           <Route path="/compare" element={<PrivateRoute><Layout><Compare /></Layout></PrivateRoute>} />
           <Route path="/vehicles" element={<PrivateRoute><Layout><Vehicles /></Layout></PrivateRoute>} />
           <Route path="/components" element={<PrivateRoute><Layout><Components /></Layout></PrivateRoute>} />
