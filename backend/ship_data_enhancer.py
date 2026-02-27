@@ -2,35 +2,14 @@
 
 def enhance_ship_data(ships):
     """Add comprehensive details to ship list"""
-    # Ship images from various sources
-    ship_images = {
-        "default": "https://images.unsplash.com/photo-1761603059659-baf7d8124c6f?q=85",
-        "fighter": "https://images.unsplash.com/photo-1725201545124-3ecd19db4bc7?q=85",
-        "large": "https://images.unsplash.com/photo-1767469194952-6b6720d8108e?q=85",
-        "capital": "https://images.unsplash.com/photo-1758685295938-e27200ff3f6c?q=85",
-        "military": "https://images.unsplash.com/photo-1614121174144-bd53a169780e?q=85",
-        "sleek": "https://images.unsplash.com/photo-1743267822072-efdabbacc8c6?q=85",
-    }
-    
-    # Vehicle images
-    vehicle_images = {
-        "rover": "https://images.unsplash.com/photo-1590314831339-07e29f3c1c37?q=85",
-        "vehicle": "https://images.unsplash.com/photo-1722231525969-666c3606f690?q=85",
-        "heavy": "https://images.unsplash.com/photo-1745688810809-5040dc0cd002?q=85",
-    }
-    
-    # Enhanced details for each ship
+    # Try to use API images first, fall back to constructed URLs
     for ship in ships:
-        # Add image based on size/type
-        if ship["size"] == "Capital":
-            ship["image"] = ship_images["capital"]
-        elif ship["size"] == "Large":
-            ship["image"] = ship_images["large"]
-        elif ship["size"] == "Small" or ship["size"] == "Medium":
-            ship["image"] = ship_images["fighter"]
-        else:
-            ship["image"] = ship_images["default"]
-            
+        # If API doesn't provide image, construct Star Citizen wiki image URL
+        if not ship.get('image') or ship['image'] == '':
+            # Use Star Citizen wiki/RSI website image pattern
+            ship_slug = ship['name'].lower().replace(' ', '-').replace("'", '')
+            ship['image'] = f"https://starcitizen.tools/images/thumb/{ship_slug}.jpg/800px-{ship_slug}.jpg"
+        
         # Add missing fields with defaults
         if "beam" not in ship:
             ship["beam"] = round(ship["length"] * 0.6, 1)
@@ -55,11 +34,8 @@ def enhance_ship_data(ships):
             
     return ships
 
-def get_vehicle_image(vehicle_type):
-    """Get appropriate vehicle image"""
-    vehicle_images = {
-        "Ground": "https://images.unsplash.com/photo-1590314831339-07e29f3c1c37?q=85",
-        "Hover": "https://images.unsplash.com/photo-1722231525969-666c3606f690?q=85",
-        "Heavy": "https://images.unsplash.com/photo-1745688810809-5040dc0cd002?q=85",
-    }
-    return vehicle_images.get(vehicle_type, vehicle_images["Ground"])
+def get_vehicle_image(vehicle_name):
+    """Get vehicle image from Star Citizen resources"""
+    # Use Star Citizen wiki image pattern for vehicles
+    vehicle_slug = vehicle_name.lower().replace(' ', '-')
+    return f"https://starcitizen.tools/images/thumb/{vehicle_slug}.jpg/800px-{vehicle_slug}.jpg"
