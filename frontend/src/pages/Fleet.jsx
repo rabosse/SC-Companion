@@ -147,7 +147,7 @@ const Fleet = () => {
       {fleet.length === 0 && (
         <div className="text-center py-16" data-testid="empty-fleet">
           <div className="glass-panel rounded-3xl p-12 max-w-2xl mx-auto">
-            <Ship className="w-24 h-24 text-gray-600 mx-auto mb-6" />
+            <SpaceshipIcon className="w-24 h-24 mx-auto mb-6 text-gray-600" />
             <h2 className="text-3xl font-bold mb-4" style={{ fontFamily: 'Rajdhani, sans-serif', color: '#FFFFFF' }}>
               Your Fleet is Empty
             </h2>
