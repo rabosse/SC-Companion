@@ -6,7 +6,7 @@ from datetime import datetime
 import json
 
 class StarCitizenAPITester:
-    def __init__(self, base_url="https://citizen-arsenal.preview.emergentagent.com/api"):
+    def __init__(self, base_url="https://citizen-fleet.preview.emergentagent.com/api"):
         self.base_url = base_url
         self.token = None
         self.user_id = None
