@@ -126,18 +126,10 @@ async def get_ships(user_id: str = Depends(get_current_user)):
         return {"success": True, "data": ships}
 
 def get_comprehensive_ship_list():
-    """Comprehensive list of Star Citizen ships with detailed specifications"""
-    # Default ship images
-    ship_images = {
-        "default": "https://images.unsplash.com/photo-1761603059659-baf7d8124c6f?q=85",
-        "fighter": "https://images.unsplash.com/photo-1725201545124-3ecd19db4bc7?q=85",
-        "large": "https://images.unsplash.com/photo-1767469194952-6b6720d8108e?q=85",
-        "capital": "https://images.unsplash.com/photo-1758685295938-e27200ff3f6c?q=85",
-    }
-    
+    """Comprehensive list of Star Citizen ships"""
     return [
         # Origin Jumpworks
-        {"id": "85x", "name": "85X", "manufacturer": "Origin Jumpworks", "size": "Snub", "crew": "1", "cargo": 0, "length": 12.5, "beam": 8.5, "height": 4.5, "mass": 18000, "max_speed": 280, "role": "Touring", "image": ship_images["default"], "description": "The 85X is a small, luxury snub fighter designed for short-range transportation and defense. Elegant and agile."},
+        {"id": "85x", "name": "85X", "manufacturer": "Origin Jumpworks", "size": "Snub", "crew": "1", "cargo": 0, "length": 12.5},
         {"id": "100i", "name": "100i", "manufacturer": "Origin Jumpworks", "size": "Small", "crew": "1", "cargo": 2, "length": 20},
         {"id": "125a", "name": "125a", "manufacturer": "Origin Jumpworks", "size": "Small", "crew": "1", "cargo": 2, "length": 20},
         {"id": "135c", "name": "135c", "manufacturer": "Origin Jumpworks", "size": "Small", "crew": "1", "cargo": 6, "length": 20},
