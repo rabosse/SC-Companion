@@ -173,11 +173,11 @@ const Ships = () => {
               <div className="grid grid-cols-2 gap-4 text-sm mb-4">
                 <div>
                   <span className="text-gray-500 block">Crew</span>
-                  <span className="text-white font-semibold">{ship.crew}</span>
+                  <span className="text-white font-semibold">{ship.crew_max ? `${ship.crew_min}-${ship.crew_max}` : (ship.crew || 'N/A')}</span>
                 </div>
                 <div>
                   <span className="text-gray-500 block">Cargo</span>
-                  <span className="text-white font-semibold">{ship.cargo} SCU</span>
+                  <span className="text-white font-semibold">{ship.cargo ?? 0} SCU</span>
                 </div>
                 <div>
                   <span className="text-gray-500 block">Length</span>
