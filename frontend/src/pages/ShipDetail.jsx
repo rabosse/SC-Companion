@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 
 const ShipDetail = () => {
   const { shipId } = useParams();
+  const navigate = useNavigate();
   const { API } = useAuth();
   const [ship, setShip] = useState(null);
   const [upgrades, setUpgrades] = useState(null);
