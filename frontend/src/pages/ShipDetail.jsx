@@ -65,13 +65,14 @@ const ShipDetail = () => {
   ];
 
   const specs = [
-    { icon: Users, label: 'Crew', value: ship.crew, color: '#00D4FF' },
-    { icon: Package, label: 'Cargo (SCU)', value: ship.cargo, color: '#D4AF37' },
-    { icon: Ruler, label: 'Length (m)', value: ship.length, color: '#00FF9D' },
+    { icon: Users, label: 'Crew', value: ship.crew_max ? `${ship.crew_min}-${ship.crew_max}` : (ship.crew || 'N/A'), color: '#00D4FF' },
+    { icon: Package, label: 'Cargo (SCU)', value: ship.cargo ?? 'N/A', color: '#D4AF37' },
+    { icon: Ruler, label: 'Length (m)', value: ship.length || 'N/A', color: '#00FF9D' },
     { icon: Ruler, label: 'Beam (m)', value: ship.beam || 'N/A', color: '#00FF9D' },
     { icon: Ruler, label: 'Height (m)', value: ship.height || 'N/A', color: '#00FF9D' },
     { icon: Weight, label: 'Mass (kg)', value: ship.mass?.toLocaleString() || 'N/A', color: '#FFAE00' },
-    { icon: Gauge, label: 'Max Speed (m/s)', value: ship.max_speed || 'N/A', color: '#FF0055' },
+    { icon: Gauge, label: 'SCM Speed (m/s)', value: ship.max_speed || 'N/A', color: '#FF0055' },
+    { icon: Shield, label: 'Shield HP', value: ship.shield_hp?.toLocaleString() || 'N/A', color: '#00D4FF' },
     { icon: DollarSign, label: 'Price (UEC)', value: ship.price?.toLocaleString() || 'TBD', color: '#D4AF37' },
   ];
 
