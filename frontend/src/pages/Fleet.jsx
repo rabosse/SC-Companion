@@ -99,19 +99,47 @@ const Fleet = () => {
 
       {/* Search */}
       {fleet.length > 0 && (
-        <div className="glass-panel rounded-2xl p-6">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search your fleet..."
-              data-testid="search-input"
-              className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
-            />
+        <>
+          {/* Fleet Statistics */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+            {statsCards.map((stat, index) => {
+              const Icon = stat.icon;
+              return (
+                <motion.div
+                  key={stat.label}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="glass-panel rounded-2xl p-6"
+                  data-testid={`fleet-stat-${stat.label.toLowerCase().replace(/\s+/g, '-')}`}
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <Icon className="w-8 h-8" style={{ color: stat.color }} />
+                  </div>
+                  <div className="text-3xl font-bold mb-1" style={{ fontFamily: 'Rajdhani, sans-serif', color: stat.color }}>
+                    {stat.value}
+                  </div>
+                  <div className="text-sm text-gray-400">{stat.label}</div>
+                </motion.div>
+              );
+            })}
           </div>
-        </div>
+
+          {/* Search Bar */}
+          <div className="glass-panel rounded-2xl p-6">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search your fleet..."
+                data-testid="search-input"
+                className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
+              />
+            </div>
+          </div>
+        </>
       )}
 
       {/* Empty State */}
