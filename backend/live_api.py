@@ -137,6 +137,8 @@ def _normalize_vehicle(v: dict) -> dict:
         "description": (v.get("description", {}).get("en_EN", "") if isinstance(v.get("description"), dict) else "") or f"The {v.get('name', '')} is a versatile vessel.",
         "is_ground_vehicle": is_ground,
         "image": "",
+        "msrp": v.get("msrp", 0),
+        "pledge_url": v.get("pledge_url", ""),
         # Hardpoint data for loadout builder
         "hardpoints": {
             "shield": {"size": slots["shield_size"], "count": slots["shield_count"]},
