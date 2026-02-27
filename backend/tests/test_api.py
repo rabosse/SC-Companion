@@ -148,12 +148,13 @@ class TestVehiclesAPI:
         data = response.json()
         assert "data" in data
         assert len(data["data"]) > 0
-        # Verify vehicle structure
+        # Verify vehicle structure (live API may not have 'type' field)
         vehicle = data["data"][0]
         assert "id" in vehicle
         assert "name" in vehicle
         assert "manufacturer" in vehicle
-        assert "type" in vehicle
+        # LIVE API has is_ground_vehicle flag instead of 'type' string
+        assert vehicle.get("is_ground_vehicle") == True or "is_ground_vehicle" in vehicle
     
     def test_vehicles_have_wiki_images(self, auth_headers):
         """Test that vehicles have images from starcitizen.tools wiki"""
