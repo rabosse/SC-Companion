@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../App';
-import { Ship, Users, Box, Crosshair, LogOut, Menu, X } from 'lucide-react';
+import { Ship, Users, Box, Crosshair, LogOut, Menu, X, Briefcase } from 'lucide-react';
 import { useState } from 'react';
 
 const Layout = ({ children }) => {
@@ -10,6 +10,7 @@ const Layout = ({ children }) => {
 
   const navItems = [
     { path: '/', label: 'Dashboard', icon: Ship },
+    { path: '/fleet', label: 'My Fleet', icon: Briefcase },
     { path: '/ships', label: 'Ships', icon: Ship },
     { path: '/vehicles', label: 'Vehicles', icon: Users },
     { path: '/components', label: 'Components', icon: Box },
@@ -32,7 +33,7 @@ const Layout = ({ children }) => {
                 <Ship className="w-6 h-6 text-white" />
               </div>
               <h1 className="text-2xl font-bold tracking-tight uppercase" style={{ fontFamily: 'Rajdhani, sans-serif', color: '#00D4FF' }}>
-                Origin Fleet Manager
+                Star Citizen Fleet Manager
               </h1>
             </div>
 
