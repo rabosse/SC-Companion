@@ -101,9 +101,13 @@ const Vehicles = () => {
             className="glass-panel rounded-2xl overflow-hidden hover:scale-105 transition-transform duration-300"
             data-testid={`vehicle-card-${vehicle.id}`}
           >
-            <div className="h-48 bg-gradient-to-br from-yellow-500/20 to-orange-600/20 flex items-center justify-center relative overflow-hidden">
-              <div className="absolute inset-0 radial-glow opacity-50"></div>
-              <Package className="w-20 h-20 text-yellow-500 relative z-10" />
+            <div className="h-48 relative overflow-hidden">
+              <img 
+                src={vehicle.image} 
+                alt={vehicle.name}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
             </div>
 
             <div className="p-6">
