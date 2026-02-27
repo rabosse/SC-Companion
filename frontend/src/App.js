@@ -34,6 +34,7 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
@@ -44,6 +45,7 @@ function App() {
       setIsAuthenticated(true);
       axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
     }
+    setAuthLoading(false);
   }, []);
 
   const login = (token, userData) => {
