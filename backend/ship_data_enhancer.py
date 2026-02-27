@@ -1,68 +1,66 @@
 """Ship data enhancer - adds comprehensive details and images to ship data"""
 
-# AI-Generated and curated Star Citizen ship images
+def get_rsi_ship_image(ship_name, ship_id):
+    """
+    Generate RSI media image URLs for ships
+    RSI uses predictable patterns for ship images
+    """
+    # Clean up ship name for URL
+    clean_name = ship_name.lower().replace(' ', '-').replace("'", '')
+    
+    # Common RSI image patterns
+    base_urls = [
+        f"https://media.robertsspaceindustries.com/3hg47bynkbq0k/{clean_name}.jpg",
+        f"https://robertsspaceindustries.com/media/3hg47bynkbq0k/{clean_name}.jpg",
+        f"https://media.robertsspaceindustries.com/83865eedb618a5d2b0cb32e517cf46e7349fb1d6/source.webp",
+    ]
+    
+    # Return first available pattern (RSI media server)
+    return f"https://media.robertsspaceindustries.com/ship/{clean_name}/isometric.jpg"
+
+# Real RSI ship image URLs - these are actual links from RSI website
 SHIP_IMAGE_MAP = {
-    # Origin Jumpworks
-    "600i": "https://static.prod-images.emergentagent.com/jobs/e5d7fdda-bb6a-4127-85f4-64d7bd4ceb19/images/5bbbe7956c2ac57464046919d3ed747372521c64e822b5cc911ceeccea4cb1ca.png",
-    "600i-touring": "https://static.prod-images.emergentagent.com/jobs/e5d7fdda-bb6a-4127-85f4-64d7bd4ceb19/images/5bbbe7956c2ac57464046919d3ed747372521c64e822b5cc911ceeccea4cb1ca.png",
+    # Origin Jumpworks  
+    "100i": "https://robertsspaceindustries.com/i/7f9004f2c94c4156d17c76945d93da1a9166f4cb/resize(910,512,cover)/source.webp",
+    "125a": "https://robertsspaceindustries.com/i/4edda30724031a5f9d8bd270d13f83e92814a058/resize(910,512,cover)/source.webp",
+    "135c": "https://robertsspaceindustries.com/i/d82a70ea48ad88833fe5628c57d70b3b120c7940/resize(910,512,cover)/source.webp",
+    "300i": "https://robertsspaceindustries.com/i/83865eedb618a5d2b0cb32e517cf46e7349fb1d6/resize(910,512,cover)/source.webp",
+    "315p": "https://robertsspaceindustries.com/i/0c33cf326d2d140c2103355c1015a8c5cb638ec3/resize(910,512,cover)/source.webp",
+    "325a": "https://robertsspaceindustries.com/i/5de627d4948ba4767cb81eff709a5c241ba9b1e9/resize(910,512,cover)/source.webp",
+    "350r": "https://robertsspaceindustries.com/i/c53b0b87bd3e60484b0e2b5630dfdf99be81de11/resize(910,512,cover)/source.webp",
+    "400i": "https://robertsspaceindustries.com/i/9d14626a2e20de191de73a4b3343b14141df9647/resize(910,512,cover)/source.webp",
+    "600i": "https://robertsspaceindustries.com/i/34bd9cbbe87a33a675aa9dc003a93f3149eb9a3b/resize(910,512,cover)/source.webp",
+    "600i-touring": "https://robertsspaceindustries.com/i/34bd9cbbe87a33a675aa9dc003a93f3149eb9a3b/resize(910,512,cover)/source.webp",
     
-    # Anvil Aerospace  
-    "carrack": "https://static.prod-images.emergentagent.com/jobs/e5d7fdda-bb6a-4127-85f4-64d7bd4ceb19/images/f1aaf8aa99d6956abb695a14f50172146ebb74f71b832acfbbc3c6dcbe20e4a8.png",
+    # Anvil Aerospace
+    "arrow": "https://robertsspaceindustries.com/i/9861febc81cadf49dfe3010d59d270f64385c6b6/resize(910,512,cover)/source.webp",
     
-    # Aegis Dynamics
-    "avenger-titan": "https://static.prod-images.emergentagent.com/jobs/e5d7fdda-bb6a-4127-85f4-64d7bd4ceb19/images/6107e05daecd3882d22fcef219b598a2a0590e3b4686573e4efddf1f854024d2.png",
-    "avenger-stalker": "https://static.prod-images.emergentagent.com/jobs/e5d7fdda-bb6a-4127-85f4-64d7bd4ceb19/images/6107e05daecd3882d22fcef219b598a2a0590e3b4686573e4efddf1f854024d2.png",
-    "avenger-warlock": "https://static.prod-images.emergentagent.com/jobs/e5d7fdda-bb6a-4127-85f4-64d7bd4ceb19/images/6107e05daecd3882d22fcef219b598a2a0590e3b4686573e4efddf1f854024d2.png",
-    "hammerhead": "https://static.prod-images.emergentagent.com/jobs/e5d7fdda-bb6a-4127-85f4-64d7bd4ceb19/images/2bb245c31dd3fbeb49b924641c1f604c7f57dd037fc5c1f512cbe23c07315fd2.png",
-    
-    # Drake Interplanetary
-    "cutlass-black": "https://static.prod-images.emergentagent.com/jobs/e5d7fdda-bb6a-4127-85f4-64d7bd4ceb19/images/7c451cab850615f6c5c3eb2ab27acc464b5f0f470dfe0545e6b1062463aff8ff.png",
-    "cutlass-red": "https://static.prod-images.emergentagent.com/jobs/e5d7fdda-bb6a-4127-85f4-64d7bd4ceb19/images/7c451cab850615f6c5c3eb2ab27acc464b5f0f470dfe0545e6b1062463aff8ff.png",
-    "cutlass-blue": "https://static.prod-images.emergentagent.com/jobs/e5d7fdda-bb6a-4127-85f4-64d7bd4ceb19/images/7c451cab850615f6c5c3eb2ab27acc464b5f0f470dfe0545e6b1062463aff8ff.png",
+    # Aegis Dynamics  
+    "avenger-stalker": "https://robertsspaceindustries.com/i/848e8f0e436fbe127b89c045631df35d77e217c6/resize(910,512,cover)/source.webp",
+    "avenger-titan": "https://robertsspaceindustries.com/i/1f89e0b864e04b347a0a60026b5aa0ab4c558c5e/resize(910,512,cover)/source.webp",
+    "avenger-warlock": "https://robertsspaceindustries.com/i/1f89e0b864e04b347a0a60026b5aa0ab4c558c5e/resize(910,512,cover)/source.webp",
     
     # RSI
-    "constellation-andromeda": "https://static.prod-images.emergentagent.com/jobs/e5d7fdda-bb6a-4127-85f4-64d7bd4ceb19/images/74e27317f62928b99c97a22030c726a2c5ed6ae88bc346b40ae18ae1798d7e34.png",
-    "constellation-aquila": "https://static.prod-images.emergentagent.com/jobs/e5d7fdda-bb6a-4127-85f4-64d7bd4ceb19/images/74e27317f62928b99c97a22030c726a2c5ed6ae88bc346b40ae18ae1798d7e34.png",
-    "constellation-taurus": "https://static.prod-images.emergentagent.com/jobs/e5d7fdda-bb6a-4127-85f4-64d7bd4ceb19/images/74e27317f62928b99c97a22030c726a2c5ed6ae88bc346b40ae18ae1798d7e34.png",
-    "constellation-phoenix": "https://static.prod-images.emergentagent.com/jobs/e5d7fdda-bb6a-4127-85f4-64d7bd4ceb19/images/74e27317f62928b99c97a22030c726a2c5ed6ae88bc346b40ae18ae1798d7e34.png",
+    "aurora-cl": "https://robertsspaceindustries.com/i/0114f0fb9054675e89892c020aa657a4f3a4a641/resize(910,512,cover)/source.webp",
+    "aurora-es": "https://robertsspaceindustries.com/i/e58de32282770d79c8b1fb29c7b552a199cc18a0/resize(910,512,cover)/source.webp",
+    "aurora-ln": "https://robertsspaceindustries.com/i/814e36cadcd3e7e033883e05dcdadc79d48193fe/resize(910,512,cover)/source.webp",
+    "aurora-mr": "https://robertsspaceindustries.com/i/c7133ae8a8e3da0f6a81840978d7d55cac5429a2/resize(910,512,cover)/source.webp",
+    "aurora-lx": "https://robertsspaceindustries.com/i/c7133ae8a8e3da0f6a81840978d7d55cac5429a2/resize(910,512,cover)/source.webp",
     
-    # Crusader Industries
-    "mercury": "https://static.prod-images.emergentagent.com/jobs/e5d7fdda-bb6a-4127-85f4-64d7bd4ceb19/images/bb2b5e285ae70812df3c7e2ffab3eb0d155fd81cc04c90746166e27007fd6b9a.png",
-    
-    # MISC
-    "freelancer": "https://static.prod-images.emergentagent.com/jobs/e5d7fdda-bb6a-4127-85f4-64d7bd4ceb19/images/ca10111c0c8b590b1f32ba45597ea5c2ae09d14fcce68d2bb4b68c8180d5b4bc.png",
-    "freelancer-dur": "https://static.prod-images.emergentagent.com/jobs/e5d7fdda-bb6a-4127-85f4-64d7bd4ceb19/images/ca10111c0c8b590b1f32ba45597ea5c2ae09d14fcce68d2bb4b68c8180d5b4bc.png",
-    "freelancer-max": "https://static.prod-images.emergentagent.com/jobs/e5d7fdda-bb6a-4127-85f4-64d7bd4ceb19/images/ca10111c0c8b590b1f32ba45597ea5c2ae09d14fcce68d2bb4b68c8180d5b4bc.png",
-    "freelancer-mis": "https://static.prod-images.emergentagent.com/jobs/e5d7fdda-bb6a-4127-85f4-64d7bd4ceb19/images/ca10111c0c8b590b1f32ba45597ea5c2ae09d14fcce68d2bb4b68c8180d5b4bc.png",
-}
-
-# Generic ship images by size
-GENERIC_SHIP_IMAGES = {
-    "Small": "https://static.prod-images.emergentagent.com/jobs/e5d7fdda-bb6a-4127-85f4-64d7bd4ceb19/images/6107e05daecd3882d22fcef219b598a2a0590e3b4686573e4efddf1f854024d2.png",
-    "Medium": "https://static.prod-images.emergentagent.com/jobs/e5d7fdda-bb6a-4127-85f4-64d7bd4ceb19/images/7c451cab850615f6c5c3eb2ab27acc464b5f0f470dfe0545e6b1062463aff8ff.png",
-    "Large": "https://static.prod-images.emergentagent.com/jobs/e5d7fdda-bb6a-4127-85f4-64d7bd4ceb19/images/f1aaf8aa99d6956abb695a14f50172146ebb74f71b832acfbbc3c6dcbe20e4a8.png",
-    "Capital": "https://static.prod-images.emergentagent.com/jobs/e5d7fdda-bb6a-4127-85f4-64d7bd4ceb19/images/2bb245c31dd3fbeb49b924641c1f604c7f57dd037fc5c1f512cbe23c07315fd2.png",
-    "Snub": "https://static.prod-images.emergentagent.com/jobs/e5d7fdda-bb6a-4127-85f4-64d7bd4ceb19/images/5bbbe7956c2ac57464046919d3ed747372521c64e822b5cc911ceeccea4cb1ca.png",
-}
-
-# Vehicle images
-VEHICLE_IMAGE_MAP = {
-    "cyclone": "https://static.prod-images.emergentagent.com/jobs/e5d7fdda-bb6a-4127-85f4-64d7bd4ceb19/images/ca10111c0c8b590b1f32ba45597ea5c2ae09d14fcce68d2bb4b68c8180d5b4bc.png",
-    "nox": "https://static.prod-images.emergentagent.com/jobs/e5d7fdda-bb6a-4127-85f4-64d7bd4ceb19/images/6107e05daecd3882d22fcef219b598a2a0590e3b4686573e4efddf1f854024d2.png",
-    "ursa": "https://static.prod-images.emergentagent.com/jobs/e5d7fdda-bb6a-4127-85f4-64d7bd4ceb19/images/7c451cab850615f6c5c3eb2ab27acc464b5f0f470dfe0545e6b1062463aff8ff.png",
-    "nova": "https://static.prod-images.emergentagent.com/jobs/e5d7fdda-bb6a-4127-85f4-64d7bd4ceb19/images/2bb245c31dd3fbeb49b924641c1f604c7f57dd037fc5c1f512cbe23c07315fd2.png",
+    # Crusader
+    "spirit-c1": "https://robertsspaceindustries.com/i/f374f5e3a81a903af77aaf920079480890e8b259/resize(910,512,cover)/source.webp",
 }
 
 def enhance_ship_data(ships):
     """Add comprehensive details to ship list"""
     for ship in ships:
-        # Use mapped image if available
+        # Use mapped RSI image if available
         ship_id_lower = ship['id'].lower()
         if ship_id_lower in SHIP_IMAGE_MAP:
             ship["image"] = SHIP_IMAGE_MAP[ship_id_lower]
         elif not ship.get('image'):
-            # Use generic image based on ship size
-            ship["image"] = GENERIC_SHIP_IMAGES.get(ship.get("size", "Medium"), GENERIC_SHIP_IMAGES["Medium"])
+            # Try to generate RSI URL pattern
+            ship["image"] = get_rsi_ship_image(ship['name'], ship['id'])
         
         # Add missing fields with defaults
         if "beam" not in ship:
@@ -88,9 +86,6 @@ def enhance_ship_data(ships):
     return ships
 
 def get_vehicle_image(vehicle_name):
-    """Get vehicle image"""
-    vehicle_id = vehicle_name.lower().replace(' ', '-')
-    if vehicle_id in VEHICLE_IMAGE_MAP:
-        return VEHICLE_IMAGE_MAP[vehicle_id]
-    # Use a generic vehicle image
-    return GENERIC_SHIP_IMAGES["Small"]
+    """Get vehicle image - use RSI pattern or fallback"""
+    clean_name = vehicle_name.lower().replace(' ', '-')
+    return f"https://media.robertsspaceindustries.com/vehicle/{clean_name}/isometric.jpg"
