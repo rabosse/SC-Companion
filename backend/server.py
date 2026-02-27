@@ -115,12 +115,15 @@ async def get_ships(user_id: str = Depends(get_current_user)):
             
             if response.status_code == 200:
                 data = response.json()
-                return {"success": True, "data": data.get("data", [])}
+                ships = enhance_ship_data(data.get("data", []))
+                return {"success": True, "data": ships}
             else:
-                return {"success": True, "data": get_comprehensive_ship_list()}
+                ships = enhance_ship_data(get_comprehensive_ship_list())
+                return {"success": True, "data": ships}
     except Exception as e:
         logging.error(f"Error fetching ships: {str(e)}")
-        return {"success": True, "data": get_comprehensive_ship_list()}
+        ships = enhance_ship_data(get_comprehensive_ship_list())
+        return {"success": True, "data": ships}
 
 def get_comprehensive_ship_list():
     """Comprehensive list of Star Citizen ships with detailed specifications"""
