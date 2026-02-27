@@ -301,6 +301,33 @@ const LoadoutBuilder = () => {
             <div className="flex justify-between"><span className="text-gray-500">Component Slots</span><span className="text-white">{slotDefs.filter(s => s.type === 'component').length}</span></div>
             <div className="flex justify-between"><span className="text-gray-500">Loadout Filled</span><span className="text-white">{Object.keys(loadout).length}/{slotDefs.length}</span></div>
           </div>
+
+          {/* Saved Loadouts */}
+          {savedLoadouts.length > 0 && (
+            <div className="p-4 border-t border-white/10">
+              <h3 className="text-sm font-semibold text-gray-400 mb-2">Saved Loadouts</h3>
+              <div className="space-y-2">
+                {savedLoadouts.map(saved => (
+                  <div key={saved.id} className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
+                    <button
+                      onClick={() => loadSavedLoadout(saved)}
+                      data-testid={`load-loadout-${saved.id}`}
+                      className="text-sm text-cyan-400 hover:text-cyan-300 font-medium truncate flex-1 text-left"
+                    >
+                      {saved.loadout_name}
+                    </button>
+                    <button
+                      onClick={() => deleteSavedLoadout(saved.id, saved.loadout_name)}
+                      data-testid={`delete-loadout-${saved.id}`}
+                      className="p-1 hover:bg-red-500/20 rounded text-red-500 shrink-0 ml-2"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Slot list */}
