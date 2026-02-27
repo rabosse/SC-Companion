@@ -103,11 +103,15 @@ const ShipDetail = () => {
         className="glass-panel rounded-3xl overflow-hidden"
       >
         {/* Hero Image */}
-        <div className="relative h-96 overflow-hidden">
+        <div className="relative h-96 overflow-hidden bg-gradient-to-br from-cyan-500/20 to-blue-600/20">
           <img
             src={ship.image}
             alt={ship.name}
             className="w-full h-full object-cover"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = 'https://via.placeholder.com/1200x400/1a1a2e/00d4ff?text=' + encodeURIComponent(ship.name);
+            }}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent"></div>
           <div className="absolute bottom-0 left-0 right-0 p-8">
