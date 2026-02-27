@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 
 const Ships = () => {
   const { API } = useAuth();
+  const navigate = useNavigate();
   const [ships, setShips] = useState([]);
   const [filteredShips, setFilteredShips] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
