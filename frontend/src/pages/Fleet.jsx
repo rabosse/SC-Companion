@@ -212,7 +212,7 @@ const Fleet = () => {
       {/* No Results */}
       {fleet.length > 0 && filteredFleet.length === 0 && (
         <div className="text-center py-12" data-testid="no-results-message">
-          <Ship className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+          <SpaceshipIcon className="w-16 h-16 mx-auto mb-4 text-gray-600" />
           <p className="text-gray-400">No ships found matching your search</p>
         </div>
       )}
