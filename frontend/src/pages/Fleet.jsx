@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../App';
 import axios from 'axios';
-import { Ship, Trash2, Search, TrendingUp, Package, Users, DollarSign } from 'lucide-react';
+import { Trash2, Search, TrendingUp, Package, Users, DollarSign } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import SpaceshipIcon from '../components/SpaceshipIcon';
 
 const Fleet = () => {
   const { API } = useAuth();
