@@ -133,9 +133,23 @@ const Vehicles = () => {
               </div>
               <p className="text-sm text-gray-400 mb-4">{vehicle.manufacturer}</p>
 
-              <div className="text-sm mb-4">
-                <span className="text-gray-500 block">Crew Capacity</span>
-                <span className="text-white font-semibold">{vehicle.crew}</span>
+              <div className="text-sm mb-4 space-y-1">
+                <div>
+                  <span className="text-gray-500 block">Crew Capacity</span>
+                  <span className="text-white font-semibold">{vehicle.crew_max ? `${vehicle.crew_min}-${vehicle.crew_max}` : (vehicle.crew || 'N/A')}</span>
+                </div>
+                {vehicle.price_auec > 0 && (
+                  <div>
+                    <span className="text-gray-500 block">Price</span>
+                    <span className="text-yellow-400 font-semibold">{vehicle.price_auec.toLocaleString()} aUEC</span>
+                  </div>
+                )}
+                {vehicle.purchase_locations?.length > 0 && (
+                  <div>
+                    <span className="text-gray-500 block">Available at</span>
+                    <span className="text-cyan-400 text-xs">{vehicle.purchase_locations.join(', ')}</span>
+                  </div>
+                )}
               </div>
 
               <button
