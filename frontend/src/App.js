@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import axios from 'axios';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import Fleet from './pages/Fleet';
 import Ships from './pages/Ships';
 import Vehicles from './pages/Vehicles';
 import Components from './pages/Components';
