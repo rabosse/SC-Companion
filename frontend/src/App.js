@@ -73,7 +73,7 @@ function App() {
     <AuthContext.Provider value={{ isAuthenticated, user, token, login, logout, API, authLoading }}>
       <BrowserRouter>
         <Routes>
-          <Route path="/login" element={<Login />} />
+          <Route path="/login" element={isAuthenticated ? <Navigate to="/" /> : <Login />} />
           <Route path="/" element={<PrivateRoute><Layout><Dashboard /></Layout></PrivateRoute>} />
           <Route path="/fleet" element={<PrivateRoute><Layout><Fleet /></Layout></PrivateRoute>} />
           <Route path="/ships" element={<PrivateRoute><Layout><Ships /></Layout></PrivateRoute>} />
