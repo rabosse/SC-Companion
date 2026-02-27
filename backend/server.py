@@ -274,10 +274,10 @@ def get_comprehensive_ship_list():
 async def get_vehicles(user_id: str = Depends(get_current_user)):
     """Fetch all ground vehicles"""
     mock_vehicles = [
-        {"id": "cyclone", "name": "Cyclone", "manufacturer": "Tumbril", "type": "Ground", "crew": "2"},
-        {"id": "nox", "name": "Nox", "manufacturer": "Aopoa", "type": "Hover", "crew": "1"},
-        {"id": "ursa", "name": "Ursa Rover", "manufacturer": "Roberts Space Industries", "type": "Ground", "crew": "6"},
-        {"id": "nova", "name": "Nova Tank", "manufacturer": "Roberts Space Industries", "type": "Ground", "crew": "2"},
+        {"id": "cyclone", "name": "Cyclone", "manufacturer": "Tumbril", "type": "Ground", "crew": "2", "image": get_vehicle_image("Ground")},
+        {"id": "nox", "name": "Nox", "manufacturer": "Aopoa", "type": "Hover", "crew": "1", "image": get_vehicle_image("Hover")},
+        {"id": "ursa", "name": "Ursa Rover", "manufacturer": "Roberts Space Industries", "type": "Ground", "crew": "6", "image": get_vehicle_image("Ground")},
+        {"id": "nova", "name": "Nova Tank", "manufacturer": "Roberts Space Industries", "type": "Ground", "crew": "2", "image": get_vehicle_image("Heavy")},
     ]
     return {"success": True, "data": mock_vehicles}
 
