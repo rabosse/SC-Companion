@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { Trash2, Search, TrendingUp, Package, Users, DollarSign, Plus, Check, X, Ship } from 'lucide-react';
@@ -16,7 +16,7 @@ const Fleet = () => {
   const [ships, setShips] = useState([]);
   const [showImport, setShowImport] = useState(false);
 
-  const fetchFleet = async () => {
+  const fetchFleet = useCallback(async () => {
     try {
       const [fleetRes, shipsRes] = await Promise.all([
         axios.get(`${API}/fleet/my`),
@@ -30,9 +30,9 @@ const Fleet = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [API]);
 
-  useEffect(() => { fetchFleet(); }, [API]);
+  useEffect(() => { fetchFleet(); }, [fetchFleet]);
 
   useEffect(() => {
     if (searchQuery) {

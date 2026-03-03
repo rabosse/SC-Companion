@@ -83,6 +83,11 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
+@api_router.get("/health")
+async def health_check():
+    return {"status": "ok"}
+
+
 @api_router.post("/auth/register", response_model=LoginResponse)
 async def register(data: RegisterRequest):
     """Register a new user"""
@@ -557,14 +562,18 @@ class BulkFleetRequest(BaseModel):
 @api_router.post("/fleet/bulk-add")
 async def bulk_add_to_fleet(data: BulkFleetRequest, user_id: str = Depends(get_current_user)):
     """Add multiple ships to fleet at once"""
+    # Batch existence check instead of N+1 queries
+    ship_ids = [s.get("id") for s in data.ships]
+    existing_docs = await db.user_fleet.find(
+        {"user_id": user_id, "ship_id": {"$in": ship_ids}}, {"_id": 0, "ship_id": 1}
+    ).to_list(1000)
+    existing_ids = {doc["ship_id"] for doc in existing_docs}
+
     added = 0
     skipped = 0
+    to_insert = []
     for ship in data.ships:
-        # Check if already in fleet
-        existing = await db.user_fleet.find_one(
-            {"user_id": user_id, "ship_id": ship.get("id")}, {"_id": 0}
-        )
-        if existing:
+        if ship.get("id") in existing_ids:
             skipped += 1
             continue
         fleet_item = UserFleet(
@@ -575,8 +584,10 @@ async def bulk_add_to_fleet(data: BulkFleetRequest, user_id: str = Depends(get_c
         )
         doc = fleet_item.model_dump()
         doc["added_at"] = doc["added_at"].isoformat()
-        await db.user_fleet.insert_one(doc)
+        to_insert.append(doc)
         added += 1
+    if to_insert:
+        await db.user_fleet.insert_many(to_insert)
     return {"success": True, "message": f"{added} ships added, {skipped} already in fleet", "added": added, "skipped": skipped}
 
 

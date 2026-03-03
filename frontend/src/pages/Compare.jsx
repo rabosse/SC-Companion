@@ -21,6 +21,7 @@ const Compare = () => {
     if (saved) {
       try { setCompareList(JSON.parse(saved)); } catch { /* ignore */ }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchShips = async () => {

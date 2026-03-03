@@ -45,8 +45,10 @@ const LoadoutBuilder = () => {
     fetchData();
   }, [API]);
 
-  const hardpoints = selectedShip?.hardpoints || {};
-  const weaponSlots = hardpoints.weapons || [];
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const hardpoints = useMemo(() => selectedShip?.hardpoints || {}, [selectedShip]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const weaponSlots = useMemo(() => hardpoints.weapons || [], [hardpoints]);
 
   // Build slot definitions from ship hardpoints
   const slotDefs = useMemo(() => {
