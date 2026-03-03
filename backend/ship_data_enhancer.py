@@ -204,6 +204,79 @@ def get_vehicle_image(vehicle_name):
     return get_ship_image(vehicle_name)
 
 
+# ---- Armor Image Support ----
+
+ARMOR_WIKI_OVERRIDES = {
+    "ADP": "ADP",
+    "ADP-mk4": "ADP-mk4",
+    "Citadel": "Citadel",
+    "Defiance": "Defiance",
+    "Inquisitor": "Inquisitor",
+    "TrueDef-Pro": "TrueDef-Pro",
+    "Morozov-SH": "Morozov-SH",
+    "RRS": "Roussimoff Rehabilitation Systems",
+    "Overlord": "Overlord",
+    "Palatino": "Palatino",
+    "Artimex": "Artimex",
+    "Aril": "Aril",
+    "Aves": "Aves",
+    "Novikov": "Novikov Exploration Suit",
+    "Lynx": "Lynx",
+    "Arden-SL": "Arden-SL",
+    "Aztalan": "Aztalan",
+    "Calico": "Calico",
+    "FBL-8a": "FBL-8a",
+    "Sterling": "Sterling",
+    "Pembroke": "Pembroke Exploration Suit",
+    "Odyssey II": "Odyssey II",
+    "Sol-III": "Sol-III",
+}
+
+_armor_image_cache = {}
+_armor_cache_loaded = False
+
+
+async def fetch_armor_images():
+    """Batch-fetch armor set images from the Star Citizen wiki."""
+    global _armor_image_cache, _armor_cache_loaded
+    if _armor_cache_loaded:
+        return
+
+    titles = list(ARMOR_WIKI_OVERRIDES.values())
+    logger.info(f"Fetching wiki armor images for {len(titles)} sets...")
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        titles_param = "|".join(t.replace(" ", "_") for t in titles)
+        try:
+            resp = await client.get(WIKI_API, params={
+                "action": "query",
+                "prop": "pageimages",
+                "piprop": "thumbnail|original",
+                "pithumbsize": THUMB_SIZE,
+                "titles": titles_param,
+                "format": "json",
+            }, follow_redirects=True)
+            if resp.status_code == 200:
+                pages = resp.json().get("query", {}).get("pages", {})
+                for page in pages.values():
+                    title = page.get("title", "")
+                    thumb = page.get("thumbnail", {}).get("source")
+                    original = page.get("original", {}).get("source")
+                    if thumb or original:
+                        _armor_image_cache[title] = original or thumb
+        except Exception as e:
+            logger.error(f"Armor image fetch error: {e}")
+
+    _armor_cache_loaded = True
+    logger.info(f"Armor image cache loaded: {len(_armor_image_cache)} images cached")
+
+
+def get_armor_image(armor_name):
+    """Get cached wiki image URL for an armor set by name."""
+    wiki_title = ARMOR_WIKI_OVERRIDES.get(armor_name, armor_name)
+    return _armor_image_cache.get(wiki_title, "")
+
+
 def enhance_ship_data(ships):
     """Add comprehensive details to ship list (mock fallback only)."""
     for ship in ships:

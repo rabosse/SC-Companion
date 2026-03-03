@@ -4,7 +4,7 @@ import os
 import logging
 
 from deps import client
-from ship_data_enhancer import fetch_all_wiki_images
+from ship_data_enhancer import fetch_all_wiki_images, fetch_armor_images
 from live_api import prefetch_all
 
 from routes.auth import router as auth_router
@@ -50,6 +50,7 @@ async def startup_event():
     from live_api import _vehicles_cache
     all_names = [v["name"] for v in _vehicles_cache if v.get("name")]
     await fetch_all_wiki_images(ship_names=all_names)
+    await fetch_armor_images()
     # Take initial price snapshot
     from routes.prices import _take_snapshot
     await _take_snapshot()

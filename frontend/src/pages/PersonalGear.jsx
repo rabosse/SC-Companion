@@ -111,21 +111,33 @@ const PersonalGear = () => {
       <div className="text-sm text-gray-500">{filteredItems.length} {activeTab} found</div>
 
       {/* Items Grid */}
-      <div className="space-y-3">
-        {filteredItems.map((item, i) => (
-          activeTab === 'weapons'
-            ? <WeaponCard key={item.id} weapon={item} index={i} />
-            : activeTab === 'armor'
-            ? <ArmorCard key={item.id} armor={item} index={i} />
-            : <EquipmentCard key={item.id} item={item} index={i} />
-        ))}
-        {filteredItems.length === 0 && (
-          <div className="text-center py-16 glass-panel rounded-2xl">
-            <Target className="w-12 h-12 mx-auto mb-3 text-gray-600" />
-            <p className="text-gray-400">No {activeTab} match your filters</p>
-          </div>
-        )}
-      </div>
+      {activeTab === 'armor' ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredItems.map((item, i) => (
+            <ArmorCard key={item.id} armor={item} index={i} />
+          ))}
+          {filteredItems.length === 0 && (
+            <div className="col-span-full text-center py-16 glass-panel rounded-2xl">
+              <Target className="w-12 h-12 mx-auto mb-3 text-gray-600" />
+              <p className="text-gray-400">No {activeTab} match your filters</p>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filteredItems.map((item, i) => (
+            activeTab === 'weapons'
+              ? <WeaponCard key={item.id} weapon={item} index={i} />
+              : <EquipmentCard key={item.id} item={item} index={i} />
+          ))}
+          {filteredItems.length === 0 && (
+            <div className="text-center py-16 glass-panel rounded-2xl">
+              <Target className="w-12 h-12 mx-auto mb-3 text-gray-600" />
+              <p className="text-gray-400">No {activeTab} match your filters</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
@@ -211,46 +223,73 @@ const ArmorCard = ({ armor, index }) => {
   const [expanded, setExpanded] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState(armor.name);
   const color = TYPE_COLORS[armor.type] || '#888';
+  const hasImage = !!armor.image;
 
   return (
-    <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.03 }}
-      className="glass-panel rounded-xl overflow-hidden" data-testid={`armor-${armor.id}`}>
-      <div className="p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-3 mb-1">
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase" style={{ background: `${color}20`, color, border: `1px solid ${color}30` }}>
-                {armor.type}
-              </span>
-            </div>
-            <h3 className="text-lg font-bold text-white" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{selectedVariant}</h3>
-            <div className="text-sm text-gray-400">{armor.manufacturer}</div>
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.04 }}
+      className="glass-panel rounded-2xl overflow-hidden group" data-testid={`armor-${armor.id}`}>
+      {/* Image section */}
+      <div className="relative h-48 overflow-hidden bg-gradient-to-b from-white/[0.03] to-transparent">
+        {hasImage ? (
+          <img src={armor.image} alt={selectedVariant} loading="lazy"
+            className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <Shield className="w-16 h-16 text-gray-700" />
           </div>
+        )}
+        {/* Type badge overlay */}
+        <div className="absolute top-3 left-3">
+          <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase backdrop-blur-md"
+            style={{ background: `${color}30`, color, border: `1px solid ${color}40` }}>
+            {armor.type}
+          </span>
+        </div>
+        {/* Gradient fade at bottom */}
+        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#0a0a12] to-transparent" />
+      </div>
 
-          {/* Variant dropdown */}
+      {/* Content */}
+      <div className="p-4 -mt-2 relative">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <h3 className="text-lg font-bold text-white truncate" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
+              {selectedVariant}
+            </h3>
+            <div className="text-xs text-gray-400">{armor.manufacturer}</div>
+          </div>
           {armor.variants?.length > 0 && (
-            <div className="shrink-0">
-              <select value={selectedVariant} onChange={e => setSelectedVariant(e.target.value)} data-testid={`variant-select-${armor.id}`}
-                className="px-3 py-1.5 bg-[#0a0a10] border border-white/10 rounded-lg text-xs text-white focus:outline-none focus:border-cyan-500" style={{ colorScheme: 'dark' }}>
-                <option value={armor.name} className="bg-[#0a0a10]">{armor.name} (Base)</option>
-                {armor.variants.map(v => <option key={v} value={v} className="bg-[#0a0a10]">{v}</option>)}
-              </select>
-            </div>
+            <select value={selectedVariant} onChange={e => setSelectedVariant(e.target.value)}
+              data-testid={`variant-select-${armor.id}`}
+              className="px-2 py-1 bg-[#0a0a10] border border-white/10 rounded-lg text-[10px] text-white focus:outline-none focus:border-cyan-500 max-w-[130px]"
+              style={{ colorScheme: 'dark' }}>
+              <option value={armor.name} className="bg-[#0a0a10]">{armor.name}</option>
+              {armor.variants.map(v => <option key={v} value={v} className="bg-[#0a0a10]">{v}</option>)}
+            </select>
           )}
         </div>
 
-        {/* Stats row */}
-        <div className="grid grid-cols-3 gap-3 mt-4">
-          <StatPill label="Max Temp" value={`${armor.temp_max}°C`} color="#FF4500" />
-          <StatPill label="Min Temp" value={`${armor.temp_min}°C`} color="#00D4FF" />
-          <StatPill label="Rad Protection" value={armor.radiation?.toLocaleString()} color="#00FF9D" />
+        {/* Stats */}
+        <div className="grid grid-cols-3 gap-2 mt-3">
+          <div className="bg-white/[0.04] rounded-lg p-2 text-center">
+            <div className="text-xs font-bold text-orange-400" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{armor.temp_max}°C</div>
+            <div className="text-[9px] text-gray-600">Max Temp</div>
+          </div>
+          <div className="bg-white/[0.04] rounded-lg p-2 text-center">
+            <div className="text-xs font-bold text-cyan-400" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{armor.temp_min}°C</div>
+            <div className="text-[9px] text-gray-600">Min Temp</div>
+          </div>
+          <div className="bg-white/[0.04] rounded-lg p-2 text-center">
+            <div className="text-xs font-bold text-green-400" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{armor.radiation?.toLocaleString()}</div>
+            <div className="text-[9px] text-gray-600">Radiation</div>
+          </div>
         </div>
 
-        <p className="text-xs text-gray-500 mt-3">{armor.description}</p>
+        <p className="text-[11px] text-gray-500 mt-2 line-clamp-2">{armor.description}</p>
 
-        {/* Expand for locations */}
+        {/* Locations toggle */}
         <button onClick={() => setExpanded(!expanded)} data-testid={`expand-${armor.id}`}
-          className="flex items-center gap-1 mt-3 text-xs text-cyan-500 hover:text-cyan-400 transition-colors">
+          className="flex items-center gap-1 mt-2 text-[11px] text-cyan-500 hover:text-cyan-400 transition-colors w-full">
           <MapPin className="w-3 h-3" /> Where to find
           {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
         </button>
@@ -259,13 +298,13 @@ const ArmorCard = ({ armor, index }) => {
       <AnimatePresence>
         {expanded && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-            className="border-t border-white/5 bg-white/[0.02] px-5 py-3 overflow-hidden">
-            <div className="space-y-2">
+            className="border-t border-white/5 bg-white/[0.02] px-4 py-3 overflow-hidden">
+            <div className="space-y-1.5">
               {armor.locations?.length > 0 && (
                 <div>
-                  <div className="text-[10px] text-gray-500 uppercase font-semibold mb-1">Buy</div>
+                  <div className="text-[9px] text-gray-500 uppercase font-semibold mb-1">Buy</div>
                   {armor.locations.map((loc, i) => (
-                    <div key={i} className="flex items-center gap-2 text-xs text-gray-300">
+                    <div key={i} className="flex items-center gap-1.5 text-[11px] text-gray-300">
                       <Shirt className="w-3 h-3 text-green-500 shrink-0" /> {loc}
                     </div>
                   ))}
@@ -273,9 +312,9 @@ const ArmorCard = ({ armor, index }) => {
               )}
               {armor.loot_locations?.length > 0 && (
                 <div>
-                  <div className="text-[10px] text-gray-500 uppercase font-semibold mb-1">Loot / Farm</div>
+                  <div className="text-[9px] text-gray-500 uppercase font-semibold mb-1">Loot / Farm</div>
                   {armor.loot_locations.map((loc, i) => (
-                    <div key={i} className="flex items-center gap-2 text-xs text-yellow-400">
+                    <div key={i} className="flex items-center gap-1.5 text-[11px] text-yellow-400">
                       <MapPin className="w-3 h-3 shrink-0" /> {loc}
                     </div>
                   ))}
