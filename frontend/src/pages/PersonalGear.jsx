@@ -14,6 +14,7 @@ const TYPE_COLORS = {
   Heavy: '#FF0055', Medium: '#FFAE00', Light: '#00D4FF', 'Flight Suit': '#8B9DAF',
   'Mining Head': '#F59E0B', 'Mining Attachment': '#D97706', 'Mining Module': '#B45309',
   Backpack: '#8B5CF6', Undersuit: '#6366F1',
+  'Salvage Tool': '#10B981', Scanner: '#38BDF8', 'Hacking Tool': '#F43F5E',
 };
 
 const PersonalGear = () => {
@@ -111,10 +112,12 @@ const PersonalGear = () => {
       <div className="text-sm text-gray-500">{filteredItems.length} {activeTab} found</div>
 
       {/* Items Grid */}
-      {activeTab === 'armor' ? (
+      {(activeTab === 'armor' || activeTab === 'weapons') ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredItems.map((item, i) => (
-            <ArmorCard key={item.id} armor={item} index={i} />
+            activeTab === 'armor'
+              ? <ArmorCard key={item.id} armor={item} index={i} />
+              : <WeaponCard key={item.id} weapon={item} index={i} />
           ))}
           {filteredItems.length === 0 && (
             <div className="col-span-full text-center py-16 glass-panel rounded-2xl">
@@ -154,48 +157,77 @@ const WeaponCard = ({ weapon, index }) => {
   const [expanded, setExpanded] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState(weapon.name);
   const color = TYPE_COLORS[weapon.type] || '#888';
+  const hasImage = !!weapon.image;
 
   return (
-    <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.03 }}
-      className="glass-panel rounded-xl overflow-hidden" data-testid={`weapon-${weapon.id}`}>
-      <div className="p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-3 mb-1">
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase" style={{ background: `${color}20`, color, border: `1px solid ${color}30` }}>
-                {weapon.type}
-              </span>
-              <span className="text-xs text-gray-500">S{weapon.size}</span>
-            </div>
-            <h3 className="text-lg font-bold text-white" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{selectedVariant}</h3>
-            <div className="text-sm text-gray-400">{weapon.manufacturer}</div>
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.04 }}
+      className="glass-panel rounded-2xl overflow-hidden group" data-testid={`weapon-${weapon.id}`}>
+      {/* Image section */}
+      <div className="relative h-44 overflow-hidden bg-[#0c0c16]">
+        {hasImage ? (
+          <img src={weapon.image} alt={selectedVariant} loading="lazy"
+            className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <Crosshair className="w-14 h-14 text-gray-700" />
           </div>
+        )}
+        <div className="absolute top-3 left-3 flex items-center gap-2">
+          <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase backdrop-blur-md"
+            style={{ background: `${color}30`, color, border: `1px solid ${color}40` }}>
+            {weapon.type}
+          </span>
+          <span className="px-2 py-1 rounded-lg text-[10px] font-bold backdrop-blur-md bg-white/10 text-gray-300 border border-white/10">
+            S{weapon.size}
+          </span>
+        </div>
+        <div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-[#0a0a12] to-transparent" />
+      </div>
 
-          {/* Variant dropdown */}
+      {/* Content */}
+      <div className="p-4 -mt-2 relative">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <h3 className="text-lg font-bold text-white truncate" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
+              {selectedVariant}
+            </h3>
+            <div className="text-xs text-gray-400">{weapon.manufacturer}</div>
+          </div>
           {weapon.variants?.length > 0 && (
-            <div className="shrink-0">
-              <select value={selectedVariant} onChange={e => setSelectedVariant(e.target.value)} data-testid={`variant-select-${weapon.id}`}
-                className="px-3 py-1.5 bg-[#0a0a10] border border-white/10 rounded-lg text-xs text-white focus:outline-none focus:border-cyan-500" style={{ colorScheme: 'dark' }}>
-                <option value={weapon.name} className="bg-[#0a0a10]">{weapon.name} (Base)</option>
-                {weapon.variants.map(v => <option key={v} value={v} className="bg-[#0a0a10]">{v}</option>)}
-              </select>
-            </div>
+            <select value={selectedVariant} onChange={e => setSelectedVariant(e.target.value)}
+              data-testid={`variant-select-${weapon.id}`}
+              className="px-2 py-1 bg-[#0a0a10] border border-white/10 rounded-lg text-[10px] text-white focus:outline-none focus:border-cyan-500 max-w-[130px]"
+              style={{ colorScheme: 'dark' }}>
+              <option value={weapon.name} className="bg-[#0a0a10]">{weapon.name}</option>
+              {weapon.variants.map(v => <option key={v} value={v} className="bg-[#0a0a10]">{v}</option>)}
+            </select>
           )}
         </div>
 
-        {/* Stats row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
-          {weapon.damage > 0 && <StatPill label="Damage" value={weapon.damage} icon={Zap} color="#FF0055" />}
-          {weapon.ammo > 0 && <StatPill label="Ammo" value={weapon.ammo} color="#FFAE00" />}
-          <StatPill label="Range" value={weapon.effective_range} color="#00FF9D" />
-          <StatPill label="Fire Rate" value={weapon.fire_rate} color="#00D4FF" />
+        {/* Stats */}
+        <div className="grid grid-cols-4 gap-1.5 mt-3">
+          <div className="bg-white/[0.04] rounded-lg p-1.5 text-center">
+            <div className="text-xs font-bold text-red-400" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{weapon.damage}</div>
+            <div className="text-[8px] text-gray-600">DMG</div>
+          </div>
+          <div className="bg-white/[0.04] rounded-lg p-1.5 text-center">
+            <div className="text-xs font-bold text-amber-400" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{weapon.ammo}</div>
+            <div className="text-[8px] text-gray-600">AMMO</div>
+          </div>
+          <div className="bg-white/[0.04] rounded-lg p-1.5 text-center">
+            <div className="text-xs font-bold text-cyan-400" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{weapon.fire_rate}</div>
+            <div className="text-[8px] text-gray-600">ROF</div>
+          </div>
+          <div className="bg-white/[0.04] rounded-lg p-1.5 text-center">
+            <div className="text-xs font-bold text-green-400 truncate" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{weapon.effective_range}</div>
+            <div className="text-[8px] text-gray-600">RNG</div>
+          </div>
         </div>
 
-        <p className="text-xs text-gray-500 mt-3">{weapon.description}</p>
+        <p className="text-[11px] text-gray-500 mt-2 line-clamp-2">{weapon.description}</p>
 
-        {/* Expand for locations */}
         <button onClick={() => setExpanded(!expanded)} data-testid={`expand-${weapon.id}`}
-          className="flex items-center gap-1 mt-3 text-xs text-cyan-500 hover:text-cyan-400 transition-colors">
+          className="flex items-center gap-1 mt-2 text-[11px] text-cyan-500 hover:text-cyan-400 transition-colors w-full">
           <MapPin className="w-3 h-3" /> Where to find
           {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
         </button>
@@ -204,10 +236,10 @@ const WeaponCard = ({ weapon, index }) => {
       <AnimatePresence>
         {expanded && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-            className="border-t border-white/5 bg-white/[0.02] px-5 py-3 overflow-hidden">
+            className="border-t border-white/5 bg-white/[0.02] px-4 py-3 overflow-hidden">
             <div className="space-y-1">
               {weapon.locations.map((loc, i) => (
-                <div key={i} className="flex items-center gap-2 text-xs text-gray-300">
+                <div key={i} className="flex items-center gap-1.5 text-[11px] text-gray-300">
                   <MapPin className="w-3 h-3 text-cyan-500 shrink-0" /> {loc}
                 </div>
               ))}

@@ -277,6 +277,83 @@ def get_armor_image(armor_name):
     return _armor_image_cache.get(wiki_title, "")
 
 
+# ---- FPS Weapon Image Support ----
+
+WEAPON_WIKI_OVERRIDES = {
+    "Arclight Pistol": "Arclight Pistol",
+    "Coda Pistol": "Coda Pistol",
+    "LH86 Pistol": "LH86 Pistol",
+    "Yubarev Pistol": "Yubarev Pistol",
+    "C54 SMG": "C54 SMG",
+    "Custodian SMG": "Custodian SMG",
+    "Ripper SMG": "Ripper SMG",
+    "S71 Rifle": "S71 Rifle",
+    "Karna Rifle": "Karna Rifle",
+    "P4-AR Assault Rifle": "P4-AR Rifle",
+    "Parallax Assault Rifle": "Parallax Energy Assault Rifle",
+    "F55 LMG": "F55 LMG",
+    "Demeco LMG": "Demeco LMG",
+    "FS-9 LMG": "FS-9 LMG",
+    "BR-2 Shotgun": "BR-2 Shotgun",
+    "Ravager-212 Shotgun": "Ravager-212 Twin Shotgun",
+    "A03 Sniper Rifle": "A03 Sniper Rifle",
+    "Arrowhead Sniper Rifle": "Arrowhead Sniper Rifle",
+    "P6-LR Sniper Rifle": "P6-LR Sniper Rifle",
+    "Animus Missile Launcher": "Animus Missile Launcher",
+    "GP-33 Grenade Launcher": "GP-33 MOD Grenade Launcher",
+    "Frag Grenade": "MK-4 Frag Grenade",
+    "MedPen": "MedPen (Hemozal)",
+    "OxyPen": "OxyPen",
+}
+
+_weapon_image_cache = {}
+_weapon_cache_loaded = False
+
+
+async def fetch_weapon_images():
+    """Batch-fetch FPS weapon images from the Star Citizen wiki."""
+    global _weapon_image_cache, _weapon_cache_loaded
+    if _weapon_cache_loaded:
+        return
+
+    titles = list(set(WEAPON_WIKI_OVERRIDES.values()))
+    logger.info(f"Fetching wiki weapon images for {len(titles)} items...")
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        # Process in batches of 15
+        for i in range(0, len(titles), 15):
+            batch = titles[i:i+15]
+            titles_param = "|".join(t.replace(" ", "_") for t in batch)
+            try:
+                resp = await client.get(WIKI_API, params={
+                    "action": "query",
+                    "prop": "pageimages",
+                    "piprop": "thumbnail|original",
+                    "pithumbsize": THUMB_SIZE,
+                    "titles": titles_param,
+                    "format": "json",
+                }, follow_redirects=True)
+                if resp.status_code == 200:
+                    pages = resp.json().get("query", {}).get("pages", {})
+                    for page in pages.values():
+                        title = page.get("title", "")
+                        thumb = page.get("thumbnail", {}).get("source")
+                        original = page.get("original", {}).get("source")
+                        if thumb or original:
+                            _weapon_image_cache[title] = original or thumb
+            except Exception as e:
+                logger.error(f"Weapon image fetch error: {e}")
+
+    _weapon_cache_loaded = True
+    logger.info(f"Weapon image cache loaded: {len(_weapon_image_cache)} images cached")
+
+
+def get_weapon_image(weapon_name):
+    """Get cached wiki image URL for an FPS weapon by name."""
+    wiki_title = WEAPON_WIKI_OVERRIDES.get(weapon_name, weapon_name)
+    return _weapon_image_cache.get(wiki_title, "")
+
+
 def enhance_ship_data(ships):
     """Add comprehensive details to ship list (mock fallback only)."""
     for ship in ships:

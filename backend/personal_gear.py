@@ -557,4 +557,49 @@ EQUIPMENT = [
      "description": "Heat-resistant undersuit. Essential for extreme heat environments.",
      "locations": ["Cargo Decks (Lorville)", "Armor shops (ArcCorp)"],
      "price_auec": 3400, "variants": []},
+
+    # === SALVAGE TOOLS ===
+    {"id": "salvage-multitool", "name": "Salvage Attachment (Multi-Tool)", "type": "Salvage Tool", "subtype": "Hand", "manufacturer": "Greycat Industrial",
+     "stats": {"range": "8m", "rate": "Slow", "material": "RMC"},
+     "description": "Multi-tool salvage attachment. Strip hull materials (RMC) from derelict ships by hand.",
+     "locations": ["Cargo Decks (all stations)", "Dumper's Depot"],
+     "price_auec": 2100, "variants": []},
+
+    {"id": "reclaimer-claw", "name": "Reclaimer Salvage Claw", "type": "Salvage Tool", "subtype": "Ship", "manufacturer": "Aegis Dynamics",
+     "stats": {"range": "50m", "rate": "Fast", "material": "RMC + Components"},
+     "description": "Ship-mounted industrial salvage arm. Strips ships at scale. Exclusive to Reclaimer.",
+     "locations": ["Included with Reclaimer", "Cannot be purchased separately"],
+     "price_auec": 0, "variants": []},
+
+    {"id": "vulture-scraper", "name": "Vulture Scraper Module", "type": "Salvage Tool", "subtype": "Ship", "manufacturer": "Drake Interplanetary",
+     "stats": {"range": "30m", "rate": "Medium", "material": "RMC"},
+     "description": "Medium salvage beam for the Vulture. Good balance of speed and capacity.",
+     "locations": ["Included with Vulture", "Cannot be purchased separately"],
+     "price_auec": 0, "variants": []},
+
+    # === SCANNING TOOLS ===
+    {"id": "scanning-module", "name": "Scanning Attachment (Multi-Tool)", "type": "Scanner", "subtype": "Hand", "manufacturer": "Greycat Industrial",
+     "stats": {"range": "100m", "detection": "Mineral deposits, items, NPCs"},
+     "description": "Multi-tool scanning attachment. Detect mineable deposits and lootable items.",
+     "locations": ["Cargo Decks (all stations)", "Mining outposts"],
+     "price_auec": 1500, "variants": []},
+
+    {"id": "ping-scanner", "name": "Ship Ping Scanner", "type": "Scanner", "subtype": "Ship", "manufacturer": "Various",
+     "stats": {"range": "Varies by radar", "detection": "Ships, stations, POIs"},
+     "description": "Built-in ship scanner. Range depends on installed radar component.",
+     "locations": ["Default on all ships", "Upgrade via radar components"],
+     "price_auec": 0, "variants": []},
+
+    # === HACKING TOOLS ===
+    {"id": "crypto-key", "name": "CryptoKey", "type": "Hacking Tool", "subtype": "Consumable", "manufacturer": "Coda Systems",
+     "stats": {"uses": 1, "effect": "Bypass security panel", "success_rate": "75%"},
+     "description": "Single-use hacking chip. Bypass locked doors and security panels in bunkers.",
+     "locations": ["Grim HEX", "Looted from outlaw NPCs", "Rare loot from bunkers"],
+     "price_auec": 500, "variants": []},
+
+    {"id": "e-warfare-device", "name": "E-War Device", "type": "Hacking Tool", "subtype": "Ship", "manufacturer": "Aegis Dynamics",
+     "stats": {"range": "3km", "effect": "Disrupt target systems", "duration": "8s"},
+     "description": "Ship-mounted electronic warfare suite. Disrupts enemy shields and targeting. Vanguard Sentinel exclusive.",
+     "locations": ["Included with Vanguard Sentinel"],
+     "price_auec": 0, "variants": []},
 ]
