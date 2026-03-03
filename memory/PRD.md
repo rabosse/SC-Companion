@@ -17,6 +17,7 @@ Build a full-stack application called "Star Citizen Fleet Manager" that allows S
 - RSI Pledge Store prices (USD) + direct links
 - Star Citizen themed UI
 - LIVE API integration with mock fallback
+- Loadout sharing between users with community page
 
 ## Tech Stack
 - **Frontend**: React, Tailwind CSS, Shadcn UI, Framer Motion, react-router-dom, axios
@@ -29,7 +30,7 @@ Build a full-stack application called "Star Citizen Fleet Manager" that allows S
 ## What's Implemented (as of Mar 3, 2026)
 - [x] Username + Password login with bcrypt (auto-register on first login)
 - [x] LIVE API: 276 ships, 178 weapons, 333 components from api.star-citizen.wiki
-- [x] Ship images: 117 matched wiki images from starcitizen.tools
+- [x] Ship images: 275/276 ships (99.6%) and 13/13 vehicles (100%) have images
 - [x] In-game purchase locations: 130+ ships with all dealers and aUEC prices
 - [x] RSI Pledge Store: USD prices + pledge URLs for all ships from live API
 - [x] Ship detail "Where to Buy" section with all dealers + RSI store link
@@ -40,19 +41,23 @@ Build a full-stack application called "Star Citizen Fleet Manager" that allows S
 - [x] Loadout Builder: SIZE RESTRICTIONS enforced, save/load/delete named loadouts to MongoDB
 - [x] Dashboard with live stats (276 ships, 13 vehicles, 333 components, 178 weapons)
 - [x] Auth persistence on page reload
-- [x] Full navigation: Dashboard, My Fleet, Ships, Vehicles, Components, Weapons, Compare, Loadout
+- [x] Full navigation: Dashboard, My Fleet, Ships, Vehicles, Components, Weapons, Compare, Loadout, Community
 - [x] Quick Fleet Import: Bulk-add ships via modal with search, manufacturer/size filters, multi-select
 - [x] Data Auto-Refresh: TTL-based (1 hour) live API data refresh on app launch
-- [x] Duplicate ship deduplication in Quick Import modal (live API returns duplicates)
+- [x] **Loadout Sharing**: Save loadouts with share codes, shareable links
+- [x] **Community Loadouts Page**: Browse all shared loadouts, search by ship, pagination
+- [x] **Public Shared Loadout View**: Anyone can view a shared loadout (no login required)
+- [x] **Clone Loadouts**: Authenticated users can clone any shared loadout to their collection
+- [x] Deployment health check: PASSED - ready for production
 
 ## Architecture
 ```
 /app/
 ├── backend/
 │   ├── .env (MONGO_URL, DB_NAME, JWT_SECRET, STAR_CITIZEN_API_KEY)
-│   ├── server.py (FastAPI endpoints, auth, fleet, loadout CRUD)
+│   ├── server.py (FastAPI endpoints, auth, fleet, loadout CRUD, community sharing)
 │   ├── live_api.py (Live Star Citizen Wiki API + hardpoint data)
-│   ├── ship_data_enhancer.py (Wiki image fetching & caching)
+│   ├── ship_data_enhancer.py (Wiki image fetching by name, variant matching)
 │   ├── ship_purchases.py (In-game purchase locations & aUEC prices)
 │   └── requirements.txt
 └── frontend/
@@ -60,7 +65,7 @@ Build a full-stack application called "Star Citizen Fleet Manager" that allows S
     └── src/
         ├── App.js (routes, auth context with username/password)
         ├── components/ (Layout, SpaceshipIcon, ui/)
-        └── pages/ (Login, Dashboard, Ships, ShipDetail, Vehicles, Components, Weapons, Fleet, Compare, LoadoutBuilder)
+        └── pages/ (Login, Dashboard, Ships, ShipDetail, Vehicles, Components, Weapons, Fleet, Compare, LoadoutBuilder, CommunityLoadouts, SharedLoadout)
 ```
 
 ## API Endpoints
@@ -72,14 +77,14 @@ Build a full-stack application called "Star Citizen Fleet Manager" that allows S
 - GET /api/weapons (live API with real locations/prices)
 - POST /api/fleet/add, GET /api/fleet/my, DELETE /api/fleet/{fleet_id}
 - POST /api/fleet/bulk-add {ships: [{id, name, manufacturer}]} - Quick Import
-- POST /api/loadouts/save, GET /api/loadouts/{ship_id}, DELETE /api/loadouts/{loadout_id}
+- POST /api/loadouts/save (returns share_code), GET /api/loadouts/{ship_id}, DELETE /api/loadouts/{loadout_id}
+- GET /api/loadouts/my/all - All user's loadouts
+- GET /api/community/loadouts (PUBLIC - paginated, search by ship_name)
+- GET /api/community/loadouts/{share_code} (PUBLIC - view shared loadout)
+- POST /api/loadouts/clone/{share_code} (AUTH - clone to user's collection)
 - GET /api/upgrades/{ship_id}
 
 ## Prioritized Backlog
-
-### P1 (High)
-- More ship image coverage (117/276 ships have matched wiki images)
-- Loadout sharing between users
 
 ### P2 (Medium)
 - Data migration from static mappings to MongoDB collections
@@ -89,3 +94,4 @@ Build a full-stack application called "Star Citizen Fleet Manager" that allows S
 ### P3 (Low)
 - Export fleet/loadout data
 - Enhanced fleet statistics and analytics
+- Loadout ratings/votes in community page
