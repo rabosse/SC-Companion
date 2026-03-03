@@ -14,6 +14,7 @@ import LoadoutBuilder from './pages/LoadoutBuilder';
 import CommunityLoadouts from './pages/CommunityLoadouts';
 import SharedLoadout from './pages/SharedLoadout';
 import RoutePlanner from './pages/RoutePlanner';
+import PersonalGear from './pages/PersonalGear';
 import Layout from './components/Layout';
 import { Toaster } from './components/ui/sonner';
 
@@ -89,6 +90,7 @@ function App() {
           <Route path="/weapons" element={<PrivateRoute><Layout><Weapons /></Layout></PrivateRoute>} />
           <Route path="/community" element={<PrivateRoute><Layout><CommunityLoadouts /></Layout></PrivateRoute>} />
           <Route path="/routes" element={<PrivateRoute><Layout><RoutePlanner /></Layout></PrivateRoute>} />
+          <Route path="/gear" element={<PrivateRoute><Layout><PersonalGear /></Layout></PrivateRoute>} />
           <Route path="/shared/:shareCode" element={<SharedLoadout />} />
         </Routes>
         <Toaster position="top-right" />

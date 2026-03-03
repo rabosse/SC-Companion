@@ -16,6 +16,7 @@ from ship_data_enhancer import enhance_ship_data, get_vehicle_image, fetch_all_w
 from live_api import fetch_live_vehicles, fetch_live_weapons, fetch_live_components, prefetch_all, is_api_available
 from ship_purchases import get_purchase_info
 from star_systems import get_all_locations, get_systems, calculate_route, calculate_interdiction, calculate_chase, QD_SPEEDS
+from personal_gear import get_all_fps_weapons, get_all_armor_sets
 import bcrypt
 
 ROOT_DIR = Path(__file__).parent
@@ -714,6 +715,18 @@ async def clone_loadout(share_code: str, user_id: str = Depends(get_current_user
 async def get_route_locations():
     """Get all navigable locations for route planning"""
     return {"success": True, "data": get_all_locations(), "systems": get_systems(), "qd_speeds": QD_SPEEDS}
+
+# --- Personal Gear endpoints ---
+
+@api_router.get("/gear/weapons")
+async def get_fps_weapons():
+    """Get all FPS weapons data"""
+    return {"success": True, "data": get_all_fps_weapons()}
+
+@api_router.get("/gear/armor")
+async def get_armor_sets():
+    """Get all personal armor sets"""
+    return {"success": True, "data": get_all_armor_sets()}
 
 @api_router.get("/routes/calculate")
 async def calculate_travel_route(origin: str, destination: str, qd_size: int = 1):
