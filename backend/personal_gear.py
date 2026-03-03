@@ -407,3 +407,154 @@ def get_all_fps_weapons():
 
 def get_all_armor_sets():
     return ARMOR_SETS
+
+def get_all_equipment():
+    return EQUIPMENT
+
+
+# === EQUIPMENT: Mining, Medical, Backpacks, Undersuits ===
+EQUIPMENT = [
+    # === MINING HEADS ===
+    {"id": "arbor-mh1", "name": "Arbor MH1 Mining Head", "type": "Mining Head", "subtype": "Ship", "manufacturer": "Greycat Industrial",
+     "stats": {"power": 3, "range": "200m", "resistance": "Low", "optimal_charge": "30-50%"},
+     "description": "Starter mining head for Prospector. Low power, good for softer rocks.",
+     "locations": ["Cargo Decks (most stations)", "Shubin Mining (all locations)"],
+     "price_auec": 13000, "variants": []},
+
+    {"id": "helix-mh1", "name": "Helix I Mining Head", "type": "Mining Head", "subtype": "Ship", "manufacturer": "Argo Astronautics",
+     "stats": {"power": 5, "range": "200m", "resistance": "Medium", "optimal_charge": "25-55%"},
+     "description": "Mid-tier mining head. Wider optimal charge window, more forgiving.",
+     "locations": ["Shubin Mining (Lorville)", "Cargo Decks (Area 18)"],
+     "price_auec": 82400, "variants": []},
+
+    {"id": "lancet-mh1", "name": "Lancet MH1 Mining Head", "type": "Mining Head", "subtype": "Ship", "manufacturer": "Thermyte Concern",
+     "stats": {"power": 4, "range": "250m", "resistance": "Medium", "optimal_charge": "20-60%"},
+     "description": "Precision mining head. Best optimal window, ideal for quantanium.",
+     "locations": ["Shubin Mining (New Babbage)", "ARC Mining (Orison)"],
+     "price_auec": 108000, "variants": []},
+
+    {"id": "hofstede-s1", "name": "Hofstede S1 Mining Head", "type": "Mining Head", "subtype": "Ship", "manufacturer": "Greycat Industrial",
+     "stats": {"power": 6, "range": "200m", "resistance": "High", "optimal_charge": "35-50%"},
+     "description": "High-power mining head. Cracks tougher deposits but narrower charge window.",
+     "locations": ["Shubin Mining (Hurston)", "Cargo Decks (Lorville)"],
+     "price_auec": 122000, "variants": []},
+
+    {"id": "klein-s1", "name": "Klein S1 Mining Head", "type": "Mining Head", "subtype": "Ship", "manufacturer": "Thermyte Concern",
+     "stats": {"power": 7, "range": "200m", "resistance": "Very High", "optimal_charge": "40-55%"},
+     "description": "Top-tier mining head. Highest power, needed for the hardest rocks.",
+     "locations": ["Shubin Mining (Area 18)", "Tammany & Sons (Levski)"],
+     "price_auec": 146000, "variants": []},
+
+    # === HAND MINING TOOLS ===
+    {"id": "multitool-ore", "name": "OreBit Mining Attachment", "type": "Mining Attachment", "subtype": "Hand", "manufacturer": "Greycat Industrial",
+     "stats": {"power": 1, "range": "15m", "resistance": "Low", "optimal_charge": "30-60%"},
+     "description": "Multi-tool mining attachment. Mine hand-mineable deposits for gems and hadanite.",
+     "locations": ["Cargo Decks (all stations)", "Mining outposts"],
+     "price_auec": 1750, "variants": []},
+
+    # === MINING CONSUMABLES ===
+    {"id": "surge-module", "name": "Surge Mining Module", "type": "Mining Module", "subtype": "Consumable", "manufacturer": "Shubin Interstellar",
+     "stats": {"effect": "+30% laser power for 4s", "charges": 4},
+     "description": "Temporarily boosts mining laser power. Essential for cracking quantanium.",
+     "locations": ["Shubin Mining (all locations)", "Cargo Decks"],
+     "price_auec": 2200, "variants": []},
+
+    {"id": "stampede-module", "name": "Stampede Mining Module", "type": "Mining Module", "subtype": "Consumable", "manufacturer": "Shubin Interstellar",
+     "stats": {"effect": "+20% resistance reduction for 5s", "charges": 4},
+     "description": "Reduces rock resistance temporarily. Pairs well with lower-power heads.",
+     "locations": ["Shubin Mining (all locations)", "Cargo Decks"],
+     "price_auec": 2800, "variants": []},
+
+    {"id": "brandt-module", "name": "Brandt Mining Module", "type": "Mining Module", "subtype": "Consumable", "manufacturer": "Shubin Interstellar",
+     "stats": {"effect": "+15% optimal window width for 6s", "charges": 4},
+     "description": "Widens optimal charge window. Safer mining, less risk of overcharge.",
+     "locations": ["Shubin Mining (most locations)", "Cargo Decks"],
+     "price_auec": 1800, "variants": []},
+
+    {"id": "forel-module", "name": "Forel Mining Module", "type": "Mining Module", "subtype": "Consumable", "manufacturer": "Shubin Interstellar",
+     "stats": {"effect": "Reduces instability by 40%", "charges": 3},
+     "description": "Stabilizes volatile rocks. Critical for quantanium to prevent detonation.",
+     "locations": ["Shubin Mining (New Babbage)", "Cargo Decks (Port Tressler)"],
+     "price_auec": 3200, "variants": []},
+
+    # === MEDICAL SUPPLIES ===
+    {"id": "medgun-paramedic", "name": "CuraLife Medical Gun (Paramedic)", "type": "Medical Device", "subtype": "Tool", "manufacturer": "CureLife",
+     "stats": {"heal_rate": "Fast", "range": "5m", "drug_capacity": 4},
+     "description": "Long-range medical device. Heal teammates from a distance. Essential for group play.",
+     "locations": ["Pharmacies (all landing zones)", "Medical supply vendors"],
+     "price_auec": 5500, "variants": []},
+
+    {"id": "medpen-mk2", "name": "MedPen Mk II", "type": "Medical Device", "subtype": "Consumable", "manufacturer": "CureLife",
+     "stats": {"heal_amount": "Major wounds", "blood_drug_level": "+15%"},
+     "description": "Enhanced medical injector. Heals major wounds but adds drug toxicity.",
+     "locations": ["Pharmacies (all landing zones)", "Medical kiosks"],
+     "price_auec": 350, "variants": []},
+
+    {"id": "hemozal", "name": "Hemozal", "type": "Medical Device", "subtype": "Consumable", "manufacturer": "CureLife",
+     "stats": {"effect": "Removes blood drug level", "charges": 1},
+     "description": "Detox injector. Clears accumulated drug effects from medical treatments.",
+     "locations": ["Pharmacies (Orison, New Babbage)", "Hospital kiosks"],
+     "price_auec": 200, "variants": []},
+
+    {"id": "medical-stretcher", "name": "Medical Stretcher", "type": "Medical Device", "subtype": "Equipment", "manufacturer": "CureLife",
+     "stats": {"capacity": "1 patient", "effect": "Stabilize + transport"},
+     "description": "Deployable stretcher for transporting downed players. Used in Apollo/Cutlass Red.",
+     "locations": ["Medical supply vendors", "Ship medical bays"],
+     "price_auec": 0, "variants": []},
+
+    # === BACKPACKS ===
+    {"id": "pembroke-backpack", "name": "Pembroke Backpack", "type": "Backpack", "subtype": "Large", "manufacturer": "RSI",
+     "stats": {"capacity": "2.85 SCU", "slots": 8},
+     "description": "Large exploration backpack. Best capacity for extended surface missions.",
+     "locations": ["Cargo Decks (most stations)", "Dumper's Depot"],
+     "price_auec": 3600, "variants": ["Pembroke Red", "Pembroke Gold"]},
+
+    {"id": "macflex-backpack", "name": "MacFlex Backpack", "type": "Backpack", "subtype": "Medium", "manufacturer": "Clark Defense Systems",
+     "stats": {"capacity": "1.71 SCU", "slots": 6},
+     "description": "Standard medium backpack. Good balance of capacity and mobility.",
+     "locations": ["Armor shops (most stations)", "Cargo Decks"],
+     "price_auec": 2400, "variants": []},
+
+    {"id": "novikov-backpack", "name": "Novikov Backpack", "type": "Backpack", "subtype": "Large", "manufacturer": "Odin Munitions",
+     "stats": {"capacity": "2.85 SCU", "slots": 8},
+     "description": "Cold-weather exploration backpack. Pairs with Novikov armor set.",
+     "locations": ["Hatter Station (microTech)", "New Babbage shops"],
+     "price_auec": 4200, "variants": []},
+
+    {"id": "mining-backpack", "name": "Mining Satchel", "type": "Backpack", "subtype": "Utility", "manufacturer": "Greycat Industrial",
+     "stats": {"capacity": "0.85 SCU", "slots": 4, "bonus": "Hand-mined ore storage"},
+     "description": "Specialized mining backpack. Store hand-mined gems and minerals directly.",
+     "locations": ["Shubin Mining (all locations)", "Cargo Decks"],
+     "price_auec": 1800, "variants": []},
+
+    # === UNDERSUITS ===
+    {"id": "alantin-undersuit", "name": "Alantin Undersuit", "type": "Undersuit", "subtype": "Standard", "manufacturer": "RSI",
+     "stats": {"temp_max": 50, "temp_min": -20, "o2_capacity": "10 min"},
+     "description": "Basic undersuit. Worn under all armor sets. Standard life support.",
+     "locations": ["Clothing shops (all stations)", "Default starter gear"],
+     "price_auec": 800, "variants": ["Alantin White", "Alantin Black"]},
+
+    {"id": "venture-undersuit", "name": "Venture Undersuit", "type": "Undersuit", "subtype": "Exploration", "manufacturer": "RSI",
+     "stats": {"temp_max": 65, "temp_min": -35, "o2_capacity": "15 min"},
+     "description": "Enhanced exploration undersuit. Better temperature range and O2 capacity.",
+     "locations": ["Clothing shops (New Babbage, Orison)", "Dumper's Depot"],
+     "price_auec": 2200, "variants": ["Venture Pathfinder"]},
+
+    {"id": "arden-undersuit", "name": "Arden Undersuit", "type": "Undersuit", "subtype": "Tactical", "manufacturer": "Roussimoff",
+     "stats": {"temp_max": 55, "temp_min": -25, "o2_capacity": "12 min"},
+     "description": "Tactical undersuit with reinforced weave. Slightly better damage mitigation.",
+     "locations": ["Armor shops (Lorville)", "Military surplus"],
+     "price_auec": 1500, "variants": ["Arden Black", "Arden Navy"]},
+
+    {"id": "novikov-undersuit", "name": "Novikov Undersuit", "type": "Undersuit", "subtype": "Cold Weather", "manufacturer": "Odin Munitions",
+     "stats": {"temp_max": 45, "temp_min": -55, "o2_capacity": "14 min"},
+     "description": "Cold-weather specialist undersuit. Best-in-class cold protection.",
+     "locations": ["Hatter Station (microTech)", "New Babbage shops"],
+     "price_auec": 3000, "variants": []},
+
+    {"id": "pembroke-undersuit", "name": "Pembroke Undersuit", "type": "Undersuit", "subtype": "Heat Resistant", "manufacturer": "RSI",
+     "stats": {"temp_max": 85, "temp_min": -10, "o2_capacity": "14 min"},
+     "description": "Heat-resistant undersuit. Essential for extreme heat environments.",
+     "locations": ["Cargo Decks (Lorville)", "Armor shops (ArcCorp)"],
+     "price_auec": 3400, "variants": []},
+]
