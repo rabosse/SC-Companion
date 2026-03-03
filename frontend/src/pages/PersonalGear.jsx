@@ -10,7 +10,7 @@ const TYPE_COLORS = {
   Pistol: '#00D4FF', SMG: '#FFAE00', 'Assault Rifle': '#FF6B35', LMG: '#FF0055',
   Shotgun: '#A855F7', 'Sniper Rifle': '#00FF9D', Railgun: '#FFD700',
   'Grenade Launcher': '#FF4500', 'Missile Launcher': '#FF1493',
-  'Medical Device': '#00CED1',
+  'Medical Device': '#00CED1', Grenade: '#FF8C00', Utility: '#7CB342',
   Heavy: '#FF0055', Medium: '#FFAE00', Light: '#00D4FF', 'Flight Suit': '#8B9DAF',
 };
 

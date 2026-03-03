@@ -13,6 +13,7 @@ from routes.fleet import router as fleet_router
 from routes.loadouts import router as loadouts_router
 from routes.starmap import router as starmap_router
 from routes.gear import router as gear_router
+from routes.prices import router as prices_router
 
 app = FastAPI(title="Star Citizen Fleet Manager")
 
@@ -23,6 +24,7 @@ app.include_router(fleet_router)
 app.include_router(loadouts_router)
 app.include_router(starmap_router)
 app.include_router(gear_router)
+app.include_router(prices_router)
 
 
 @app.get("/api/health")
@@ -48,6 +50,9 @@ async def startup_event():
     from live_api import _vehicles_cache
     all_names = [v["name"] for v in _vehicles_cache if v.get("name")]
     await fetch_all_wiki_images(ship_names=all_names)
+    # Take initial price snapshot
+    from routes.prices import _take_snapshot
+    await _take_snapshot()
 
 
 @app.on_event("shutdown")

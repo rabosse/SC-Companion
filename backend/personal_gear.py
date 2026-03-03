@@ -182,6 +182,68 @@ FPS_WEAPONS = [
      "description": "Versatile utility tool. Healing, cutting, tractor beam with attachments.",
      "locations": ["Most station shops", "Cargo Decks"],
      "variants": []},
+
+    # === GRENADES ===
+    {"id": "frag-grenade", "name": "Frag Grenade", "type": "Grenade", "size": 0, "manufacturer": "Behring",
+     "damage": 200, "ammo": 1, "fire_rate": "Throw", "effective_range": "30m",
+     "description": "Standard fragmentation grenade. Lethal in enclosed spaces. 3.5s fuse.",
+     "locations": ["Live Fire Weapons (most stations)", "Looted from NPCs"],
+     "variants": []},
+
+    {"id": "flash-grenade", "name": "Flash Grenade", "type": "Grenade", "size": 0, "manufacturer": "Behring",
+     "damage": 0, "ammo": 1, "fire_rate": "Throw", "effective_range": "20m",
+     "description": "Flashbang. Blinds and disorients enemies. Essential for breaching.",
+     "locations": ["Live Fire Weapons (most stations)", "Looted from security NPCs"],
+     "variants": []},
+
+    {"id": "smoke-grenade", "name": "Smoke Grenade", "type": "Grenade", "size": 0, "manufacturer": "Behring",
+     "damage": 0, "ammo": 1, "fire_rate": "Throw", "effective_range": "25m",
+     "description": "Deploys thick smoke screen. Blocks line of sight for 15s.",
+     "locations": ["Live Fire Weapons (Lorville)", "Live Fire Weapons (Area 18)"],
+     "variants": []},
+
+    {"id": "emp-grenade", "name": "EMP Grenade", "type": "Grenade", "size": 0, "manufacturer": "Kastak Arms",
+     "damage": 0, "ammo": 1, "fire_rate": "Throw", "effective_range": "15m",
+     "description": "Electromagnetic pulse grenade. Disables electronics and shields temporarily.",
+     "locations": ["Grim HEX", "Rare loot from bunker bosses"],
+     "variants": []},
+
+    # === UTILITIES ===
+    {"id": "medpen", "name": "MedPen", "type": "Utility", "size": 0, "manufacturer": "CureLife",
+     "damage": 0, "ammo": 1, "fire_rate": "Inject", "effective_range": "Self",
+     "description": "Emergency medical injector. Heals minor wounds and stops bleeding. Stackable.",
+     "locations": ["Medical supply vendors (all stations)", "Pharmacy (Orison, New Babbage)", "Looted from NPCs"],
+     "variants": ["MedPen Mk II"]},
+
+    {"id": "oxypen", "name": "OxyPen", "type": "Utility", "size": 0, "manufacturer": "CureLife",
+     "damage": 0, "ammo": 1, "fire_rate": "Inject", "effective_range": "Self",
+     "description": "Oxygen supplement injector. Restores O2 in emergency situations.",
+     "locations": ["Medical supply vendors (all stations)", "Pharmacy"],
+     "variants": []},
+
+    {"id": "adrenapen", "name": "AdrenaPen", "type": "Utility", "size": 0, "manufacturer": "CureLife",
+     "damage": 0, "ammo": 1, "fire_rate": "Inject", "effective_range": "Self",
+     "description": "Adrenaline injector. Temporarily boosts stamina and reduces pain effects.",
+     "locations": ["Pharmacy (Orison, New Babbage)", "Medical vendors"],
+     "variants": []},
+
+    {"id": "tractor-beam-tool", "name": "Tractor Beam (Multi-Tool)", "type": "Utility", "size": 0, "manufacturer": "Greycat Industrial",
+     "damage": 0, "ammo": 0, "fire_rate": "Continuous", "effective_range": "10m",
+     "description": "Multi-tool tractor beam attachment. Move cargo boxes and small objects.",
+     "locations": ["Cargo Decks (all stations)", "Most station shops"],
+     "variants": []},
+
+    {"id": "cutting-tool", "name": "Cutting Tool (Multi-Tool)", "type": "Utility", "size": 0, "manufacturer": "Greycat Industrial",
+     "damage": 0, "ammo": 0, "fire_rate": "Continuous", "effective_range": "1m",
+     "description": "Multi-tool cutting attachment. Breach locked doors and panels.",
+     "locations": ["Cargo Decks (all stations)", "Hardware shops"],
+     "variants": []},
+
+    {"id": "repair-tool", "name": "Repair Tool (Multi-Tool)", "type": "Utility", "size": 0, "manufacturer": "Greycat Industrial",
+     "damage": 0, "ammo": 0, "fire_rate": "Continuous", "effective_range": "3m",
+     "description": "Multi-tool repair attachment. Fix damaged ship components in the field.",
+     "locations": ["Cargo Decks (all stations)", "Ship component shops"],
+     "variants": []},
 ]
 
 
