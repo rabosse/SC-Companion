@@ -138,7 +138,7 @@ async def get_ships(user_id: str = Depends(get_current_user)):
     if live_vehicles:
         ships = [v for v in live_vehicles if not v.get("is_ground_vehicle")]
         for s in ships:
-            img = get_ship_image(s["id"])
+            img = get_ship_image(s["name"])
             if img:
                 s["image"] = img
             # Add purchase info
@@ -308,7 +308,7 @@ async def get_vehicles(user_id: str = Depends(get_current_user)):
     if live_vehicles:
         ground = [v for v in live_vehicles if v.get("is_ground_vehicle")]
         for v in ground:
-            img = get_vehicle_image(v["name"])
+            img = get_ship_image(v["name"])
             if img:
                 v["image"] = img
             pinfo = get_purchase_info(v["name"])
@@ -642,9 +642,12 @@ logger = logging.getLogger(__name__)
 
 @app.on_event("startup")
 async def startup_event():
-    """Fetch and cache wiki images and live API data on startup."""
-    await fetch_all_wiki_images()
+    """Fetch live data first, then fetch wiki images for all known ships."""
     await prefetch_all()
+    # Collect all ship/vehicle names from live cache for image fetching
+    from live_api import _vehicles_cache
+    all_names = [v["name"] for v in _vehicles_cache if v.get("name")]
+    await fetch_all_wiki_images(ship_names=all_names)
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

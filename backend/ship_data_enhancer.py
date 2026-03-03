@@ -1,171 +1,166 @@
-"""Ship data enhancer - fetches images from Star Citizen Wiki and adds details to ship data"""
+"""Ship data enhancer - fetches images from Star Citizen Wiki by ship name."""
 
 import httpx
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
 WIKI_API = "https://starcitizen.tools/api.php"
 THUMB_SIZE = 600
 
-# ship_id -> wiki page title mapping
-SHIP_WIKI_MAP = {
-    # Origin Jumpworks
-    "85x": "85X",
-    "100i": "100i",
-    "125a": "125a",
-    "135c": "135c",
-    "300i": "300i",
-    "315p": "315p",
-    "325a": "325a",
-    "350r": "350r",
-    "400i": "400i",
+# Variant suffixes to strip when looking for a base ship image
+VARIANT_SUFFIXES = [
+    r"\s+wikelo\b.*",
+    r"\s+pyam\s+exec.*",
+    r"\s+teach'?s?\s+special.*",
+    r"\s+2949\s+best\s+in\s+show.*",
+    r"\s+executive\s+edition.*",
+    r"\s+emerald.*",
+    r"\s+citizencon\s+\d+.*",
+    r"\s+pirate$",
+    r"\s+star\s+kitten$",
+    r"\s+cool\s+metal\s+color$",
+    r"\s+geo\s+ikti$",
+    r"\s+geo$",
+    r"\s+ikti\s+rad$",
+    r"\s+ikti$",
+    r"\s+orange\s+line$",
+    r"\s+snowland\s+color$",
+    r"\s+carbon$",
+    r"\s+talus$",
+]
+
+# Manual overrides: live API name -> wiki page title (only for names that differ)
+NAME_OVERRIDES = {
+    "A1 Spirit": "Spirit",
+    "C1 Spirit": "Spirit",
+    "A2 Hercules Starlifter": "A2 Hercules",
+    "C2 Hercules Starlifter": "C2 Hercules Starlifter",
+    "M2 Hercules Starlifter": "M2 Hercules Starlifter",
+    "600i 2951 BIS": "600i Explorer",
+    "600i Executive Edition": "600i Explorer",
     "600i": "600i Explorer",
-    "600i-touring": "600i Explorer",
-    "890jump": "890 Jump",
-    # Anvil Aerospace
-    "arrow": "Arrow",
-    "hawk": "Hawk",
-    "hornet-f7c": "F7C Hornet Mk II",
-    "hornet-f7cm": "F7C-M Super Hornet Mk II",
-    "hornet-f7cs": "F7C-S Hornet Ghost Mk II",
-    "hornet-f7a": "F7A Hornet Mk II",
-    "gladiator": "Gladiator",
-    "hurricane": "Hurricane",
-    "terrapin": "Terrapin",
-    "valkyrie": "Valkyrie",
-    "carrack": "Carrack",
-    "liberator": "Liberator",
-    "crucible": "Crucible",
-    # Roberts Space Industries
-    "aurora-ln": "Aurora LN",
-    "aurora-mr": "Aurora MR",
-    "aurora-cl": "Aurora CL",
-    "aurora-lx": "Aurora LX",
-    "aurora-es": "Aurora ES",
-    "mantis": "Mantis",
-    "scorpius": "Scorpius",
-    "constellation-andromeda": "Constellation Andromeda",
-    "constellation-aquila": "Constellation Aquila",
-    "constellation-taurus": "Constellation Taurus",
-    "constellation-phoenix": "Constellation Phoenix",
-    "perseus": "Perseus",
-    "polaris": "Polaris",
-    "galaxy": "Galaxy",
-    # Aegis Dynamics
-    "avenger-titan": "Avenger Titan",
-    "avenger-stalker": "Avenger Stalker",
-    "avenger-warlock": "Avenger Warlock",
-    "sabre": "Sabre",
-    "sabre-comet": "Sabre Comet",
-    "gladius": "Gladius",
-    "vanguard-warden": "Vanguard Warden",
-    "vanguard-sentinel": "Vanguard Sentinel",
-    "vanguard-harbinger": "Vanguard Harbinger",
-    "vanguard-hoplite": "Vanguard Hoplite",
-    "eclipse": "Eclipse",
-    "retaliator": "Retaliator",
-    "redeemer": "Redeemer",
-    "hammerhead": "Hammerhead",
-    "reclaimer": "Reclaimer",
-    "nautilus": "Nautilus",
-    "idris-p": "Idris-P",
-    "idris-m": "Idris-M",
-    "javelin": "Javelin",
-    # Drake Interplanetary
-    "dragonfly-black": "Dragonfly",
-    "dragonfly-yellow": "Dragonfly",
-    "buccaneer": "Buccaneer",
-    "herald": "Herald",
-    "cutlass-black": "Cutlass Black",
-    "cutlass-red": "Cutlass Red",
-    "cutlass-blue": "Cutlass Blue",
-    "corsair": "Corsair",
-    "caterpillar": "Caterpillar",
-    "vulture": "Vulture",
-    "kraken": "Kraken",
-    # Crusader Industries
-    "ares-ion": "Ares Star Fighter Ion",
-    "ares-inferno": "Ares Star Fighter Inferno",
-    "spirit-a1": "Spirit",
-    "spirit-c1": "Spirit",
-    "mercury": "Mercury Star Runner",
-    "starlifter-m2": "M2 Hercules Starlifter",
-    "starlifter-c2": "C2 Hercules Starlifter",
-    "starlifter-a2": "A2 Hercules Starlifter",
-    "genesis": "Genesis Starliner",
-    "odyssey": "Odyssey",
-    # MISC
-    "prospector": "Prospector",
-    "razor": "Razor",
-    "reliant-kore": "Reliant Kore",
-    "reliant-tana": "Reliant Tana",
-    "reliant-sen": "Reliant Sen",
-    "reliant-mako": "Reliant Mako",
-    "freelancer": "Freelancer",
-    "freelancer-dur": "Freelancer DUR",
-    "freelancer-max": "Freelancer MAX",
-    "freelancer-mis": "Freelancer MIS",
-    "hull-a": "Hull A",
-    "hull-b": "Hull B",
-    "hull-c": "Hull C",
-    "starfarer": "Starfarer",
-    "starfarer-gemini": "Starfarer Gemini",
-    "endeavor": "Endeavor",
-    # Aopoa
-    "nox": "Nox",
-    "nox-kue": "Nox Kue",
-    "khartu-al": "Khartu-al",
-    "san-tok-yai": "San'tok.yāi",
-    # Banu
-    "defender": "Defender",
-    "merchantman": "Merchantman",
-    # Esperia
-    "blade": "Blade",
-    "glaive": "Glaive",
-    "prowler": "Prowler",
-    "talon": "Talon",
-    "talon-shrike": "Talon Shrike",
-    # Argo Astronautics
-    "mpuv-cargo": "MPUV Cargo",
-    "mpuv-personnel": "MPUV Personnel",
-    "mole": "MOLE",
-    "raft": "RAFT",
-    # Consolidated Outland
-    "mustang-alpha": "Mustang Alpha",
-    "mustang-beta": "Mustang Beta",
-    "mustang-gamma": "Mustang Gamma",
-    "mustang-delta": "Mustang Delta",
-    "mustang-omega": "Mustang Omega",
-    "nomad": "Nomad",
-    "pioneer": "Pioneer",
+    "85X Limited": "85X",
+    "890 Jump": "890 Jump",
+    "Dragonfly Yellowjacket": "Dragonfly",
+    "Dragonfly Star Kitten": "Dragonfly",
+    "Nox Wikelo Special": "Nox",
+    "P-72 Archimedes Emerald": "P-72 Archimedes",
+    "Fury LX": "Fury",
+    "Fury MX": "Fury",
+    "Pulse LX": "Pulse",
+    "X1 Force": "X1",
+    "X1 Velocity": "X1",
+    "Golem OX": "Golem",
+    "Guardian MX": "Guardian",
+    "Guardian QI": "Guardian",
+    "Ballista Dunestalker": "Ballista",
+    "Ballista Snowblind": "Ballista",
+    "Cutter Rambler": "Cutter",
+    "Cutter Scout": "Cutter",
+    "C8R Pisces Rescue": "C8 Pisces",
+    "MOLE Carbon": "MOLE",
+    "MOLE Talus": "MOLE",
+    "MPUV Tractor": "MPUV Cargo",
+    "Corsair PYAM Exec": "Corsair",
+    "Cutlass Black PYAM Exec": "Cutlass Black",
+    "L-22 Alpha Wolf": "L-21 Wolf",
+    "Prowler Utility": "Prowler",
+    "ROC-DS": "ROC",
+    "Terrapin Medic": "Terrapin",
+    "Sabre Firebird": "Sabre",
+    "Sabre Peregrine": "Sabre",
+    "Constellation Phoenix Emerald": "Constellation Phoenix",
+    "Caterpillar Pirate": "Caterpillar",
+    "Gladius Dunlevy": "Gladius",
+    "Gladius Pirate": "Gladius",
+    "Gladius Valiant": "Gladius",
+    "F7C Hornet Wildfire Mk I": "F7C Hornet Mk II",
+    "F7C-M Hornet Heartseeker Mk I": "F7C-M Super Hornet Mk II",
+    "F7C-M Hornet Heartseeker Mk II": "F7C-M Super Hornet Mk II",
+    "F7C-M Super Hornet Mk I": "F7C-M Super Hornet Mk II",
+    "F7C-R Hornet Tracker Mk I": "F7C Hornet Mk II",
+    "F7C-R Hornet Tracker Mk II": "F7C Hornet Mk II",
+    "F7C-S Hornet Ghost Mk I": "F7C-S Hornet Ghost Mk II",
+    "F7A Hornet Mk I": "F7A Hornet Mk II",
+    "F7 Hornet Mk Wikelo": "F7C Hornet Mk II",
+    "Hornet F7A Mk II PYAM Exec": "F7A Hornet Mk II",
+    "F8C Lightning Executive Edition": "F8C Lightning",
+    "F8C Lightning PYAM Exec": "F8C Lightning",
+    "Starlancer MAX Wikelo Work Special": "Starlancer MAX",
+    "Starlancer TAC Wikelo War Special": "Starlancer TAC",
+    "Nomad Teach's Special": "Nomad",
+    "Starfarer Teach's Special": "Starfarer",
+    "Reclaimer Teach's Special": "Reclaimer",
+    "Vulture Teach's Special": "Vulture",
+    "Syulen PYAM Exec": "Syulen",
+    "Mustang CitizenCon 2948 Edition": "Mustang Alpha",
+    "ATLS Cool Metal Color": "ATLS",
+    "ATLS GEO": "ATLS",
+    "ATLS GEO IKTI": "ATLS",
+    "ATLS IKTI": "ATLS",
+    "ATLS IKTI Rad": "ATLS",
+    "ATLS Orange Line": "ATLS",
+    "ATLS Snowland Color": "ATLS",
+    "Scorpius Wikelo Sneak Special": "Scorpius",
+    "Constellation Taurus Wikelo War Special": "Constellation Taurus",
+    "C1 Spirit Wikelo Special": "Spirit",
+    "Prospector Wikelo Work Special": "Prospector",
+    "RAFT Wikelo Work Special": "RAFT",
+    "M50 Interceptor": "M50",
+    "Vanduul Scythe": "Glaive",
+    "Power Suit": "",
+    "CSV-SM\n": "CSV-SM",
+    "Esperia Stinger": "Glaive",
 }
 
-VEHICLE_WIKI_MAP = {
-    "cyclone": "Cyclone",
-    "nox": "Nox",
-    "ursa": "Ursa",
-    "nova": "Nova",
-}
-
-# In-memory image cache: wiki_title -> thumbnail_url
+# name -> image URL
 _image_cache = {}
 _cache_loaded = False
 
 
-async def fetch_all_wiki_images():
-    """Batch-fetch all ship/vehicle images from starcitizen.tools wiki API."""
+def _get_base_name(name):
+    """Strip variant suffixes to get the base ship name for image lookup."""
+    # Check overrides first
+    if name in NAME_OVERRIDES:
+        return NAME_OVERRIDES[name]
+    # Strip known variant suffixes
+    base = name
+    for pattern in VARIANT_SUFFIXES:
+        base = re.sub(pattern, "", base, flags=re.IGNORECASE).strip()
+    return base
+
+
+def _collect_wiki_titles(ship_names):
+    """Build a set of wiki page titles to query from a list of ship names."""
+    titles = set()
+    for name in ship_names:
+        wiki_title = _get_base_name(name)
+        if wiki_title:
+            titles.add(wiki_title)
+        # Also add the original name in case it matches directly
+        if name and name not in NAME_OVERRIDES:
+            titles.add(name)
+    return titles
+
+
+async def fetch_all_wiki_images(ship_names=None):
+    """Batch-fetch ship images from starcitizen.tools wiki API.
+    If ship_names is provided, query those; otherwise use a default set."""
     global _image_cache, _cache_loaded
-    if _cache_loaded:
+    if _cache_loaded and not ship_names:
         return
 
-    all_titles = set(SHIP_WIKI_MAP.values()) | set(VEHICLE_WIKI_MAP.values())
-    title_list = list(all_titles)
+    if not ship_names:
+        ship_names = []
+
+    all_titles = list(_collect_wiki_titles(ship_names))
+    logger.info(f"Fetching wiki images for {len(all_titles)} unique titles...")
 
     async with httpx.AsyncClient(timeout=30.0) as client:
-        # Wiki API supports up to 50 titles per request
-        for i in range(0, len(title_list), 50):
-            batch = title_list[i:i + 50]
+        for i in range(0, len(all_titles), 50):
+            batch = all_titles[i:i + 50]
             titles_param = "|".join(t.replace(" ", "_") for t in batch)
             try:
                 resp = await client.get(WIKI_API, params={
@@ -185,7 +180,6 @@ async def fetch_all_wiki_images():
                         original = page.get("original", {}).get("source")
                         if thumb or original:
                             _image_cache[title] = original or thumb
-                            logger.info(f"Cached image for: {title}")
             except Exception as e:
                 logger.error(f"Wiki image fetch error for batch {i}: {e}")
 
@@ -193,34 +187,31 @@ async def fetch_all_wiki_images():
     logger.info(f"Wiki image cache loaded: {len(_image_cache)} images cached")
 
 
-def get_ship_image(ship_id):
-    """Get cached wiki image URL for a ship."""
-    wiki_title = SHIP_WIKI_MAP.get(ship_id.lower(), "")
-    return _image_cache.get(wiki_title, "")
+def get_ship_image(ship_id_or_name):
+    """Get cached wiki image URL for a ship by name or ID."""
+    # Try direct name match
+    if ship_id_or_name in _image_cache:
+        return _image_cache[ship_id_or_name]
+    # Try base name (strip variant)
+    base = _get_base_name(ship_id_or_name)
+    if base and base in _image_cache:
+        return _image_cache[base]
+    return ""
 
 
 def get_vehicle_image(vehicle_name):
-    """Get cached wiki image URL for a vehicle."""
-    # Try exact match by name key
-    key = vehicle_name.lower().replace(" ", "").replace("rover", "").replace("tank", "").strip()
-    for vid, wiki_title in VEHICLE_WIKI_MAP.items():
-        if vid in key or key in vid:
-            return _image_cache.get(wiki_title, "")
-    # Direct title lookup
-    return _image_cache.get(vehicle_name, "")
+    """Get cached wiki image URL for a vehicle by name."""
+    return get_ship_image(vehicle_name)
 
 
 def enhance_ship_data(ships):
-    """Add comprehensive details to ship list."""
+    """Add comprehensive details to ship list (mock fallback only)."""
     for ship in ships:
-        # Use wiki image from cache
-        img = get_ship_image(ship["id"])
+        img = get_ship_image(ship.get("name", ""))
         if img:
             ship["image"] = img
         elif not ship.get("image"):
             ship["image"] = ""
-
-        # Add missing fields with defaults
         if "beam" not in ship:
             ship["beam"] = round(ship.get("length", 20) * 0.6, 1)
         if "height" not in ship:
@@ -240,5 +231,4 @@ def enhance_ship_data(ships):
             ship["armor"] = "Medium" if ship.get("size") in ["Medium", "Large"] else "Light"
         if "manufacturer_code" not in ship:
             ship["manufacturer_code"] = ship["manufacturer"].split()[0][:3].upper()
-
     return ships

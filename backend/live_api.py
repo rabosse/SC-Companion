@@ -119,7 +119,7 @@ def _normalize_vehicle(v: dict) -> dict:
 
     return {
         "id": v.get("slug", v.get("uuid", "")),
-        "name": v.get("name", ""),
+        "name": v.get("name", "").replace("\\n", "").strip(),
         "manufacturer": manufacturer_name,
         "size": size_class,
         "size_class": raw_size_class,
