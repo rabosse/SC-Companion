@@ -230,7 +230,13 @@ const QuickImportModal = ({ ships, fleetShipIds, API, onClose, onImported }) => 
   const sizes = ['all', 'Snub', 'Small', 'Medium', 'Large', 'Capital'];
 
   const filtered = useMemo(() => {
-    let result = ships;
+    // Deduplicate by ship id (live API can return duplicates)
+    const seen = new Set();
+    let result = ships.filter(s => {
+      if (seen.has(s.id)) return false;
+      seen.add(s.id);
+      return true;
+    });
     if (search) {
       const q = search.toLowerCase();
       result = result.filter(s => s.name.toLowerCase().includes(q) || s.manufacturer.toLowerCase().includes(q));

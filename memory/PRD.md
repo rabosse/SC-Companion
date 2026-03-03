@@ -26,7 +26,7 @@ Build a full-stack application called "Star Citizen Fleet Manager" that allows S
 - **Data Source**: api.star-citizen.wiki LIVE API with mock fallback
 - **Purchase Data**: starcitizen.tools wiki (static mapping of 130+ ships/vehicles)
 
-## What's Implemented (as of Feb 27, 2026)
+## What's Implemented (as of Mar 3, 2026)
 - [x] Username + Password login with bcrypt (auto-register on first login)
 - [x] LIVE API: 276 ships, 178 weapons, 333 components from api.star-citizen.wiki
 - [x] Ship images: 117 matched wiki images from starcitizen.tools
@@ -41,6 +41,9 @@ Build a full-stack application called "Star Citizen Fleet Manager" that allows S
 - [x] Dashboard with live stats (276 ships, 13 vehicles, 333 components, 178 weapons)
 - [x] Auth persistence on page reload
 - [x] Full navigation: Dashboard, My Fleet, Ships, Vehicles, Components, Weapons, Compare, Loadout
+- [x] Quick Fleet Import: Bulk-add ships via modal with search, manufacturer/size filters, multi-select
+- [x] Data Auto-Refresh: TTL-based (1 hour) live API data refresh on app launch
+- [x] Duplicate ship deduplication in Quick Import modal (live API returns duplicates)
 
 ## Architecture
 ```
@@ -68,6 +71,7 @@ Build a full-stack application called "Star Citizen Fleet Manager" that allows S
 - GET /api/components (live API with real locations/prices)
 - GET /api/weapons (live API with real locations/prices)
 - POST /api/fleet/add, GET /api/fleet/my, DELETE /api/fleet/{fleet_id}
+- POST /api/fleet/bulk-add {ships: [{id, name, manufacturer}]} - Quick Import
 - POST /api/loadouts/save, GET /api/loadouts/{ship_id}, DELETE /api/loadouts/{loadout_id}
 - GET /api/upgrades/{ship_id}
 
