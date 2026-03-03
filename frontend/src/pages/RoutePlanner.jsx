@@ -318,13 +318,13 @@ const RoutePlanner = () => {
     <div>
       <label className="text-xs font-semibold uppercase block mb-1" style={{ color }}>{label}</label>
       <select value={value} onChange={e => onChange(e.target.value)} data-testid={testId}
-        className="w-full px-3 py-2 bg-white/5 border rounded-lg text-white text-sm focus:outline-none transition-all"
-        style={{ borderColor: `${color}40`, '--tw-ring-color': color }}>
-        <option value="">Select...</option>
+        className="w-full px-3 py-2 bg-[#0a0a10] border rounded-lg text-white text-sm focus:outline-none transition-all"
+        style={{ borderColor: `${color}40`, colorScheme: 'dark' }}>
+        <option value="" className="bg-[#0a0a10] text-gray-400">Select...</option>
         {Object.entries(systems).map(([sysId, sys]) => (
-          <optgroup key={sysId} label={sys.name}>
+          <optgroup key={sysId} label={sys.name} className="bg-[#0a0a10] text-gray-300">
             {locations.filter(l => l.system === sysId && l.type !== 'star' && !exclude.includes(l.id)).map(l => (
-              <option key={l.id} value={l.id}>{l.name}</option>
+              <option key={l.id} value={l.id} className="bg-[#0a0a10] text-white">{l.name}</option>
             ))}
           </optgroup>
         ))}
@@ -359,9 +359,9 @@ const RoutePlanner = () => {
             <div className="glass-panel rounded-xl p-3" data-testid="ship-selector">
               <label className="text-xs font-semibold text-gray-400 uppercase block mb-1.5">Ship</label>
               <select value={selectedShip?.id || ''} onChange={e => onShipSelect(e.target.value)} data-testid="ship-select"
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-cyan-500">
-                <option value="">Select a ship...</option>
-                {ships.map(s => <option key={s.id} value={s.id}>{s.name} (QD S{s.hardpoints?.quantum_drive?.size || '?'})</option>)}
+                className="w-full px-3 py-2 bg-[#0a0a10] border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-cyan-500" style={{ colorScheme: 'dark' }}>
+                <option value="" className="bg-[#0a0a10] text-gray-400">Select a ship...</option>
+                {ships.map(s => <option key={s.id} value={s.id} className="bg-[#0a0a10] text-white">{s.name} (QD S{s.hardpoints?.quantum_drive?.size || '?'})</option>)}
               </select>
               {selectedShip && <div className="mt-1.5 text-xs text-gray-400">QD S{qdSize} | {(qdSpeeds[qdSize] || 165000).toLocaleString()} km/s</div>}
             </div>
@@ -411,12 +411,12 @@ const RoutePlanner = () => {
                 </div>
                 <div className="flex gap-2">
                   <select id="add-origin-select" data-testid="add-origin-select"
-                    className="flex-1 px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white text-xs focus:outline-none">
-                    <option value="">Add origin...</option>
+                    className="flex-1 px-2 py-1.5 bg-[#0a0a10] border border-white/10 rounded-lg text-white text-xs focus:outline-none" style={{ colorScheme: 'dark' }}>
+                    <option value="" className="bg-[#0a0a10] text-gray-400">Add origin...</option>
                     {Object.entries(systems).map(([sysId, sys]) => (
-                      <optgroup key={sysId} label={sys.name}>
+                      <optgroup key={sysId} label={sys.name} className="bg-[#0a0a10] text-gray-300">
                         {locations.filter(l => l.system === sysId && l.type !== 'star' && !interdictOrigins.includes(l.id)).map(l => (
-                          <option key={l.id} value={l.id}>{l.name}</option>
+                          <option key={l.id} value={l.id} className="bg-[#0a0a10] text-white">{l.name}</option>
                         ))}
                       </optgroup>
                     ))}
