@@ -51,6 +51,8 @@ Build a full-stack application called "Star Citizen Fleet Manager" that allows S
 - [x] **Route Planner**: Interactive 2D star map of Stanton, Pyro, and Nyx systems with 61 locations
 - [x] **Route Calculation**: Quantum travel time/distance with ship QD size selection, cross-system jump tunnels
 - [x] **Route Visualization**: Canvas map with route lines, system filters, pan/zoom, waypoint instructions
+- [x] **Interdiction Planner**: QED Snare positioning — multi-origin support, optimal snare position, coverage %, snare circle on map
+- [x] **Chase Calculator**: Compare QD speeds to determine if you can catch a target, with closing time estimates and verdicts
 - [x] Deployment health check: PASSED - ready for production
 
 ## Architecture
@@ -87,6 +89,8 @@ Build a full-stack application called "Star Citizen Fleet Manager" that allows S
 - POST /api/loadouts/clone/{share_code} (AUTH - clone to user's collection)
 - GET /api/routes/locations (PUBLIC - 61 locations across 3 systems)
 - GET /api/routes/calculate?origin=X&destination=Y&qd_size=N (PUBLIC - route with waypoints)
+- POST /api/routes/interdiction {origins: [], destination, snare_range_mkm} (PUBLIC - optimal snare position)
+- POST /api/routes/chase {your_qd_size, target_qd_size, distance_mkm, prep_time_seconds} (PUBLIC - chase calc)
 - GET /api/upgrades/{ship_id}
 
 ## Prioritized Backlog
