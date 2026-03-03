@@ -275,3 +275,198 @@ def calculate_route(origin_id, destination_id, qd_size=1):
         "waypoints": waypoints,
         "cross_system": origin["system"] != dest["system"],
     }
+
+
+# Default QED Snare range in map units (visual radius on the 2D map)
+DEFAULT_SNARE_RANGE_MAP = 25  # covers ~7.5 Mkm at our scale
+
+
+def _point_to_line_distance(px, py, ax, ay, bx, by):
+    """Distance from point (px,py) to the line segment (ax,ay)-(bx,by)."""
+    dx, dy = bx - ax, by - ay
+    if dx == 0 and dy == 0:
+        return math.sqrt((px - ax) ** 2 + (py - ay) ** 2)
+    t = max(0, min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy)))
+    proj_x = ax + t * dx
+    proj_y = ay + t * dy
+    return math.sqrt((px - proj_x) ** 2 + (py - proj_y) ** 2)
+
+
+def calculate_interdiction(origin_ids, destination_id, snare_range_mkm=7.5):
+    """Calculate optimal QED snare position to interdict all routes from origins to destination.
+    
+    Returns the best position on the map, coverage %, and route info.
+    """
+    dest = _loc_by_id.get(destination_id)
+    if not dest:
+        return {"error": "Destination not found"}
+
+    origins = []
+    for oid in origin_ids:
+        loc = _loc_by_id.get(oid)
+        if loc:
+            origins.append(loc)
+    if not origins:
+        return {"error": "No valid origins"}
+
+    # Build route lines (map coordinates) from each origin to destination
+    # For cross-system, we use the gateway entry point in the destination system
+    route_lines = []
+    for orig in origins:
+        if orig["system"] == dest["system"]:
+            route_lines.append({
+                "origin": orig,
+                "start_x": orig["map_x"], "start_y": orig["map_y"],
+                "end_x": dest["map_x"], "end_y": dest["map_y"],
+            })
+        else:
+            # Find the gateway entering the destination system
+            jumps = _find_jump_route(orig["system"], dest["system"])
+            if jumps:
+                last_gw_id = jumps[-1][1]  # gateway exit in dest system
+                gw = _loc_by_id[last_gw_id]
+                route_lines.append({
+                    "origin": orig,
+                    "start_x": gw["map_x"], "start_y": gw["map_y"],
+                    "end_x": dest["map_x"], "end_y": dest["map_y"],
+                })
+
+    if not route_lines:
+        return {"error": "No valid routes to destination"}
+
+    # Convert snare range from Mkm to map units (roughly 1 map unit ≈ 0.3 Mkm)
+    snare_range_map = snare_range_mkm / 0.3
+
+    # Search for optimal snare position along the approach to destination
+    # Sample points along each route and find the position closest to destination
+    # where all routes are within snare range
+    best_pos = None
+    best_dist_to_dest = float('inf')
+
+    # Sample along the average approach vector
+    avg_sx = sum(r["start_x"] for r in route_lines) / len(route_lines)
+    avg_sy = sum(r["start_y"] for r in route_lines) / len(route_lines)
+    dx = dest["map_x"] - avg_sx
+    dy = dest["map_y"] - avg_sy
+    total_len = math.sqrt(dx * dx + dy * dy)
+    if total_len == 0:
+        return {"error": "Origins and destination overlap"}
+
+    # Sample 200 points along the approach corridor
+    for i in range(200):
+        t = i / 200.0
+        px = avg_sx + dx * t
+        py = avg_sy + dy * t
+
+        # Check if all routes are within snare range of this point
+        max_dist = 0
+        for rl in route_lines:
+            d = _point_to_line_distance(px, py, rl["start_x"], rl["start_y"], rl["end_x"], rl["end_y"])
+            max_dist = max(max_dist, d)
+
+        if max_dist <= snare_range_map:
+            # This position covers all routes - check if it's closer to destination
+            dist_to_dest = math.sqrt((px - dest["map_x"]) ** 2 + (py - dest["map_y"]) ** 2)
+            if dist_to_dest < best_dist_to_dest:
+                best_dist_to_dest = dist_to_dest
+                best_pos = {"x": round(px, 2), "y": round(py, 2), "max_route_dist": round(max_dist, 2)}
+
+    if not best_pos:
+        # Can't cover all routes - find best partial coverage
+        # Position at 70% along the average approach
+        px = avg_sx + dx * 0.7
+        py = avg_sy + dy * 0.7
+        covered = 0
+        total = len(route_lines)
+        for rl in route_lines:
+            d = _point_to_line_distance(px, py, rl["start_x"], rl["start_y"], rl["end_x"], rl["end_y"])
+            if d <= snare_range_map:
+                covered += 1
+        coverage_pct = round((covered / total) * 100)
+        return {
+            "success": False,
+            "message": f"Cannot cover all {total} routes. Best position covers {covered}/{total} ({coverage_pct}%)",
+            "snare_position": {"x": round(px, 2), "y": round(py, 2)},
+            "snare_range_map": round(snare_range_map, 2),
+            "snare_range_mkm": snare_range_mkm,
+            "coverage_pct": coverage_pct,
+            "routes_covered": covered,
+            "routes_total": total,
+            "route_lines": [{"from": r["origin"]["name"], "from_id": r["origin"]["id"],
+                             "sx": r["start_x"], "sy": r["start_y"],
+                             "ex": r["end_x"], "ey": r["end_y"]} for r in route_lines],
+            "destination": {"id": destination_id, "name": dest["name"]},
+        }
+
+    # Full coverage achieved
+    # Calculate distance from snare to destination in Mkm
+    snare_dist_mkm = round(best_dist_to_dest * 0.3, 2)
+
+    return {
+        "success": True,
+        "message": f"Optimal interdiction position found! All {len(route_lines)} routes covered.",
+        "snare_position": best_pos,
+        "snare_range_map": round(snare_range_map, 2),
+        "snare_range_mkm": snare_range_mkm,
+        "distance_to_dest_mkm": snare_dist_mkm,
+        "coverage_pct": 100,
+        "routes_covered": len(route_lines),
+        "routes_total": len(route_lines),
+        "route_lines": [{"from": r["origin"]["name"], "from_id": r["origin"]["id"],
+                         "sx": r["start_x"], "sy": r["start_y"],
+                         "ex": r["end_x"], "ey": r["end_y"]} for r in route_lines],
+        "destination": {"id": destination_id, "name": dest["name"]},
+    }
+
+
+def calculate_chase(your_qd_size, target_qd_size, distance_mkm, prep_time_seconds=30):
+    """Calculate if you can catch a target in a quantum chase.
+    
+    your_qd_size: your ship's QD size
+    target_qd_size: target's QD size
+    distance_mkm: distance between you and target's route
+    prep_time_seconds: time to spool QD and start pursuit
+    """
+    your_speed = QD_SPEEDS.get(your_qd_size, QD_SPEEDS[1])
+    target_speed = QD_SPEEDS.get(target_qd_size, QD_SPEEDS[1])
+
+    distance_km = distance_mkm * 1_000_000
+
+    # Time for you to close the distance
+    your_travel_time = distance_km / your_speed + prep_time_seconds
+
+    # If you're faster, calculate intercept
+    if your_speed > target_speed:
+        # Closing speed
+        closing_speed = your_speed - target_speed
+        # Time to catch up once both in QT
+        catch_time = distance_km / closing_speed
+        total_time = catch_time + prep_time_seconds
+
+        return {
+            "can_catch": True,
+            "your_speed_kms": your_speed,
+            "target_speed_kms": target_speed,
+            "speed_advantage_kms": your_speed - target_speed,
+            "closing_time_seconds": round(catch_time),
+            "total_time_seconds": round(total_time),
+            "prep_time_seconds": prep_time_seconds,
+            "distance_mkm": distance_mkm,
+            "verdict": f"You can catch the target in ~{round(total_time)}s ({round(total_time/60, 1)} min). Your QD is {your_speed - target_speed:,} km/s faster.",
+        }
+    elif your_speed == target_speed:
+        return {
+            "can_catch": False,
+            "your_speed_kms": your_speed,
+            "target_speed_kms": target_speed,
+            "speed_advantage_kms": 0,
+            "verdict": "Same QD speed - you cannot close the gap. Consider upgrading your quantum drive.",
+        }
+    else:
+        return {
+            "can_catch": False,
+            "your_speed_kms": your_speed,
+            "target_speed_kms": target_speed,
+            "speed_advantage_kms": your_speed - target_speed,
+            "verdict": f"Target's QD is {target_speed - your_speed:,} km/s faster. You cannot catch them in quantum. Use interdiction instead.",
+        }
