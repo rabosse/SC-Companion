@@ -1,106 +1,78 @@
 # Star Citizen Fleet Manager - PRD
 
 ## Original Problem Statement
-Build a full-stack application called "Star Citizen Fleet Manager" that allows Star Citizen players to track their ships and ground vehicles. The app should use the Star Citizen API for data, support user authentication, fleet management, ship/vehicle images, component/weapon browsing with filters, ship comparison, and loadout building.
-
-## Core Requirements
-- User authentication (Username + Password with bcrypt hashing)
-- Ship database with real images from Star Citizen Wiki
-- Ground vehicle database with images
-- Component catalog with size filtering, location, aUEC price
-- Weapons arsenal with size filtering, location, aUEC price
-- Personal fleet management (add/remove ships, persists to MongoDB)
-- Fleet statistics dashboard
-- Ship comparison tool (up to 5 ships)
-- Loadout builder with SIZE RESTRICTIONS + saveable loadouts
-- In-game purchase locations + aUEC prices for ships/vehicles
-- RSI Pledge Store prices (USD) + direct links
-- Star Citizen themed UI
-- LIVE API integration with mock fallback
-- Loadout sharing between users with community page
+Build a full-stack application called "Star Citizen Fleet Manager" that allows players to track their ships and ground vehicles from Star Citizen. Uses Star Citizen API for data, with user authentication and personal fleet management.
 
 ## Tech Stack
-- **Frontend**: React, Tailwind CSS, Shadcn UI, Framer Motion, react-router-dom, axios
-- **Backend**: FastAPI, Pydantic, JWT auth (python-jose), bcrypt, httpx
-- **Database**: MongoDB (users, fleet, loadouts)
-- **Image Source**: starcitizen.tools MediaWiki API
-- **Data Source**: api.star-citizen.wiki LIVE API with mock fallback
-- **Purchase Data**: starcitizen.tools wiki (static mapping of 130+ ships/vehicles)
+- **Frontend**: React, Tailwind CSS, Shadcn UI, react-router-dom, axios, lucide-react, framer-motion
+- **Backend**: FastAPI, Pydantic, JWT auth, bcrypt
+- **Database**: MongoDB
+- **Data Source**: starcitizen.tools API (live) + static fallback data
 
-## What's Implemented (as of Mar 3, 2026)
-- [x] Username + Password login with bcrypt (auto-register on first login)
-- [x] LIVE API: 276 ships, 178 weapons, 333 components from api.star-citizen.wiki
-- [x] Ship images: 275/276 ships (99.6%) and 13/13 vehicles (100%) have images
-- [x] In-game purchase locations: 130+ ships with all dealers and aUEC prices
-- [x] RSI Pledge Store: USD prices + pledge URLs for all ships from live API
-- [x] Ship detail "Where to Buy" section with all dealers + RSI store link
-- [x] Component catalog: search, type filter, SIZE FILTER, real locations, real prices
-- [x] Weapons arsenal: search, type filter, SIZE FILTER, real locations, real prices
-- [x] Fleet management: add/remove ships, persists to MongoDB across sessions
-- [x] Ship Comparison Tool: up to 5 ships with stat bars and best-value highlighting
-- [x] Loadout Builder: SIZE RESTRICTIONS enforced, save/load/delete named loadouts to MongoDB
-- [x] Dashboard with live stats (276 ships, 13 vehicles, 333 components, 178 weapons)
-- [x] Auth persistence on page reload
-- [x] Full navigation: Dashboard, My Fleet, Ships, Vehicles, Components, Weapons, Compare, Loadout, Community
-- [x] Quick Fleet Import: Bulk-add ships via modal with search, manufacturer/size filters, multi-select
-- [x] Data Auto-Refresh: TTL-based (1 hour) live API data refresh on app launch
-- [x] **Loadout Sharing**: Save loadouts with share codes, shareable links
-- [x] **Community Loadouts Page**: Browse all shared loadouts, search by ship, pagination
-- [x] **Public Shared Loadout View**: Anyone can view a shared loadout (no login required)
-- [x] **Clone Loadouts**: Authenticated users can clone any shared loadout to their collection
-- [x] **Route Planner**: Interactive 2D star map of Stanton, Pyro, and Nyx systems with 61 locations
-- [x] **Route Calculation**: Quantum travel time/distance with ship QD size selection, cross-system jump tunnels
-- [x] **Route Visualization**: Canvas map with route lines, system filters, pan/zoom, waypoint instructions
-- [x] **Interdiction Planner**: QED Snare positioning — multi-origin support, optimal snare position, coverage %, snare circle on map
-- [x] **Chase Calculator**: Compare QD speeds to determine if you can catch a target, with closing time estimates and verdicts
-- [x] Deployment health check: PASSED - ready for production
+## Core Requirements
+- User authentication (Username/Password)
+- Ship/vehicle browsing with official images
+- Fleet management (add/remove unlimited vehicles)
+- Ship comparison tool (up to 5 ships)
+- Loadout builder with savable/shareable loadouts
+- Fleet statistics dashboard
+- Components/Weapons pages with size filtering, location, and aUEC price
+- Ship/vehicle purchase locations (in-game and RSI store)
+- Quick fleet import tool
+- Auto-updating data reflecting game patches
+- Route planner for Stanton, Pyro, and Nyx systems
+- Interdiction planner for pirating
+- Rare armor and FPS weapon locations
+
+## Key DB Schema
+- **users**: `{username, email, password_hash, fleet: list[str]}`
+- **saved_loadouts**: `{user_id, ship_id, loadout_name, components, is_public, share_code}`
+
+## What's Implemented (All Complete)
+- User Authentication (register/login with JWT)
+- Ships, Vehicles, Components, Weapons pages with live API data
+- Fleet Management with Quick Import
+- Ship Comparison (up to 5 ships)
+- Loadout Builder with hardpoint rules enforcement
+- Loadout Sharing (save, load, share via code, community page)
+- Route Planner (Stanton, Pyro, Nyx systems)
+- Interdiction Planner (QED snare positioning)
+- Chase Calculator (pursuit scenarios)
+- Comprehensive Dashboard (fleet overview, value, manufacturers, ship cards)
+- Personal Gear page (28 FPS weapons, 21 armor sets with locations)
+- Health endpoint for deployment readiness
+- ~99% ship/vehicle image coverage via name-based matching
+
+## Key API Endpoints
+- `/api/auth/register`, `/api/auth/login`
+- `/api/fleet/bulk-add`
+- `/api/community-loadouts`, `/api/loadouts/{share_code}`, `/api/loadouts/{loadout_id}/clone`
+- `/api/locations`, `/api/route`
+- `/api/route/interdict`, `/api/route/chase`
+- `/api/gear/weapons`, `/api/gear/armor`
+- `/api/health`
 
 ## Architecture
 ```
 /app/
-├── backend/
-│   ├── .env (MONGO_URL, DB_NAME, JWT_SECRET, STAR_CITIZEN_API_KEY)
-│   ├── server.py (FastAPI endpoints, auth, fleet, loadout CRUD, community sharing)
-│   ├── live_api.py (Live Star Citizen Wiki API + hardpoint data)
-│   ├── ship_data_enhancer.py (Wiki image fetching by name, variant matching)
-│   ├── ship_purchases.py (In-game purchase locations & aUEC prices)
-│   └── requirements.txt
-└── frontend/
-    ├── .env (REACT_APP_BACKEND_URL)
-    └── src/
-        ├── App.js (routes, auth context with username/password)
-        ├── components/ (Layout, SpaceshipIcon, ui/)
-        └── pages/ (Login, Dashboard, Ships, ShipDetail, Vehicles, Components, Weapons, Fleet, Compare, LoadoutBuilder, CommunityLoadouts, SharedLoadout)
+  backend/
+    server.py, live_api.py, data_enhancer.py, personal_gear.py, starmap_data.py
+    requirements.txt, .env, tests/
+  frontend/
+    src/
+      App.js, index.js
+      components/ (Layout.jsx, Header.jsx, SpaceshipIcon.jsx, ui/)
+      pages/ (Dashboard, Fleet, Ships, ShipDetail, Vehicles, Components, Weapons,
+              Compare, LoadoutBuilder, CommunityLoadouts, SharedLoadout,
+              RoutePlanner, PersonalGear, Login)
 ```
 
-## API Endpoints
-- POST /api/auth/login {username, password} - login/auto-register
-- POST /api/auth/register {username, password}
-- GET /api/ships (live API, includes purchase_locations, price_auec, msrp, pledge_url)
-- GET /api/vehicles (includes purchase data)
-- GET /api/components (live API with real locations/prices)
-- GET /api/weapons (live API with real locations/prices)
-- POST /api/fleet/add, GET /api/fleet/my, DELETE /api/fleet/{fleet_id}
-- POST /api/fleet/bulk-add {ships: [{id, name, manufacturer}]} - Quick Import
-- POST /api/loadouts/save (returns share_code), GET /api/loadouts/{ship_id}, DELETE /api/loadouts/{loadout_id}
-- GET /api/loadouts/my/all - All user's loadouts
-- GET /api/community/loadouts (PUBLIC - paginated, search by ship_name)
-- GET /api/community/loadouts/{share_code} (PUBLIC - view shared loadout)
-- POST /api/loadouts/clone/{share_code} (AUTH - clone to user's collection)
-- GET /api/routes/locations (PUBLIC - 61 locations across 3 systems)
-- GET /api/routes/calculate?origin=X&destination=Y&qd_size=N (PUBLIC - route with waypoints)
-- POST /api/routes/interdiction {origins: [], destination, snare_range_mkm} (PUBLIC - optimal snare position)
-- POST /api/routes/chase {your_qd_size, target_qd_size, distance_mkm, prep_time_seconds} (PUBLIC - chase calc)
-- GET /api/upgrades/{ship_id}
+## Backlog / Future Enhancements
+- P1: Refactor server.py into feature-specific routers (routes/starmap.py, routes/loadouts.py, etc.)
+- P2: Simplify data_enhancer.py (now only a fallback)
+- P2: Additional gear data (grenades, utilities, medical items)
+- P3: Real-time price tracking integration
+- P3: Organization/guild fleet management
 
-## Prioritized Backlog
-
-### P2 (Medium)
-- Data migration from static mappings to MongoDB collections
-- Fleet value tracking over time
-- Mobile-responsive optimizations
-
-### P3 (Low)
-- Export fleet/loadout data
-- Enhanced fleet statistics and analytics
-- Loadout ratings/votes in community page
+## Test Reports
+- /app/test_reports/iteration_10.json (Latest - Gear page: 100% pass, 41 tests)
