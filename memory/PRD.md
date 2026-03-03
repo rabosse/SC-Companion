@@ -48,6 +48,9 @@ Build a full-stack application called "Star Citizen Fleet Manager" that allows S
 - [x] **Community Loadouts Page**: Browse all shared loadouts, search by ship, pagination
 - [x] **Public Shared Loadout View**: Anyone can view a shared loadout (no login required)
 - [x] **Clone Loadouts**: Authenticated users can clone any shared loadout to their collection
+- [x] **Route Planner**: Interactive 2D star map of Stanton, Pyro, and Nyx systems with 61 locations
+- [x] **Route Calculation**: Quantum travel time/distance with ship QD size selection, cross-system jump tunnels
+- [x] **Route Visualization**: Canvas map with route lines, system filters, pan/zoom, waypoint instructions
 - [x] Deployment health check: PASSED - ready for production
 
 ## Architecture
@@ -82,6 +85,8 @@ Build a full-stack application called "Star Citizen Fleet Manager" that allows S
 - GET /api/community/loadouts (PUBLIC - paginated, search by ship_name)
 - GET /api/community/loadouts/{share_code} (PUBLIC - view shared loadout)
 - POST /api/loadouts/clone/{share_code} (AUTH - clone to user's collection)
+- GET /api/routes/locations (PUBLIC - 61 locations across 3 systems)
+- GET /api/routes/calculate?origin=X&destination=Y&qd_size=N (PUBLIC - route with waypoints)
 - GET /api/upgrades/{ship_id}
 
 ## Prioritized Backlog
