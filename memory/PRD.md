@@ -18,42 +18,34 @@ Build a full-stack application called "Star Citizen Fleet Manager" that allows p
 - Comprehensive Dashboard (fleet value aUEC/USD, manufacturers, ship cards)
 - Route Planner (Stanton, Pyro, Nyx) + Interdiction Planner + Chase Calculator
 - Personal Gear page with 3 tabs:
-  - FPS Weapons (38): Pistols, SMGs, ARs, LMGs, Shotguns, Snipers, Railguns, Grenades, Utilities
-  - Armor Sets (21): Visual grid cards with wiki images (85.7% coverage), type badges, variant selectors, stats, locations
-  - Equipment (23): Mining Heads/Modules/Attachment, Medical Devices, Backpacks, Undersuits
+  - FPS Weapons (38): Visual grid cards with wiki images (63% coverage), type+size badges, stats, variants, locations
+  - Armor Sets (21): Visual grid cards with wiki images (86% coverage), type badges, stats, variants, locations
+  - Equipment (30): Mining (10), Medical (4), Backpacks (4), Undersuits (5), Salvage Tools (3), Scanners (2), Hacking Tools (2)
 - Real-time Price Tracker (150+ items, MongoDB snapshots, change detection)
 - ~99% ship/vehicle image coverage
-- 85.7% armor image coverage from Star Citizen Wiki
 - Backend refactored into 7 modular routers
 
 ## Key API Endpoints
 - `/api/auth/register`, `/api/auth/login`
 - `/api/ships`, `/api/vehicles`, `/api/components`, `/api/weapons`, `/api/upgrades/{id}`
-- `/api/fleet/add`, `/api/fleet/my`, `/api/fleet/{id}`, `/api/fleet/bulk-add`
-- `/api/loadouts/save`, `/api/loadouts/my/all`, `/api/loadouts/{ship_id}`, `/api/loadouts/{id}` (DELETE)
-- `/api/community/loadouts`, `/api/community/loadouts/{share_code}`, `/api/loadouts/clone/{share_code}`
-- `/api/routes/locations`, `/api/routes/calculate`, `/api/routes/interdiction`, `/api/routes/chase`
+- `/api/fleet/*` (add, my, delete, bulk-add)
+- `/api/loadouts/*` (save, list, delete, share)
+- `/api/community/loadouts`, `/api/community/loadouts/{share_code}`
+- `/api/routes/*` (locations, calculate, interdiction, chase)
 - `/api/gear/weapons`, `/api/gear/armor`, `/api/gear/equipment`
-- `/api/prices/summary`, `/api/prices/changes`, `/api/prices/snapshot`, `/api/prices/history/{name}`
+- `/api/prices/*` (summary, changes, snapshot, history)
 - `/api/health`
 
 ## Architecture
 ```
 /app/backend/
-  server.py              # Thin orchestrator (~55 lines)
-  deps.py                # Shared: DB, models, JWT auth
-  routes/
-    auth.py, ships.py, fleet.py, loadouts.py, starmap.py, gear.py, prices.py
+  server.py, deps.py
+  routes/ (auth, ships, fleet, loadouts, starmap, gear, prices)
   live_api.py, ship_data_enhancer.py, personal_gear.py, star_systems.py, ship_purchases.py
 
 /app/frontend/src/
-  App.js, index.js
-  components/ (Layout.jsx, Header.jsx, ui/)
-  pages/ (Dashboard, Fleet, Ships, ShipDetail, Vehicles, Components, Weapons,
-          Compare, LoadoutBuilder, CommunityLoadouts, SharedLoadout,
-          RoutePlanner, PersonalGear, PriceTracker, Login)
+  App.js, pages/ (14 pages), components/ (Layout, Header, ui/)
 ```
 
 ## Backlog / Future
 - P3: Price change notifications/alerts for fleet ships
-- P3: Additional gear (salvage tools, expanded medical)
