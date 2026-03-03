@@ -15,6 +15,7 @@ import httpx
 from ship_data_enhancer import enhance_ship_data, get_vehicle_image, fetch_all_wiki_images, get_ship_image
 from live_api import fetch_live_vehicles, fetch_live_weapons, fetch_live_components, prefetch_all, is_api_available
 from ship_purchases import get_purchase_info
+from star_systems import get_all_locations, get_systems, calculate_route, QD_SPEEDS
 import bcrypt
 
 ROOT_DIR = Path(__file__).parent
@@ -706,6 +707,21 @@ async def clone_loadout(share_code: str, user_id: str = Depends(get_current_user
     }
     await db.loadouts.insert_one(cloned)
     return {"success": True, "message": "Loadout cloned to your collection", "id": new_id}
+
+# --- Route Planner endpoints (PUBLIC) ---
+
+@api_router.get("/routes/locations")
+async def get_route_locations():
+    """Get all navigable locations for route planning"""
+    return {"success": True, "data": get_all_locations(), "systems": get_systems(), "qd_speeds": QD_SPEEDS}
+
+@api_router.get("/routes/calculate")
+async def calculate_travel_route(origin: str, destination: str, qd_size: int = 1):
+    """Calculate quantum travel route between two locations"""
+    result = calculate_route(origin, destination, qd_size)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return {"success": True, "data": result}
 
 
 app.include_router(api_router)
