@@ -19,10 +19,11 @@ Build a full-stack application called "Star Citizen Fleet Manager" that allows p
 - Route Planner (Stanton, Pyro, Nyx) + Interdiction Planner + Chase Calculator
 - Personal Gear page with 3 tabs:
   - FPS Weapons (38): Pistols, SMGs, ARs, LMGs, Shotguns, Snipers, Railguns, Grenades, Utilities
-  - Armor Sets (21): Heavy, Medium, Light, Flight Suits
-  - Equipment (23): Mining Heads (5), Mining Modules (4), Mining Attachment (1), Medical Devices (4), Backpacks (4), Undersuits (5)
+  - Armor Sets (21): Visual grid cards with wiki images (85.7% coverage), type badges, variant selectors, stats, locations
+  - Equipment (23): Mining Heads/Modules/Attachment, Medical Devices, Backpacks, Undersuits
 - Real-time Price Tracker (150+ items, MongoDB snapshots, change detection)
 - ~99% ship/vehicle image coverage
+- 85.7% armor image coverage from Star Citizen Wiki
 - Backend refactored into 7 modular routers
 
 ## Key API Endpoints
@@ -55,4 +56,4 @@ Build a full-stack application called "Star Citizen Fleet Manager" that allows p
 
 ## Backlog / Future
 - P3: Price change notifications/alerts for fleet ships
-- P3: Additional equipment (salvage tools, tractor beams, ship components browser)
+- P3: Additional gear (salvage tools, expanded medical)
