@@ -229,10 +229,10 @@ const ArmorCard = ({ armor, index }) => {
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.04 }}
       className="glass-panel rounded-2xl overflow-hidden group" data-testid={`armor-${armor.id}`}>
       {/* Image section */}
-      <div className="relative h-48 overflow-hidden bg-gradient-to-b from-white/[0.03] to-transparent">
+      <div className="relative h-52 overflow-hidden bg-[#0c0c16]">
         {hasImage ? (
           <img src={armor.image} alt={selectedVariant} loading="lazy"
-            className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105" />
+            className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105" />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <Shield className="w-16 h-16 text-gray-700" />
