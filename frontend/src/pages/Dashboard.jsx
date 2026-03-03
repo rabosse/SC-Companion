@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../App';
 import axios from 'axios';
-import { Ship, Package, Crosshair, TrendingUp, Anchor, DollarSign, Building2, Users, Globe, Wrench, ArrowRight } from 'lucide-react';
+import { Ship, Package, Crosshair, TrendingUp, Anchor, DollarSign, Building2, Users, Globe, Wrench, ArrowRight, Shield, Zap, Cpu, Snowflake } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 
@@ -147,34 +147,73 @@ const Dashboard = () => {
               </Link>
             </div>
           ) : (
-            <div className="space-y-3">
-              {fleetShips.map((fs, i) => (
-                <motion.div key={fs.id} initial={{ opacity: 0, x: -15 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
-                  data-testid={`fleet-ship-${fs.ship_id}`}>
-                  <Link to={`/ships/${fs.ship_id}`} className="glass-panel rounded-xl p-3 flex items-center gap-4 group hover:border-cyan-500/30 transition-all block">
-                    <div className="w-20 h-14 rounded-lg overflow-hidden bg-white/5 shrink-0">
-                      {fs.details?.image ? (
-                        <img src={fs.details.image} alt={fs.ship_name} className="w-full h-full object-cover" onError={e => { e.target.style.display = 'none'; }} />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center"><Ship className="w-6 h-6 text-gray-600" /></div>
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="font-bold text-white text-sm truncate group-hover:text-cyan-400 transition-colors" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                        {fs.ship_name}
+            <div className="space-y-4">
+              {fleetShips.map((fs, i) => {
+                const hp = fs.details?.hardpoints || {};
+                const wpns = hp.weapons || [];
+                return (
+                  <motion.div key={fs.id} initial={{ opacity: 0, x: -15 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
+                    data-testid={`fleet-ship-${fs.ship_id}`}>
+                    <Link to={`/ships/${fs.ship_id}`} className="glass-panel rounded-xl p-4 group hover:border-cyan-500/30 transition-all block">
+                      <div className="flex items-start gap-4">
+                        <div className="w-24 h-16 rounded-lg overflow-hidden bg-white/5 shrink-0">
+                          {fs.details?.image ? (
+                            <img src={fs.details.image} alt={fs.ship_name} className="w-full h-full object-cover" onError={e => { e.target.style.display = 'none'; }} />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center"><Ship className="w-6 h-6 text-gray-600" /></div>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between mb-1">
+                            <h4 className="font-bold text-white text-sm group-hover:text-cyan-400 transition-colors truncate" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
+                              {fs.ship_name}
+                            </h4>
+                            <div className="flex items-center gap-2 shrink-0 ml-2">
+                              {fs.details?.size && <span className="text-[10px] px-1.5 py-0.5 rounded border border-white/10 text-gray-400">{fs.details.size}</span>}
+                              {fs.details?.price_auec > 0 && <span className="text-xs text-yellow-400 font-semibold hidden sm:block">{formatAuec(fs.details.price_auec)}</span>}
+                            </div>
+                          </div>
+                          <div className="text-xs text-gray-500 mb-2">{fs.manufacturer}</div>
+
+                          {/* Components row */}
+                          <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px]">
+                            {hp.shield && (
+                              <span className="flex items-center gap-1 text-cyan-400">
+                                <Shield className="w-3 h-3" /> S{hp.shield.size} x{hp.shield.count}
+                              </span>
+                            )}
+                            {hp.power_plant && (
+                              <span className="flex items-center gap-1 text-yellow-400">
+                                <Zap className="w-3 h-3" /> S{hp.power_plant.size} x{hp.power_plant.count}
+                              </span>
+                            )}
+                            {hp.cooler && (
+                              <span className="flex items-center gap-1 text-green-400">
+                                <Snowflake className="w-3 h-3" /> S{hp.cooler.size} x{hp.cooler.count}
+                              </span>
+                            )}
+                            {hp.quantum_drive && (
+                              <span className="flex items-center gap-1 text-amber-400">
+                                <Cpu className="w-3 h-3" /> S{hp.quantum_drive.size} x{hp.quantum_drive.count}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Weapons row */}
+                          {wpns.length > 0 && (
+                            <div className="flex items-center gap-1.5 mt-1.5 text-[11px] text-red-400">
+                              <Crosshair className="w-3 h-3 shrink-0" />
+                              {wpns.map((size, wi) => (
+                                <span key={wi} className="px-1.5 py-0.5 bg-red-500/10 rounded border border-red-500/20">S{size}</span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-xs text-gray-500">{fs.manufacturer}</div>
-                    </div>
-                    <div className="text-right shrink-0 hidden sm:block">
-                      {fs.details?.size && <span className="text-xs px-2 py-0.5 rounded-full border border-white/10 text-gray-400">{fs.details.size}</span>}
-                    </div>
-                    <div className="text-right shrink-0 hidden md:block">
-                      {fs.details?.price_auec > 0 && <div className="text-xs text-yellow-400 font-semibold">{formatAuec(fs.details.price_auec)} aUEC</div>}
-                      {fs.details?.price_usd > 0 && <div className="text-xs text-green-400">${fs.details.price_usd}</div>}
-                    </div>
-                  </Link>
-                </motion.div>
-              ))}
+                    </Link>
+                  </motion.div>
+                );
+              })}
             </div>
           )}
         </div>
