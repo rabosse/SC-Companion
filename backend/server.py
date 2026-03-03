@@ -582,6 +582,11 @@ async def bulk_add_to_fleet(data: BulkFleetRequest, user_id: str = Depends(get_c
 
 # --- Loadout saving endpoints ---
 
+import secrets
+
+def _generate_share_code():
+    return secrets.token_urlsafe(6)  # ~8 chars
+
 class SaveLoadoutRequest(BaseModel):
     ship_id: str
     ship_name: str
@@ -591,24 +596,42 @@ class SaveLoadoutRequest(BaseModel):
 @api_router.post("/loadouts/save")
 async def save_loadout(data: SaveLoadoutRequest, user_id: str = Depends(get_current_user)):
     """Save or update a custom loadout"""
+    # Fetch username for display
+    user_doc = await db.users.find_one({"id": user_id}, {"_id": 0, "username": 1})
+    username = user_doc["username"] if user_doc else "Unknown"
+
     loadout_id = str(uuid.uuid4())
+    share_code = _generate_share_code()
     doc = {
         "id": loadout_id,
         "user_id": user_id,
+        "username": username,
         "ship_id": data.ship_id,
         "ship_name": data.ship_name,
         "loadout_name": data.loadout_name,
         "slots": data.slots,
+        "share_code": share_code,
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
-    # Upsert: if same user+ship+name exists, update it
-    result = await db.loadouts.find_one_and_update(
+    # Upsert: if same user+ship+name exists, update it (preserve share_code if exists)
+    existing = await db.loadouts.find_one(
+        {"user_id": user_id, "ship_id": data.ship_id, "loadout_name": data.loadout_name}, {"_id": 0}
+    )
+    if existing:
+        doc["share_code"] = existing.get("share_code", share_code)
+    await db.loadouts.find_one_and_update(
         {"user_id": user_id, "ship_id": data.ship_id, "loadout_name": data.loadout_name},
         {"$set": doc},
         upsert=True,
         return_document=False,
     )
-    return {"success": True, "message": "Loadout saved", "id": loadout_id}
+    return {"success": True, "message": "Loadout saved", "id": loadout_id, "share_code": doc["share_code"]}
+
+@api_router.get("/loadouts/my/all")
+async def get_all_my_loadouts(user_id: str = Depends(get_current_user)):
+    """Get all loadouts for the current user"""
+    loadouts = await db.loadouts.find({"user_id": user_id}, {"_id": 0}).to_list(500)
+    return {"success": True, "data": loadouts}
 
 @api_router.get("/loadouts/{ship_id}")
 async def get_ship_loadouts(ship_id: str, user_id: str = Depends(get_current_user)):
@@ -625,6 +648,53 @@ async def delete_loadout(loadout_id: str, user_id: str = Depends(get_current_use
     if result.deleted_count > 0:
         return {"success": True, "message": "Loadout deleted"}
     raise HTTPException(status_code=404, detail="Loadout not found")
+
+# --- Community / Sharing endpoints (PUBLIC - no auth) ---
+
+@api_router.get("/community/loadouts")
+async def get_community_loadouts(page: int = 1, limit: int = 20, ship_name: str = ""):
+    """Get recent shared loadouts from all users - PUBLIC"""
+    query = {"share_code": {"$exists": True, "$ne": None}}
+    if ship_name:
+        query["ship_name"] = {"$regex": ship_name, "$options": "i"}
+    skip = (page - 1) * limit
+    loadouts = await db.loadouts.find(query, {"_id": 0}).sort("updated_at", -1).skip(skip).limit(limit).to_list(limit)
+    total = await db.loadouts.count_documents(query)
+    return {"success": True, "data": loadouts, "total": total, "page": page}
+
+@api_router.get("/community/loadouts/{share_code}")
+async def get_shared_loadout(share_code: str):
+    """Get a single shared loadout by share code - PUBLIC"""
+    loadout = await db.loadouts.find_one({"share_code": share_code}, {"_id": 0})
+    if not loadout:
+        raise HTTPException(status_code=404, detail="Loadout not found")
+    return {"success": True, "data": loadout}
+
+@api_router.post("/loadouts/clone/{share_code}")
+async def clone_loadout(share_code: str, user_id: str = Depends(get_current_user)):
+    """Clone a shared loadout into the current user's collection"""
+    source = await db.loadouts.find_one({"share_code": share_code}, {"_id": 0})
+    if not source:
+        raise HTTPException(status_code=404, detail="Loadout not found")
+
+    user_doc = await db.users.find_one({"id": user_id}, {"_id": 0, "username": 1})
+    username = user_doc["username"] if user_doc else "Unknown"
+
+    new_id = str(uuid.uuid4())
+    new_code = _generate_share_code()
+    cloned = {
+        "id": new_id,
+        "user_id": user_id,
+        "username": username,
+        "ship_id": source["ship_id"],
+        "ship_name": source["ship_name"],
+        "loadout_name": f"{source['loadout_name']} (copy)",
+        "slots": source["slots"],
+        "share_code": new_code,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.loadouts.insert_one(cloned)
+    return {"success": True, "message": "Loadout cloned to your collection", "id": new_id}
 
 
 app.include_router(api_router)

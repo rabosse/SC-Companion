@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../App';
-import { Users, Box, Crosshair, LogOut, Menu, X, Briefcase, GitCompareArrows, Wrench } from 'lucide-react';
+import { Users, Box, Crosshair, LogOut, Menu, X, Briefcase, GitCompareArrows, Wrench, Globe } from 'lucide-react';
 import { useState } from 'react';
 import SpaceshipIcon from './SpaceshipIcon';
 
@@ -18,6 +18,7 @@ const Layout = ({ children }) => {
     { path: '/weapons', label: 'Weapons', icon: Crosshair },
     { path: '/compare', label: 'Compare', icon: GitCompareArrows },
     { path: '/loadout', label: 'Loadout', icon: Wrench },
+    { path: '/community', label: 'Community', icon: Globe },
   ];
 
   const isActive = (path) => {

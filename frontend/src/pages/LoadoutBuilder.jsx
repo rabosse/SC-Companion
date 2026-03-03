@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../App';
 import axios from 'axios';
-import { Ship, Search, X, Check, Shield, Zap, Cpu, Box, Crosshair, AlertTriangle, Save } from 'lucide-react';
+import { Ship, Search, X, Check, Shield, Zap, Cpu, Box, Crosshair, AlertTriangle, Save, Copy, Share2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { Link } from 'react-router-dom';
 
 const SLOT_TYPES = [
   { key: 'shield', label: 'Shields', icon: Shield, color: '#00D4FF', componentType: 'Shield' },
@@ -144,18 +145,22 @@ const LoadoutBuilder = () => {
       return;
     }
     try {
-      await axios.post(`${API}/loadouts/save`, {
+      const res = await axios.post(`${API}/loadouts/save`, {
         ship_id: selectedShip.id,
         ship_name: selectedShip.name,
         loadout_name: loadoutName.trim(),
         slots: loadout,
       });
+      const shareCode = res.data.share_code;
       toast.success(`Loadout "${loadoutName}" saved!`);
       setShowSaveDialog(false);
       setLoadoutName('');
       // Refresh saved loadouts
-      const res = await axios.get(`${API}/loadouts/${selectedShip.id}`);
-      setSavedLoadouts(res.data.data || []);
+      const loadoutsRes = await axios.get(`${API}/loadouts/${selectedShip.id}`);
+      setSavedLoadouts(loadoutsRes.data.data || []);
+      if (shareCode) {
+        toast.success(`Share code: ${shareCode}`, { duration: 5000 });
+      }
     } catch {
       toast.error('Failed to save loadout');
     }
@@ -316,13 +321,28 @@ const LoadoutBuilder = () => {
                     >
                       {saved.loadout_name}
                     </button>
-                    <button
-                      onClick={() => deleteSavedLoadout(saved.id, saved.loadout_name)}
-                      data-testid={`delete-loadout-${saved.id}`}
-                      className="p-1 hover:bg-red-500/20 rounded text-red-500 shrink-0 ml-2"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
+                    <div className="flex items-center gap-1 shrink-0 ml-2">
+                      {saved.share_code && (
+                        <button
+                          onClick={() => {
+                            const url = `${window.location.origin}/shared/${saved.share_code}`;
+                            navigator.clipboard.writeText(url);
+                            toast.success('Share link copied!');
+                          }}
+                          data-testid={`share-loadout-${saved.id}`}
+                          className="p-1 hover:bg-cyan-500/20 rounded text-cyan-500" title="Copy share link"
+                        >
+                          <Share2 className="w-3 h-3" />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => deleteSavedLoadout(saved.id, saved.loadout_name)}
+                        data-testid={`delete-loadout-${saved.id}`}
+                        className="p-1 hover:bg-red-500/20 rounded text-red-500"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
