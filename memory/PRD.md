@@ -42,22 +42,34 @@ Build a full-stack application called "Star Citizen Fleet Manager" that allows p
 - Personal Gear page (28 FPS weapons, 21 armor sets with locations)
 - Health endpoint for deployment readiness
 - ~99% ship/vehicle image coverage via name-based matching
+- **REFACTORED**: server.py split into 6 modular routers + deps.py
 
 ## Key API Endpoints
 - `/api/auth/register`, `/api/auth/login`
-- `/api/fleet/bulk-add`
-- `/api/community-loadouts`, `/api/loadouts/{share_code}`, `/api/loadouts/{loadout_id}/clone`
-- `/api/locations`, `/api/route`
-- `/api/route/interdict`, `/api/route/chase`
+- `/api/ships`, `/api/vehicles`, `/api/components`, `/api/weapons`
+- `/api/fleet/add`, `/api/fleet/my`, `/api/fleet/{id}`, `/api/fleet/bulk-add`
+- `/api/loadouts/save`, `/api/loadouts/my/all`, `/api/loadouts/{ship_id}`
+- `/api/community/loadouts`, `/api/community/loadouts/{share_code}`, `/api/loadouts/clone/{share_code}`
+- `/api/routes/locations`, `/api/routes/calculate`, `/api/routes/interdiction`, `/api/routes/chase`
 - `/api/gear/weapons`, `/api/gear/armor`
 - `/api/health`
 
-## Architecture
+## Architecture (Post-Refactor)
 ```
 /app/
   backend/
-    server.py, live_api.py, data_enhancer.py, personal_gear.py, starmap_data.py
-    requirements.txt, .env, tests/
+    server.py          # ~50 lines - thin orchestrator
+    deps.py            # Shared: DB, models, JWT auth
+    routes/
+      auth.py          # /api/auth/*
+      ships.py         # /api/ships, vehicles, components, weapons
+      fleet.py         # /api/fleet/*
+      loadouts.py      # /api/loadouts/*, /api/community/*
+      starmap.py       # /api/routes/*
+      gear.py          # /api/gear/*
+    live_api.py, ship_data_enhancer.py, personal_gear.py, star_systems.py
+    ship_purchases.py, data_enhancer.py
+    tests/
   frontend/
     src/
       App.js, index.js
@@ -68,11 +80,11 @@ Build a full-stack application called "Star Citizen Fleet Manager" that allows p
 ```
 
 ## Backlog / Future Enhancements
-- P1: Refactor server.py into feature-specific routers (routes/starmap.py, routes/loadouts.py, etc.)
 - P2: Simplify data_enhancer.py (now only a fallback)
 - P2: Additional gear data (grenades, utilities, medical items)
 - P3: Real-time price tracking integration
 - P3: Organization/guild fleet management
 
 ## Test Reports
-- /app/test_reports/iteration_10.json (Latest - Gear page: 100% pass, 41 tests)
+- /app/test_reports/iteration_10.json (Gear page: 100% pass, 41 tests)
+- /app/test_reports/iteration_11.json (Refactor regression: 100% pass, 38+5 tests)
