@@ -251,6 +251,20 @@ _cstone_cache_loaded = False
 CSTONE_API = "https://finder.cstone.space/GetArmors/Torsos"
 CSTONE_IMG = "https://cstone.space/uifimages/{}.png"
 
+# Variant name patterns → location hints
+_EDITION_LOCATIONS = {
+    "crusader edition": ["Orison - Crusader Industries Store", "Port Olisar"],
+    "hurston edition": ["Lorville - Tammany and Sons", "HDMS-facilities"],
+    "covalex edition": ["Covalex Shipping Hub"],
+    "microtech edition": ["New Babbage - Commons", "microTech Armor Shops"],
+    "cry-astro edition": ["Cry-Astro Rest Stops"],
+    "greycat edition": ["Greycat Industrial facilities"],
+    "sakura sun edition": ["Subscriber exclusive / Special event"],
+    "carrack edition": ["Carrack owner exclusive"],
+}
+_LOOT_ONLY_KEYWORDS = {"rust society", "damaged", "justified", "righteous", "epoque", "rucksack"}
+_EVENT_KEYWORDS = {"ascension", "envy", "lovestruck", "starcrossed", "pathfinder", "voyager", "hearthrob"}
+
 
 async def fetch_armor_images():
     """Batch-fetch armor set images from the Star Citizen wiki."""
@@ -373,7 +387,7 @@ async def fetch_armor_variant_images(armor_sets):
 
 
 async def fetch_cstone_armor_images():
-    """Fetch all armor torso items from CStone API and build UUID->image cache."""
+    """Fetch all armor torso items from CStone API and build UUID->image cache + variant metadata."""
     global _cstone_armor_cache, _cstone_cache_loaded
     if _cstone_cache_loaded:
         return
@@ -402,7 +416,10 @@ async def fetch_cstone_armor_images():
 
                 if set_name not in _cstone_armor_cache:
                     _cstone_armor_cache[set_name] = {}
-                _cstone_armor_cache[set_name][variant] = uuid
+                _cstone_armor_cache[set_name][variant] = {
+                    "uuid": uuid,
+                    "sold": item.get("Sold", 0),
+                }
 
         except Exception as e:
             logger.error(f"CStone fetch error: {e}")
@@ -420,7 +437,8 @@ def get_armor_image(armor_name):
         return wiki_img
     # Fallback to CStone base image
     cstone_set = _cstone_armor_cache.get(armor_name, {})
-    base_uuid = cstone_set.get("Base", "")
+    base_entry = cstone_set.get("Base", {})
+    base_uuid = base_entry.get("uuid", "") if isinstance(base_entry, dict) else ""
     if base_uuid:
         return CSTONE_IMG.format(base_uuid)
     return ""
@@ -440,12 +458,80 @@ def get_armor_variant_images(armor_name, variants):
             continue
         # Check CStone cache
         suffix = v.replace(armor_name, "").strip()
-        cstone_uuid = cstone_set.get(suffix, "")
+        entry = cstone_set.get(suffix, {})
+        cstone_uuid = entry.get("uuid", "") if isinstance(entry, dict) else ""
         if cstone_uuid:
             result[v] = CSTONE_IMG.format(cstone_uuid)
             continue
         # Fallback to base image
         result[v] = base_image
+    return result
+
+
+def _derive_variant_locations(variant_name, suffix, sold):
+    """Derive acquisition locations for a specific variant based on its name and sold status."""
+    suffix_lower = suffix.lower().strip('"')
+    locations = []
+    loot_locations = []
+
+    # Check edition-specific locations
+    for pattern, locs in _EDITION_LOCATIONS.items():
+        if pattern in suffix_lower:
+            if sold:
+                locations = locs
+            else:
+                loot_locations = [f"{l} (Exclusive)" for l in locs]
+            return locations, loot_locations
+
+    # Check loot-only keywords
+    for kw in _LOOT_ONLY_KEYWORDS:
+        if kw in suffix_lower:
+            loot_locations = ["Looted from NPCs", "Found in the verse"]
+            return locations, loot_locations
+
+    # Check event keywords
+    for kw in _EVENT_KEYWORDS:
+        if kw in suffix_lower:
+            loot_locations = ["Event exclusive / Limited availability"]
+            return locations, loot_locations
+
+    if sold:
+        # Generic purchasable variant
+        locations = ["Available at armor shops"]
+    else:
+        # Generic non-purchasable
+        loot_locations = ["Looted from NPCs", "Found at bunker missions"]
+
+    return locations, loot_locations
+
+
+def get_armor_variant_data(armor_name, variants, base_price, base_locations, base_loot_locations):
+    """Get per-variant acquisition data: locations, prices, sold status."""
+    cstone_set = _cstone_armor_cache.get(armor_name, {})
+    result = {}
+    for v in variants:
+        suffix = v.replace(armor_name, "").strip()
+        entry = cstone_set.get(suffix, {})
+        sold = entry.get("sold", 1) if isinstance(entry, dict) else 1
+
+        if sold:
+            # Purchasable: use base price and derive locations
+            derived_locs, derived_loot = _derive_variant_locations(v, suffix, sold)
+            result[v] = {
+                "price_auec": base_price,
+                "locations": derived_locs if derived_locs else base_locations,
+                "loot_locations": derived_loot if derived_loot else base_loot_locations,
+                "sold": True,
+            }
+        else:
+            # Loot only: no price, derive loot locations
+            derived_locs, derived_loot = _derive_variant_locations(v, suffix, sold)
+            result[v] = {
+                "price_auec": 0,
+                "locations": derived_locs,
+                "loot_locations": derived_loot if derived_loot else ["Looted from NPCs", "Found in the verse"],
+                "sold": False,
+            }
     return result
 
 

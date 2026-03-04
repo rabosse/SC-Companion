@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from personal_gear import get_all_fps_weapons, get_all_armor_sets, get_all_equipment
 from ship_data_enhancer import (
     get_armor_image, get_weapon_image, get_armor_variant_images,
+    get_armor_variant_data,
     fetch_armor_variant_images, fetch_armor_images, fetch_cstone_armor_images,
 )
 
@@ -34,6 +35,12 @@ async def get_armor_sets():
     for s in sets:
         s["image"] = get_armor_image(s["name"])
         s["variant_images"] = get_armor_variant_images(s["name"], s.get("variants", []))
+        s["variant_data"] = get_armor_variant_data(
+            s["name"], s.get("variants", []),
+            s.get("price_auec", 0),
+            s.get("locations", []),
+            s.get("loot_locations", []),
+        )
     return {"success": True, "data": sets}
 
 
