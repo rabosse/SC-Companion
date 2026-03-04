@@ -7,9 +7,9 @@ import { toast } from 'sonner';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-const TYPE_COLORS = { star: '#FFD700', planet: '#00D4FF', moon: '#8B9DAF', station: '#00FF9D', gateway: '#FF6B35' };
+const TYPE_COLORS = { star: '#FFD700', planet: '#00D4FF', moon: '#8B9DAF', station: '#00FF9D', gateway: '#FF6B35', city: '#FF1493', rest_stop: '#FFAE00', outpost: '#7CB342' };
 const SYSTEM_COLORS = { stanton: '#00D4FF', pyro: '#FF4500', nyx: '#A855F7' };
-const TYPE_RADIUS = { star: 8, planet: 6, moon: 3, station: 3, gateway: 5 };
+const TYPE_RADIUS = { star: 8, planet: 6, moon: 3, station: 3, gateway: 5, city: 5, rest_stop: 3, outpost: 3 };
 const TABS = [
   { id: 'route', label: 'Route', icon: Navigation },
   { id: 'interdiction', label: 'Interdiction', icon: Target },
@@ -511,7 +511,7 @@ const RoutePlanner = () => {
               {Object.entries(TYPE_COLORS).map(([type, color]) => (
                 <div key={type} className="flex items-center gap-1.5">
                   <div className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
-                  <span className="text-gray-400 capitalize">{type}</span>
+                  <span className="text-gray-400 capitalize">{type.replace('_', ' ')}</span>
                 </div>
               ))}
             </div>

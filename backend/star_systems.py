@@ -86,6 +86,27 @@ LOCATIONS = [
     # Jump Points
     {"id": "stanton-pyro-gw", "name": "Stanton-Pyro Gateway", "system": "stanton", "type": "gateway", "map_x": 200, "map_y": -40, "distance_from_star": 55.0, "description": "Jump point to Pyro system"},
     {"id": "stanton-nyx-gw", "name": "Stanton-Nyx Gateway", "system": "stanton", "type": "gateway", "map_x": -180, "map_y": -60, "distance_from_star": 52.0, "description": "Jump point to Nyx system"},
+    # Landing Zones / Cities
+    {"id": "lorville", "name": "Lorville", "system": "stanton", "type": "city", "map_x": -82, "map_y": 63, "distance_from_star": 12.85, "parent": "hurston", "description": "Capital city of Hurston. Hurston Dynamics HQ. Major trading hub."},
+    {"id": "orison", "name": "Orison", "system": "stanton", "type": "city", "map_x": 43, "map_y": 103, "distance_from_star": 20.93, "parent": "crusader", "description": "Floating platform city in Crusader's atmosphere. Crusader Industries HQ."},
+    {"id": "area18", "name": "Area 18", "system": "stanton", "type": "city", "map_x": 103, "map_y": -27, "distance_from_star": 30.0, "parent": "arccorp", "description": "Commercial district on ArcCorp. Shopping, trading, and nightlife."},
+    {"id": "new-babbage", "name": "New Babbage", "system": "stanton", "type": "city", "map_x": -27, "map_y": -107, "distance_from_star": 45.37, "parent": "microtech", "description": "Luxury city on microTech. Home to microTech and mobiGlas HQ."},
+    # Rest Stops (R&R)
+    {"id": "hur-r1", "name": "R&R HUR-L1", "system": "stanton", "type": "rest_stop", "map_x": -48, "map_y": 32, "distance_from_star": 10.1, "description": "Rest stop between Stanton star and Hurston. Refuel, repair, restock."},
+    {"id": "hur-r2", "name": "R&R HUR-L2", "system": "stanton", "type": "rest_stop", "map_x": -112, "map_y": 68, "distance_from_star": 15.1, "description": "Rest stop beyond Hurston orbit."},
+    {"id": "cru-r1", "name": "R&R CRU-L1", "system": "stanton", "type": "rest_stop", "map_x": 22, "map_y": 62, "distance_from_star": 16.1, "description": "Rest stop between Stanton star and Crusader."},
+    {"id": "arc-r1", "name": "R&R ARC-L1", "system": "stanton", "type": "rest_stop", "map_x": 67, "map_y": -7, "distance_from_star": 25.1, "description": "Rest stop on approach to ArcCorp."},
+    {"id": "mic-r1", "name": "R&R MIC-L1", "system": "stanton", "type": "rest_stop", "map_x": -8, "map_y": -72, "distance_from_star": 38.1, "description": "Rest stop on approach to microTech."},
+    # Outposts & Mining Locations
+    {"id": "kudre-ore", "name": "Kudre Ore", "system": "stanton", "type": "outpost", "map_x": -97, "map_y": 48, "distance_from_star": 12.7, "parent": "arial", "description": "Mining outpost on Arial."},
+    {"id": "lathan", "name": "HDMS-Lathan", "system": "stanton", "type": "outpost", "map_x": -92, "map_y": 83, "distance_from_star": 13.2, "parent": "aberdeen", "description": "Hurston Dynamics facility on Aberdeen."},
+    {"id": "shubin-sal5", "name": "Shubin Mining SAL-5", "system": "stanton", "type": "outpost", "map_x": 28, "map_y": 118, "distance_from_star": 20.6, "parent": "cellin", "description": "Shubin Mining facility on Cellin."},
+    {"id": "bountiful-harvest", "name": "Bountiful Harvest", "system": "stanton", "type": "outpost", "map_x": 58, "map_y": 123, "distance_from_star": 21.4, "parent": "daymar", "description": "Hydroponics farm on Daymar."},
+    {"id": "benson-mining", "name": "Benson Mining", "system": "stanton", "type": "outpost", "map_x": 63, "map_y": 93, "distance_from_star": 21.1, "parent": "yela", "description": "Mining outpost on Yela."},
+    {"id": "humboldt-mines", "name": "Humboldt Mines", "system": "stanton", "type": "outpost", "map_x": 118, "map_y": -12, "distance_from_star": 29.6, "parent": "lyria", "description": "Mining facility on Lyria."},
+    {"id": "samson-salvage", "name": "Samson & Sons Salvage", "system": "stanton", "type": "outpost", "map_x": 123, "map_y": -42, "distance_from_star": 30.6, "parent": "wala", "description": "Salvage yard on Wala."},
+    {"id": "rayari-deltana", "name": "Rayari Deltana Research", "system": "stanton", "type": "outpost", "map_x": -12, "map_y": -128, "distance_from_star": 45.1, "parent": "calliope", "description": "Research outpost on Calliope."},
+    {"id": "rayari-kaltag", "name": "Rayari Kaltag Research", "system": "stanton", "type": "outpost", "map_x": -47, "map_y": -123, "distance_from_star": 45.6, "parent": "clio", "description": "Research outpost on Clio."},
 
     # === PYRO SYSTEM ===
     {"id": "pyro-star", "name": "Pyro (Star)", "system": "pyro", "type": "star", "map_x": 520, "map_y": -80, "distance_from_star": 0},
@@ -101,6 +122,8 @@ LOCATIONS = [
     # Pyro Gateway
     {"id": "pyro-stanton-gw", "name": "Pyro-Stanton Gateway", "system": "pyro", "type": "gateway", "map_x": 390, "map_y": -60, "distance_from_star": 50.0, "description": "Jump point back to Stanton"},
     {"id": "pyro-nyx-gw", "name": "Pyro-Nyx Gateway", "system": "pyro", "type": "gateway", "map_x": 450, "map_y": -160, "distance_from_star": 55.0, "description": "Jump point to Nyx system"},
+    # Pyro Outposts & Settlements
+    {"id": "pyro-bloom-settlement", "name": "Bloom Settlement", "system": "pyro", "type": "outpost", "map_x": 573, "map_y": -97, "distance_from_star": 20.1, "parent": "pyro-iii", "description": "Frontier settlement on Pyro III (Bloom). Only habitable zone in Pyro."},
 
     # === NYX SYSTEM ===
     {"id": "nyx-star", "name": "Nyx (Star)", "system": "nyx", "type": "star", "map_x": -420, "map_y": -160, "distance_from_star": 0},
@@ -110,6 +133,8 @@ LOCATIONS = [
     {"id": "nyx-iii", "name": "Nyx III", "system": "nyx", "type": "planet", "map_x": -395, "map_y": -200, "distance_from_star": 30.0, "description": "Gas giant"},
     # Nyx Stations
     {"id": "levski", "name": "Levski Station", "system": "nyx", "type": "station", "map_x": -375, "map_y": -150, "distance_from_star": 15.5, "description": "Underground settlement on Delamar"},
+    # Nyx Cities
+    {"id": "levski-city", "name": "Levski", "system": "nyx", "type": "city", "map_x": -378, "map_y": -143, "distance_from_star": 15.0, "parent": "delamar", "description": "Underground city on Delamar. People's Alliance capital. Black market hub."},
     # Nyx Gateways
     {"id": "nyx-stanton-gw", "name": "Nyx-Stanton Gateway", "system": "nyx", "type": "gateway", "map_x": -300, "map_y": -120, "distance_from_star": 48.0, "description": "Jump point back to Stanton"},
     {"id": "nyx-pyro-gw", "name": "Nyx-Pyro Gateway", "system": "nyx", "type": "gateway", "map_x": -350, "map_y": -195, "distance_from_star": 45.0, "description": "Jump point to Pyro system"},

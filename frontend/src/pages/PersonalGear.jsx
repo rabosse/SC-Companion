@@ -201,6 +201,9 @@ const WeaponCard = ({ weapon, index, onClick }) => {
               {selectedVariant}
             </h3>
             <div className="text-xs text-gray-400">{weapon.manufacturer}</div>
+            {weapon.price_auec > 0 && (
+              <div className="text-xs font-bold text-amber-400 mt-0.5" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{weapon.price_auec.toLocaleString()} aUEC</div>
+            )}
           </div>
           {weapon.variants?.length > 0 && (
             <select value={selectedVariant} onChange={e => setSelectedVariant(e.target.value)}
@@ -299,6 +302,9 @@ const ArmorCard = ({ armor, index, onClick }) => {
               {selectedVariant}
             </h3>
             <div className="text-xs text-gray-400">{armor.manufacturer}</div>
+            {armor.price_auec > 0 && (
+              <div className="text-xs font-bold text-amber-400 mt-0.5" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{armor.price_auec.toLocaleString()} aUEC</div>
+            )}
           </div>
           {armor.variants?.length > 0 && (
             <select value={selectedVariant} onChange={e => setSelectedVariant(e.target.value)}
@@ -492,7 +498,11 @@ const GearDetailModal = ({ item, onClose }) => {
         {/* Content */}
         <div className="p-5 -mt-4 relative">
           <h2 className="text-2xl font-bold text-white mb-1" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{item.name}</h2>
-          <div className="text-sm text-gray-400 mb-4">{item.manufacturer}</div>
+          <div className="text-sm text-gray-400">{item.manufacturer}</div>
+          {item.price_auec > 0 && (
+            <div className="text-base font-bold text-amber-400 mt-1" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{item.price_auec.toLocaleString()} aUEC</div>
+          )}
+          <div className="mb-4" />
 
           <p className="text-sm text-gray-300 leading-relaxed mb-5">{item.description}</p>
 
