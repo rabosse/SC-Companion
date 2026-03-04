@@ -251,16 +251,58 @@ _cstone_cache_loaded = False
 CSTONE_API = "https://finder.cstone.space/GetArmors/Torsos"
 CSTONE_IMG = "https://cstone.space/uifimages/{}.png"
 
-# Variant name patterns → location hints
+# Per-set loot location data (for loot-only variants)
+_SET_LOOT_LOCATIONS = {
+    "ADP": ["Hurston security bunkers (Merlarian tab missions)", "Security NPC drops (Stanton)", "Bunker weapon racks & beige boxes"],
+    "ADP-mk4": ["High-security bunkers (Pyro)", "Contested zone loot crates", "Xenomorph encounter zones"],
+    "Antium": ["ASD Facilities (Lazarus, Phoenix hubs)", "Rare spawn in outpost beige boxes", "Pyro contested zones"],
+    "Citadel": ["ASD Facilities (Lazarus/Phoenix, Pyro I)", "Checkmate Outpost (Olympus Principal)", "OLP stations above Aberdeen/Tamar", "Medical clinic beige boxes"],
+    "Corbel": ["Ground bunker missions (Hurston/Stanton)", "Outlaw NPC drops", "Distribution center weapon racks"],
+    "Defiance": ["Hurston bunkers & outposts", "Oil rigs (Cutters Rig, Makers Point)", "High-threat PvE mission loot"],
+    "Morozov-SH": ["Crusader Security zone drops", "ASD Facilities", "Crusader patrol ship interdictions"],
+    "Overlord": ["Pyro facilities (Lazarus, Tithanus 1-3, Phoenix)", "Beige boxes in blue buildings/warehouses", "Nine Tails NPC drops", "Subscriber flair (some variants)"],
+    "Palatino": ["Rare bunker drops", "High-value target missions", "Pyro contested facilities"],
+    "Artimex": ["Bunker missions (all regions)", "Distribution center loot", "Security facility weapon racks"],
+    "Aril": ["Mining outpost loot crates", "Frontier exploration sites", "Abandoned facility beige boxes"],
+    "Aves": ["Bounty hunter target drops", "Outlaw bunker missions", "Grim HEX area NPC drops"],
+    "ORC-mkX": ["Bunker missions (all regions)", "Distribution centers", "Protector Marine NPC drops", "Hurston security zones"],
+    "ORC-mkV": ["Security bunker missions", "Stanton patrol NPC drops", "Distribution center weapon racks"],
+    "MacFlex": ["Cargo deck loot", "Common NPC drops (all regions)", "Station security zones"],
+    "Venture": ["Exploration outpost loot", "Dumper's Depot overflow stock", "Civilian NPC drops"],
+    "Inquisitor": ["Nine Tails NPC drops (Grim HEX area)", "Outlaw bunker missions", "Bounty target loot"],
+    "TrueDef-Pro": ["Advocacy mission sites", "CDF facility loot", "Security NPC drops (all landing zones)"],
+    "PAB-1": ["Crusader Security zone drops", "Police facility loot racks", "Hurston Security NPC drops"],
+    "Lynx": ["General bunker missions", "Distribution center loot", "Common NPC drops"],
+    "Arden-SL": ["Security facility weapon racks", "Crusader/Hurston Security NPC drops", "Cargo deck loot crates"],
+    "FBL-8a": ["Military bunker missions", "Security NPC drops", "Outpost weapon racks"],
+    "Calico": ["Outlaw bunker missions (Lorville area)", "Live Fire Weapons overflow", "Ground combat zone drops"],
+    "Aztalan": ["Outlaw bunker missions", "Grim HEX area NPC loot", "Stealth operation sites"],
+    "Sterling": ["Frontier outpost loot", "Exploration site beige boxes", "Rare NPC drops"],
+    "Novikov": ["microTech surface mission loot", "Hatter Station area drops", "Cold-environment outpost crates"],
+    "Pembroke": ["Extreme-environment outpost loot", "Mining facility crates", "Hazardous zone drops"],
+    "Odyssey II": ["General station loot", "Cargo deck beige boxes", "Civilian area drops"],
+    "Sol-III": ["Rare frontier drops", "High-value exploration sites", "Event exclusive spawns"],
+}
+
+# Edition-specific location overrides
 _EDITION_LOCATIONS = {
-    "crusader edition": ["Orison - Crusader Industries Store", "Port Olisar"],
-    "hurston edition": ["Lorville - Tammany and Sons", "HDMS-facilities"],
-    "covalex edition": ["Covalex Shipping Hub"],
-    "microtech edition": ["New Babbage - Commons", "microTech Armor Shops"],
-    "cry-astro edition": ["Cry-Astro Rest Stops"],
-    "greycat edition": ["Greycat Industrial facilities"],
-    "sakura sun edition": ["Subscriber exclusive / Special event"],
-    "carrack edition": ["Carrack owner exclusive"],
+    "crusader edition": ["Orison - Crusader Industries showroom", "Port Olisar armor shops", "Crusader Security NPC drops"],
+    "hurston edition": ["Lorville - Tammany and Sons", "Hurston Security NPC drops", "HDMS outpost loot"],
+    "covalex edition": ["Covalex Shipping Hub loot", "Covalex delivery mission rewards"],
+    "microtech edition": ["New Babbage - Commons shops", "microTech Security NPC drops"],
+    "cry-astro edition": ["Cry-Astro Rest Stop loot crates", "Service beacon reward drops"],
+    "greycat edition": ["Greycat Industrial facility loot", "Mining outpost drops"],
+    "sakura sun edition": ["Subscriber exclusive / Special event reward"],
+    "carrack edition": ["Carrack exploration mission reward"],
+    "red alert": ["High-threat bunker raids", "Emergency response mission loot"],
+    "woodland": ["Forest/jungle planet surface loot (Hurston, microTech)", "Ground patrol NPC drops"],
+    "desert": ["Desert planet surface loot (Daymar, Hurston)", "Arid outpost beige boxes"],
+    "arctic": ["Frozen planet surface loot (microTech, Yela)", "Cold-environment outpost crates"],
+    "imperial": ["High-end armor shops (limited stock)", "VIP escort mission rewards"],
+    "executive": ["Premium shops (Area 18, New Babbage)", "Corporate facility loot"],
+    "tactical": ["Military bunker missions", "Tactical operation NPC drops"],
+    "scorched": ["Pyro surface loot", "Fire/heat zone outpost crates"],
+    "cdf": ["CDF (Crusader Defense Force) facility raids", "Military patrol NPC drops"],
 }
 _LOOT_ONLY_KEYWORDS = {"rust society", "damaged", "justified", "righteous", "epoque", "rucksack"}
 _EVENT_KEYWORDS = {"ascension", "envy", "lovestruck", "starcrossed", "pathfinder", "voyager", "hearthrob"}
@@ -468,39 +510,40 @@ def get_armor_variant_images(armor_name, variants):
     return result
 
 
-def _derive_variant_locations(variant_name, suffix, sold):
-    """Derive acquisition locations for a specific variant based on its name and sold status."""
+def _derive_variant_locations(armor_name, variant_name, suffix, sold):
+    """Derive acquisition locations for a specific variant based on its name, set, and sold status."""
     suffix_lower = suffix.lower().strip('"')
     locations = []
     loot_locations = []
 
-    # Check edition-specific locations
+    # Check edition-specific location overrides first
     for pattern, locs in _EDITION_LOCATIONS.items():
         if pattern in suffix_lower:
             if sold:
                 locations = locs
             else:
-                loot_locations = [f"{l} (Exclusive)" for l in locs]
-            return locations, loot_locations
-
-    # Check loot-only keywords
-    for kw in _LOOT_ONLY_KEYWORDS:
-        if kw in suffix_lower:
-            loot_locations = ["Looted from NPCs", "Found in the verse"]
+                loot_locations = locs
             return locations, loot_locations
 
     # Check event keywords
     for kw in _EVENT_KEYWORDS:
         if kw in suffix_lower:
-            loot_locations = ["Event exclusive / Limited availability"]
+            loot_locations = ["Event exclusive / Limited time availability", "Subscriber flair reward"]
+            return locations, loot_locations
+
+    # Check loot-only keywords
+    for kw in _LOOT_ONLY_KEYWORDS:
+        if kw in suffix_lower:
+            base_loot = _SET_LOOT_LOCATIONS.get(armor_name, ["Found in the verse"])
+            loot_locations = base_loot[:2]
             return locations, loot_locations
 
     if sold:
-        # Generic purchasable variant
+        # Purchasable: use "available at armor shops" generically
         locations = ["Available at armor shops"]
     else:
-        # Generic non-purchasable
-        loot_locations = ["Looted from NPCs", "Found at bunker missions"]
+        # Loot-only: use set-specific loot locations
+        loot_locations = _SET_LOOT_LOCATIONS.get(armor_name, ["Looted from NPCs", "Found in the verse"])
 
     return locations, loot_locations
 
@@ -516,7 +559,7 @@ def get_armor_variant_data(armor_name, variants, base_price, base_locations, bas
 
         if sold:
             # Purchasable: use base price and derive locations
-            derived_locs, derived_loot = _derive_variant_locations(v, suffix, sold)
+            derived_locs, derived_loot = _derive_variant_locations(armor_name, v, suffix, sold)
             result[v] = {
                 "price_auec": base_price,
                 "locations": derived_locs if derived_locs else base_locations,
@@ -525,7 +568,7 @@ def get_armor_variant_data(armor_name, variants, base_price, base_locations, bas
             }
         else:
             # Loot only: no price, derive loot locations
-            derived_locs, derived_loot = _derive_variant_locations(v, suffix, sold)
+            derived_locs, derived_loot = _derive_variant_locations(armor_name, v, suffix, sold)
             result[v] = {
                 "price_auec": 0,
                 "locations": derived_locs,
