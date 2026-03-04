@@ -21,7 +21,7 @@ Build a full-stack application called "Star Citizen Fleet Manager" / "Star Citiz
 - **Frontend**: React, Tailwind CSS, Shadcn UI, react-router-dom, axios, lucide-react, framer-motion
 - **Backend**: FastAPI, Pydantic, JWT auth, modular routing (APIRouter)
 - **Database**: MongoDB
-- **External APIs**: starcitizen.tools (wiki), finder.cstone.space (CStone armor data)
+- **External APIs**: starcitizen.tools (wiki), finder.cstone.space (CStone armor/weapon data)
 
 ## Key DB Schema
 - **users**: `{username, email, password_hash, fleet: [str]}`
@@ -38,24 +38,22 @@ Build a full-stack application called "Star Citizen Fleet Manager" / "Star Citiz
 - Dashboard with fleet overview and total value
 - Price Tracker page
 - Personal Gear section (FPS Weapons, Armor Sets, Equipment)
-  - 28 armor sets with images from Wiki + CStone APIs
-  - 136/153 variants with unique images (89% coverage)
-  - Per-variant acquisition data (sold status, price, specific loot locations)
-  - Dynamic image, price, and location swapping on variant selection
-  - Detail modal with clickable variant buttons
-  - Loot-only variants show "LOOT ONLY" + specific farm locations
+  - **Armor tab**: 28 sets with CStone images, per-variant pricing/locations/loot data
+  - **Weapons tab**: 50 weapons with CStone images, per-variant pricing/locations/loot data (COMPLETED Mar 2026)
+  - **Equipment tab**: 30 items with clickable cards and detail modals
+  - All 3 tabs share identical functionality: variant selectors, dynamic image/price/location updates, LOOT ONLY badges, detail modals with clickable variant buttons
 - Hide-on-scroll header, "Star Citizen Companion" branding
 
-## Completed (Latest Session - Mar 2026)
-1. Added 7 missing armor sets (ORC-mkX, ORC-mkV, MacFlex, Venture, Inquisitor, TrueDef-Pro, PAB-1)
-2. Integrated CStone API (finder.cstone.space) for comprehensive armor variant images
-3. Updated all variant names to match wiki/CStone naming for accurate image matching
-4. Implemented variant-specific image swapping on card dropdown and modal buttons
-5. Added per-variant acquisition data (sold status from CStone, prices, locations)
-6. Added specific loot locations per armor set (ASD facilities, bunkers, outposts, etc.)
-7. Frontend shows "LOOT ONLY" badge + specific farm locations for non-purchasable variants
+## Completed (Mar 2026 - Latest Session)
+1. Completed CStone API integration for FPS Weapons tab (feature parity with Armor)
+2. Weapon cards now show CStone variant images, dynamic pricing, LOOT ONLY badges
+3. Weapon variant selectors update card title, image, price, and Buy/Loot locations
+4. GearDetailModal now supports both armor AND weapon variant interaction
+5. Equipment cards made clickable with detail modal showing stats and locations
+6. All 3 Gear tabs verified with 100% test pass rate (iteration 17)
 
 ## Backlog
-- Price change alerts for fleet ships
-- Refactor ship_data_enhancer.py into smaller modules
-- Add more armor sets from CStone (27 additional sets available)
+- P0: CStone Integration for Equipment tab (variant images if CStone adds equipment endpoints)
+- P2: Refactor ship_data_enhancer.py into smaller modules (armor_enhancer.py, weapon_enhancer.py)
+- P2: Price change alerts for fleet ships
+- P2: Add more armor sets from CStone (27 additional sets available)
