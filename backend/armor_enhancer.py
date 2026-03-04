@@ -20,6 +20,18 @@ ARMOR_WIKI_OVERRIDES = {
     "Odyssey II": "Odyssey II", "Sol-III": "Sol-III", "ORC-mkX": "ORC-mkX", "ORC-mkV": "ORC-mkV",
     "MacFlex": "MacFlex", "Venture": "Venture", "PAB-1": "PAB-1", "Corbel": "Corbel",
     "Antium": "Antium",
+    # New sets
+    "Ana": "Ana", "Bokto": "Bokto", "Citadel-SE": "Citadel-SE",
+    "DCP Armor": "DCP Armor", "Dust Devil": "Dust Devil", "Dust Devil Armor": "Dust Devil Armor",
+    "Morozov-SH-I": "Morozov-SH-I", "Wrecker": "Wrecker",
+    "Aves Shrike": "Aves Shrike", "Aves Starchaser": "Aves Starchaser", "Aves Talon": "Aves Talon",
+    "Carrion": "Carrion", "Clash": "Clash", "DustUp": "DustUp",
+    "GCD-Army": "GCD-Army", "Stitcher": "Stitcher", "Strata": "Strata", "Testudo": "Testudo",
+    "Aztalan Galena": "Aztalan Galena", "Aztalan Tamarack": "Aztalan Tamarack",
+    "Carnifex": "Carnifex", "Carnifex Armor": "Carnifex Armor",
+    "Chiron": "Chiron", "Field Recon Suit": "Field Recon Suit",
+    "Geist Armor": "Geist Armor", "Microid Battle Suit": "Microid Battle Suit",
+    "Piecemeal Armor": "Piecemeal Armor",
 }
 
 _armor_image_cache = {}
@@ -60,6 +72,34 @@ _SET_LOOT_LOCATIONS = {
     "Pembroke": ["Extreme-environment outpost loot", "Mining facility crates", "Hazardous zone drops"],
     "Odyssey II": ["General station loot", "Cargo deck beige boxes", "Civilian area drops"],
     "Sol-III": ["Rare frontier drops", "High-value exploration sites", "Event exclusive spawns"],
+    # New sets
+    "Ana": ["High-security Pyro facilities", "Contested zone loot crates", "Boss NPC drops"],
+    "Bokto": ["Pyro contested facilities", "Rare bunker boss drops", "High-threat operations"],
+    "Citadel-SE": ["ASD Facilities (Pyro)", "Crusader Security operations", "Contested zone crates"],
+    "DCP Armor": ["Military bunker raids", "Security facility loot racks", "Pyro contested zones"],
+    "Dust Devil": ["Desert planet outpost loot", "Hurston surface missions", "Rare outlaw NPC drops"],
+    "Dust Devil Armor": ["High-threat bunker raids", "Frontier outpost crates", "Pyro facility loot"],
+    "Morozov-SH-I": ["Crusader military operations", "ASD Facility raids", "Crusader patrol interdictions"],
+    "Wrecker": ["Salvage operation sites", "Derelict ship loot", "Contested zone crates"],
+    "Aves Shrike": ["Bounty hunter target drops", "Outlaw bunker missions", "Grim HEX area loot"],
+    "Aves Starchaser": ["Exploration sites", "Frontier outpost loot", "Derelict ship crates"],
+    "Aves Talon": ["High-threat bounty targets", "Outlaw NPC drops", "Contested zone loot"],
+    "Carrion": ["Salvage operation sites", "Derelict ship crates", "Outlaw bunker loot"],
+    "Clash": ["Outlaw bunker missions", "Nine Tails NPC drops", "Grim HEX area loot"],
+    "DustUp": ["Bunker missions", "Distribution Centers", "Kastak Arms facility loot"],
+    "GCD-Army": ["Military bunker raids", "Army NPC drops", "Restricted military zones"],
+    "Stitcher": ["Outlaw bunker missions", "Grim HEX area loot", "Industrial facility crates"],
+    "Strata": ["Distribution Centers", "Faction facility loot", "Corporation showroom crates"],
+    "Testudo": ["Ground defense operations", "Bunker loot crates", "Security facility racks"],
+    "Aztalan Galena": ["Mining outpost loot", "Frontier exploration sites", "Cave loot crates"],
+    "Aztalan Tamarack": ["Woodland planet surface loot", "Outpost beige boxes", "Bunker weapon racks"],
+    "Carnifex": ["Stealth operation sites", "Rare outlaw NPC drops", "Covert facility loot"],
+    "Carnifex Armor": ["High-threat stealth missions", "Outlaw boss drops", "Pyro covert facilities"],
+    "Chiron": ["Medical facility loot", "Hospital beige boxes", "Medic NPC drops"],
+    "Field Recon Suit": ["Recon NPC drops", "Military outpost loot", "Scouting operation sites"],
+    "Geist Armor": ["High-value target missions", "Rare NPC drops", "Pyro contested zones"],
+    "Microid Battle Suit": ["General NPC drops", "Armor shop clearance", "Distribution Centers"],
+    "Piecemeal Armor": ["Salvage sites", "Derelict ship crates", "Scrapyard outpost loot"],
 }
 
 _EDITION_LOCATIONS = {
@@ -212,6 +252,12 @@ def get_armor_image(armor_name):
     base_uuid = base_entry.get("uuid", "") if isinstance(base_entry, dict) else ""
     if base_uuid:
         return CSTONE_IMG.format(base_uuid)
+    # Fallback: use first variant's image if no "Base" entry
+    if cstone_set:
+        first_entry = next(iter(cstone_set.values()))
+        first_uuid = first_entry.get("uuid", "") if isinstance(first_entry, dict) else ""
+        if first_uuid:
+            return CSTONE_IMG.format(first_uuid)
     wiki_title = ARMOR_WIKI_OVERRIDES.get(armor_name, armor_name)
     return _armor_image_cache.get(wiki_title, "")
 
