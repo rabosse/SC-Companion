@@ -113,35 +113,21 @@ const PersonalGear = () => {
       <div className="text-sm text-gray-500">{filteredItems.length} {activeTab} found</div>
 
       {/* Items Grid */}
-      {(activeTab === 'armor' || activeTab === 'weapons') ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredItems.map((item, i) => (
-            activeTab === 'armor'
-              ? <ArmorCard key={item.id} armor={item} index={i} onClick={() => setSelectedItem({ ...item, _kind: 'armor' })} />
-              : <WeaponCard key={item.id} weapon={item} index={i} onClick={() => setSelectedItem({ ...item, _kind: 'weapon' })} />
-          ))}
-          {filteredItems.length === 0 && (
-            <div className="col-span-full text-center py-16 glass-panel rounded-2xl">
-              <Target className="w-12 h-12 mx-auto mb-3 text-gray-600" />
-              <p className="text-gray-400">No {activeTab} match your filters</p>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {filteredItems.map((item, i) => (
-            activeTab === 'weapons'
-              ? <WeaponCard key={item.id} weapon={item} index={i} />
-              : <EquipmentCard key={item.id} item={item} index={i} />
-          ))}
-          {filteredItems.length === 0 && (
-            <div className="text-center py-16 glass-panel rounded-2xl">
-              <Target className="w-12 h-12 mx-auto mb-3 text-gray-600" />
-              <p className="text-gray-400">No {activeTab} match your filters</p>
-            </div>
-          )}
-        </div>
-      )}
+      <div className={activeTab === 'equipment' ? 'space-y-3' : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'}>
+        {filteredItems.map((item, i) => (
+          activeTab === 'armor'
+            ? <ArmorCard key={item.id} armor={item} index={i} onClick={() => setSelectedItem({ ...item, _kind: 'armor' })} />
+            : activeTab === 'weapons'
+            ? <WeaponCard key={item.id} weapon={item} index={i} onClick={() => setSelectedItem({ ...item, _kind: 'weapon' })} />
+            : <EquipmentCard key={item.id} item={item} index={i} onClick={() => setSelectedItem({ ...item, _kind: 'equipment' })} />
+        ))}
+        {filteredItems.length === 0 && (
+          <div className={`${activeTab !== 'equipment' ? 'col-span-full' : ''} text-center py-16 glass-panel rounded-2xl`}>
+            <Target className="w-12 h-12 mx-auto mb-3 text-gray-600" />
+            <p className="text-gray-400">No {activeTab} match your filters</p>
+          </div>
+        )}
+      </div>
 
       {/* Detail Modal */}
       <AnimatePresence>
@@ -165,7 +151,19 @@ const WeaponCard = ({ weapon, index, onClick }) => {
   const [expanded, setExpanded] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState(weapon.name);
   const color = TYPE_COLORS[weapon.type] || '#888';
-  const hasImage = !!weapon.image;
+
+  // Determine current image: variant image if available, else base image
+  const currentImage = selectedVariant !== weapon.name && weapon.variant_images?.[selectedVariant]
+    ? weapon.variant_images[selectedVariant]
+    : weapon.image;
+  const hasImage = !!currentImage;
+
+  // Per-variant acquisition data
+  const vd = selectedVariant !== weapon.name ? weapon.variant_data?.[selectedVariant] : null;
+  const currentPrice = vd ? vd.price_auec : weapon.price_auec;
+  const currentLocations = vd ? vd.locations : weapon.locations;
+  const currentLootLocations = vd ? vd.loot_locations : (weapon.loot_locations || []);
+  const isLootOnly = vd && !vd.sold;
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.04 }}
@@ -174,7 +172,7 @@ const WeaponCard = ({ weapon, index, onClick }) => {
       {/* Image section */}
       <div className="relative h-44 overflow-hidden bg-[#0c0c16]">
         {hasImage ? (
-          <img src={weapon.image} alt={selectedVariant} loading="lazy"
+          <img src={currentImage} alt={selectedVariant} loading="lazy"
             className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105" />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
@@ -201,16 +199,18 @@ const WeaponCard = ({ weapon, index, onClick }) => {
               {selectedVariant}
             </h3>
             <div className="text-xs text-gray-400">{weapon.manufacturer}</div>
-            {weapon.price_auec > 0 && (
-              <div className="text-xs font-bold text-amber-400 mt-0.5" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{weapon.price_auec.toLocaleString()} aUEC</div>
-            )}
+            {isLootOnly ? (
+              <div className="text-xs font-bold text-red-400 mt-0.5" style={{ fontFamily: 'Rajdhani, sans-serif' }}>LOOT ONLY</div>
+            ) : currentPrice > 0 ? (
+              <div className="text-xs font-bold text-amber-400 mt-0.5" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{currentPrice.toLocaleString()} aUEC</div>
+            ) : null}
           </div>
           {weapon.variants?.length > 0 && (
-            <select value={selectedVariant} onChange={e => setSelectedVariant(e.target.value)}
+            <select value={selectedVariant} onChange={e => { e.stopPropagation(); setSelectedVariant(e.target.value); }}
               data-testid={`variant-select-${weapon.id}`}
               className="px-2 py-1 bg-[#0a0a10] border border-white/10 rounded-lg text-[10px] text-white focus:outline-none focus:border-cyan-500 max-w-[130px]"
               style={{ colorScheme: 'dark' }}>
-              <option value={weapon.name} className="bg-[#0a0a10]">{weapon.name}</option>
+              <option value={weapon.name} className="bg-[#0a0a10]">{weapon.name} (Base)</option>
               {weapon.variants.map(v => <option key={v} value={v} className="bg-[#0a0a10]">{v}</option>)}
             </select>
           )}
@@ -238,6 +238,7 @@ const WeaponCard = ({ weapon, index, onClick }) => {
 
         <p className="text-[11px] text-gray-500 mt-2 line-clamp-2">{weapon.description}</p>
 
+        {/* Locations toggle */}
         <button onClick={() => setExpanded(!expanded)} data-testid={`expand-${weapon.id}`}
           className="flex items-center gap-1 mt-2 text-[11px] text-cyan-500 hover:text-cyan-400 transition-colors w-full">
           <MapPin className="w-3 h-3" /> Where to find
@@ -249,12 +250,30 @@ const WeaponCard = ({ weapon, index, onClick }) => {
         {expanded && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
             className="border-t border-white/5 bg-white/[0.02] px-4 py-3 overflow-hidden">
-            <div className="space-y-1">
-              {weapon.locations.map((loc, i) => (
-                <div key={i} className="flex items-center gap-1.5 text-[11px] text-gray-300">
-                  <MapPin className="w-3 h-3 text-cyan-500 shrink-0" /> {loc}
+            <div className="space-y-1.5">
+              {currentLocations?.length > 0 && (
+                <div>
+                  <div className="text-[9px] text-gray-500 uppercase font-semibold mb-1">Buy</div>
+                  {currentLocations.map((loc, i) => (
+                    <div key={i} className="flex items-center gap-1.5 text-[11px] text-gray-300">
+                      <Crosshair className="w-3 h-3 text-green-500 shrink-0" /> {loc}
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
+              {currentLootLocations?.length > 0 && (
+                <div>
+                  <div className="text-[9px] text-gray-500 uppercase font-semibold mb-1">Loot / Farm</div>
+                  {currentLootLocations.map((loc, i) => (
+                    <div key={i} className="flex items-center gap-1.5 text-[11px] text-yellow-400">
+                      <MapPin className="w-3 h-3 shrink-0" /> {loc}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {(!currentLocations?.length && !currentLootLocations?.length) && (
+                <div className="text-[11px] text-gray-500 italic">Acquisition data unavailable</div>
+              )}
             </div>
           </motion.div>
         )}
@@ -393,7 +412,7 @@ const ArmorCard = ({ armor, index, onClick }) => {
   );
 };
 
-const EquipmentCard = ({ item, index }) => {
+const EquipmentCard = ({ item, index, onClick }) => {
   const [expanded, setExpanded] = useState(false);
   const color = TYPE_COLORS[item.type] || '#888';
 
@@ -401,7 +420,8 @@ const EquipmentCard = ({ item, index }) => {
 
   return (
     <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.03 }}
-      className="glass-panel rounded-xl overflow-hidden" data-testid={`equip-${item.id}`}>
+      className="glass-panel rounded-xl overflow-hidden cursor-pointer" data-testid={`equip-${item.id}`}
+      onClick={(e) => { if (!e.target.closest('button')) onClick?.(); }}>
       <div className="p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
@@ -470,20 +490,21 @@ const StatPill = ({ label, value, icon: Icon, color }) => (
 const GearDetailModal = ({ item, onClose }) => {
   const isWeapon = item._kind === 'weapon';
   const isArmor = item._kind === 'armor';
+  const hasVariantData = isArmor || isWeapon;
   const color = TYPE_COLORS[item.type] || '#888';
   const [selectedVariant, setSelectedVariant] = useState(null);
 
-  // Determine current image based on selected variant
-  const currentImage = isArmor && selectedVariant && item.variant_images?.[selectedVariant]
+  // Determine current image based on selected variant (works for both armor & weapons)
+  const currentImage = hasVariantData && selectedVariant && item.variant_images?.[selectedVariant]
     ? item.variant_images[selectedVariant]
     : item.image;
   const hasImage = !!currentImage;
 
-  // Per-variant acquisition data
-  const vd = isArmor && selectedVariant ? item.variant_data?.[selectedVariant] : null;
+  // Per-variant acquisition data (works for both armor & weapons)
+  const vd = hasVariantData && selectedVariant ? item.variant_data?.[selectedVariant] : null;
   const currentPrice = vd ? vd.price_auec : item.price_auec;
   const currentLocations = vd ? vd.locations : item.locations;
-  const currentLootLocations = vd ? vd.loot_locations : item.loot_locations;
+  const currentLootLocations = vd ? vd.loot_locations : (item.loot_locations || []);
   const isLootOnly = vd && !vd.sold;
 
   return (
@@ -509,7 +530,7 @@ const GearDetailModal = ({ item, onClose }) => {
             <img src={currentImage} alt={selectedVariant || item.name} className="w-full h-full object-contain" />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              {isWeapon ? <Crosshair className="w-20 h-20 text-gray-700" /> : <Shield className="w-20 h-20 text-gray-700" />}
+              {isWeapon ? <Crosshair className="w-20 h-20 text-gray-700" /> : isArmor ? <Shield className="w-20 h-20 text-gray-700" /> : <Package className="w-20 h-20 text-gray-700" />}
             </div>
           )}
           <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[#0a0a12] to-transparent" />
@@ -547,26 +568,32 @@ const GearDetailModal = ({ item, onClose }) => {
               <DetailStat label="Fire Rate" value={item.fire_rate} color="#00D4FF" />
               <DetailStat label="Range" value={item.effective_range} color="#00FF9D" />
             </div>
-          ) : (
+          ) : isArmor ? (
             <div className="grid grid-cols-3 gap-3 mb-5">
               <DetailStat label="Max Temp" value={`${item.temp_max}°C`} color="#FF4500" />
               <DetailStat label="Min Temp" value={`${item.temp_min}°C`} color="#00D4FF" />
               <DetailStat label="Radiation" value={item.radiation?.toLocaleString()} color="#00FF9D" />
             </div>
-          )}
+          ) : item.stats ? (
+            <div className="grid grid-cols-2 gap-3 mb-5">
+              {Object.entries(item.stats).map(([key, val]) => (
+                <DetailStat key={key} label={key.replace(/_/g, ' ')} value={String(val)} color={color} />
+              ))}
+            </div>
+          ) : null}
 
-          {/* Variants - clickable for armor to swap images, locations, and price */}
+          {/* Variants - clickable for both armor and weapons */}
           {item.variants?.length > 0 && (
             <div className="mb-5">
-              <div className="text-xs text-gray-500 uppercase font-semibold mb-2">Variants ({item.variants.length}){isArmor && ' — click to preview'}</div>
+              <div className="text-xs text-gray-500 uppercase font-semibold mb-2">Variants ({item.variants.length}){hasVariantData && ' — click to preview'}</div>
               <div className="flex flex-wrap gap-1.5">
                 <button onClick={() => setSelectedVariant(null)} data-testid="variant-btn-base"
                   className={`px-2.5 py-1 rounded-lg text-[11px] border transition-all cursor-pointer ${!selectedVariant ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' : 'bg-white/[0.06] text-gray-300 border-white/10 hover:bg-white/10'}`}>
                   {item.name} (Base)
                 </button>
                 {item.variants.map(v => {
-                  const hasVarImg = isArmor && item.variant_images?.[v] && item.variant_images[v] !== item.image;
-                  const varData = isArmor ? item.variant_data?.[v] : null;
+                  const hasVarImg = hasVariantData && item.variant_images?.[v] && item.variant_images[v] !== item.image;
+                  const varData = hasVariantData ? item.variant_data?.[v] : null;
                   const varLootOnly = varData && !varData.sold;
                   return (
                     <button key={v} onClick={() => setSelectedVariant(v)} data-testid={`variant-btn-${v.replace(/[\s/]/g, '-').toLowerCase()}`}
@@ -576,7 +603,7 @@ const GearDetailModal = ({ item, onClose }) => {
                   );
                 })}
               </div>
-              {isArmor && <div className="text-[10px] text-gray-600 mt-1">* = unique image | ⚠ = loot only</div>}
+              {hasVariantData && <div className="text-[10px] text-gray-600 mt-1">* = unique image | ⚠ = loot only</div>}
             </div>
           )}
 
@@ -587,7 +614,7 @@ const GearDetailModal = ({ item, onClose }) => {
               <div className="space-y-1.5">
                 {currentLocations.map((loc, i) => (
                   <div key={i} className="flex items-center gap-2 text-sm text-gray-300">
-                    <Shirt className="w-3.5 h-3.5 text-green-500 shrink-0" /> {loc}
+                    {isWeapon ? <Crosshair className="w-3.5 h-3.5 text-green-500 shrink-0" /> : <Shirt className="w-3.5 h-3.5 text-green-500 shrink-0" />} {loc}
                   </div>
                 ))}
               </div>
