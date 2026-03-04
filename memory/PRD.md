@@ -27,13 +27,13 @@ Build a full-stack application called "Star Citizen Fleet Manager" / "Star Citiz
 ```
 /app/backend/
 ├── server.py                # Main FastAPI app, startup events
-├── armor_enhancer.py        # CStone + Wiki images for armor sets
-├── weapon_enhancer.py       # CStone + Wiki images for FPS weapons
-├── equipment_enhancer.py    # CStone gadget images for equipment
+├── armor_enhancer.py        # CStone + Wiki images for armor sets (55 sets)
+├── weapon_enhancer.py       # CStone + Wiki images for FPS weapons (50 weapons)
+├── equipment_enhancer.py    # CStone gadget images for equipment (30 items)
 ├── ship_data_enhancer.py    # Wiki images for ships/vehicles (re-exports from above)
 ├── personal_gear.py         # Static data for armor, weapons, equipment
 ├── routes/
-│   ├── gear.py              # /api/gear/* endpoints (weapons, armor, equipment)
+│   ├── gear.py              # /api/gear/* endpoints
 │   ├── auth.py, fleet.py, ships.py, loadouts.py, etc.
 ```
 
@@ -52,21 +52,24 @@ Build a full-stack application called "Star Citizen Fleet Manager" / "Star Citiz
 - Dashboard with fleet overview and total value
 - Price Tracker page
 - Personal Gear section - ALL 3 tabs fully integrated:
-  - **Armor tab**: 28 sets with CStone images, per-variant pricing/locations/loot data
+  - **Armor tab**: 55 sets (28 original + 27 new from CStone) with CStone images, variant data, loot locations
   - **Weapons tab**: 50 weapons with CStone images, per-variant pricing/locations/loot data
-  - **Equipment tab**: 30 items with CStone images (medical items), image thumbnails, variant selectors, detail modals with stats
-- Hide-on-scroll header, "Star Citizen Companion" branding
+  - **Equipment tab**: 30 items with CStone images (medical items), variant selectors
+- Backend refactored into modular enhancer files
 
-## Completed (Mar 2026 - Latest Session)
-1. Completed CStone API integration for FPS Weapons tab (feature parity with Armor)
-2. Completed CStone API integration for Equipment tab (GetGadgets endpoint for medical items)
-3. Refactored ship_data_enhancer.py (805 lines) into 4 focused modules:
-   - armor_enhancer.py, weapon_enhancer.py, equipment_enhancer.py, ship_data_enhancer.py (ships only)
-4. EquipmentCard upgraded with image thumbnails, variant selectors, clickable detail modals
-5. GearDetailModal extended to support all 3 item types (armor, weapons, equipment)
-6. All tests passed: iteration 17 (100%), iteration 18 (100% - 19 backend + all frontend)
+## Completed (Mar 2026 - This Session)
+1. FPS Weapons tab CStone integration (feature parity with Armor)
+2. Equipment tab CStone integration (GetGadgets API for medical items)
+3. Refactored ship_data_enhancer.py into 4 focused modules
+4. Added 27 missing armor sets from CStone:
+   - Heavy: Ana, Bokto, Citadel-SE, DCP Armor, Dust Devil, Dust Devil Armor, Morozov-SH-I, Wrecker
+   - Medium: Aves Shrike/Starchaser/Talon, Carrion, Clash, DustUp, GCD-Army, Stitcher, Strata (12 vars), Testudo (7 vars)
+   - Light: Aztalan Galena/Tamarack, Carnifex, Carnifex Armor, Chiron, Field Recon Suit, Geist Armor (8 vars), Microid Battle Suit (5 vars), Piecemeal Armor
+5. Fixed base image fallback for sets without "Base" CStone variant
+6. All tests passed: iterations 17 (100%), 18 (100%), 19 (100%)
 
 ## Backlog
-- P2: Add more armor sets from CStone (27 additional sets available)
 - P2: Price change alerts for fleet ships
-- P3: Wiki image integration for equipment items without CStone coverage (mining tools, backpacks)
+- P3: Wiki image integration for equipment without CStone coverage
+- P3: Community loadout voting/rating system
+- P3: Fleet value tracking over time (historical charts)
