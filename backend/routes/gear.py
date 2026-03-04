@@ -1,11 +1,17 @@
 from fastapi import APIRouter
 
 from personal_gear import get_all_fps_weapons, get_all_armor_sets, get_all_equipment
-from ship_data_enhancer import (
-    get_armor_image, get_weapon_image, get_armor_variant_images,
-    get_armor_variant_data, get_weapon_variant_images, get_weapon_variant_data,
-    fetch_armor_variant_images, fetch_armor_images, fetch_cstone_armor_images,
-    fetch_cstone_weapon_images,
+from armor_enhancer import (
+    get_armor_image, get_armor_variant_images, get_armor_variant_data,
+    fetch_armor_images, fetch_armor_variant_images, fetch_cstone_armor_images,
+)
+from weapon_enhancer import (
+    get_weapon_image, get_weapon_variant_images, get_weapon_variant_data,
+    fetch_weapon_images, fetch_cstone_weapon_images,
+)
+from equipment_enhancer import (
+    get_equipment_image, get_equipment_variant_images, get_equipment_variant_data,
+    fetch_cstone_equipment_images,
 )
 
 router = APIRouter(prefix="/api/gear", tags=["gear"])
@@ -21,6 +27,7 @@ async def get_fps_weapons():
         await fetch_armor_images()
         await fetch_cstone_armor_images()
         await fetch_cstone_weapon_images()
+        await fetch_cstone_equipment_images()
         await fetch_armor_variant_images(get_all_armor_sets())
         _variant_images_fetched = True
     for w in weapons:
@@ -44,6 +51,7 @@ async def get_armor_sets():
         await fetch_armor_images()
         await fetch_cstone_armor_images()
         await fetch_cstone_weapon_images()
+        await fetch_cstone_equipment_images()
         await fetch_armor_variant_images(sets)
         _variant_images_fetched = True
 
@@ -61,4 +69,26 @@ async def get_armor_sets():
 
 @router.get("/equipment")
 async def get_equipment():
-    return {"success": True, "data": get_all_equipment()}
+    global _variant_images_fetched
+    items = get_all_equipment()
+
+    if not _variant_images_fetched:
+        await fetch_armor_images()
+        await fetch_cstone_armor_images()
+        await fetch_cstone_weapon_images()
+        await fetch_cstone_equipment_images()
+        await fetch_armor_variant_images(get_all_armor_sets())
+        _variant_images_fetched = True
+
+    for item in items:
+        item["image"] = get_equipment_image(item["name"])
+        item["variant_images"] = get_equipment_variant_images(
+            item["name"], item.get("variants", [])
+        )
+        item["variant_data"] = get_equipment_variant_data(
+            item["name"],
+            item.get("variants", []),
+            item.get("price_auec", 0),
+            item.get("locations", []),
+        )
+    return {"success": True, "data": items}

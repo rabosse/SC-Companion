@@ -414,16 +414,35 @@ const ArmorCard = ({ armor, index, onClick }) => {
 
 const EquipmentCard = ({ item, index, onClick }) => {
   const [expanded, setExpanded] = useState(false);
+  const [selectedVariant, setSelectedVariant] = useState(item.name);
   const color = TYPE_COLORS[item.type] || '#888';
 
-  const statEntries = item.stats ? Object.entries(item.stats) : [];
+  const currentImage = selectedVariant !== item.name && item.variant_images?.[selectedVariant]
+    ? item.variant_images[selectedVariant]
+    : item.image;
+  const hasImage = !!currentImage;
+
+  const vd = selectedVariant !== item.name ? item.variant_data?.[selectedVariant] : null;
+  const currentPrice = vd ? vd.price_auec : item.price_auec;
+  const currentLocations = vd ? vd.locations : item.locations;
+
+  const statEntries = item.stats ? Object.entries(item.stats).slice(0, 4) : [];
 
   return (
     <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.03 }}
-      className="glass-panel rounded-xl overflow-hidden cursor-pointer" data-testid={`equip-${item.id}`}
-      onClick={(e) => { if (!e.target.closest('button')) onClick?.(); }}>
+      className="glass-panel rounded-xl overflow-hidden cursor-pointer group" data-testid={`equip-${item.id}`}
+      onClick={(e) => { if (!e.target.closest('button') && !e.target.closest('select')) onClick?.(); }}>
       <div className="p-5">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start gap-4">
+          {/* Image thumbnail */}
+          <div className="w-16 h-16 shrink-0 rounded-lg bg-[#0c0c16] overflow-hidden flex items-center justify-center">
+            {hasImage ? (
+              <img src={currentImage} alt={selectedVariant} loading="lazy" className="w-full h-full object-contain" />
+            ) : (
+              <Package className="w-8 h-8 text-gray-700" />
+            )}
+          </div>
+
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-3 mb-1">
               <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase" style={{ background: `${color}20`, color, border: `1px solid ${color}30` }}>
@@ -431,16 +450,26 @@ const EquipmentCard = ({ item, index, onClick }) => {
               </span>
               {item.subtype && <span className="text-xs text-gray-500">{item.subtype}</span>}
             </div>
-            <h3 className="text-lg font-bold text-white" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{item.name}</h3>
+            <h3 className="text-lg font-bold text-white" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{selectedVariant}</h3>
             <div className="text-sm text-gray-400">{item.manufacturer}</div>
           </div>
-          {item.price_auec > 0 && (
-            <div className="text-right shrink-0">
+
+          <div className="flex flex-col items-end gap-2 shrink-0">
+            {currentPrice > 0 && (
               <div className="flex items-center gap-1 text-sm font-bold text-amber-400" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                <DollarSign className="w-3 h-3" /> {item.price_auec.toLocaleString()} aUEC
+                <DollarSign className="w-3 h-3" /> {currentPrice.toLocaleString()} aUEC
               </div>
-            </div>
-          )}
+            )}
+            {item.variants?.length > 0 && (
+              <select value={selectedVariant} onChange={e => { e.stopPropagation(); setSelectedVariant(e.target.value); }}
+                data-testid={`variant-select-${item.id}`}
+                className="px-2 py-1 bg-[#0a0a10] border border-white/10 rounded-lg text-[10px] text-white focus:outline-none focus:border-cyan-500 max-w-[130px]"
+                style={{ colorScheme: 'dark' }}>
+                <option value={item.name} className="bg-[#0a0a10]">{item.name} (Base)</option>
+                {item.variants.map(v => <option key={v} value={v} className="bg-[#0a0a10]">{v}</option>)}
+              </select>
+            )}
+          </div>
         </div>
 
         {statEntries.length > 0 && (
@@ -465,7 +494,7 @@ const EquipmentCard = ({ item, index, onClick }) => {
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
             className="border-t border-white/5 bg-white/[0.02] px-5 py-3 overflow-hidden">
             <div className="space-y-1">
-              {item.locations.map((loc, i) => (
+              {currentLocations?.map((loc, i) => (
                 <div key={i} className="flex items-center gap-2 text-xs text-gray-300">
                   <MapPin className="w-3 h-3 text-cyan-500 shrink-0" /> {loc}
                 </div>
