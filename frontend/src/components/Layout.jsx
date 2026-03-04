@@ -54,8 +54,8 @@ const Layout = ({ children }) => {
         className="glass-panel border-b border-white/5 fixed top-0 left-0 right-0 z-50 transition-transform duration-300"
         style={{ transform: headerVisible ? 'translateY(0)' : 'translateY(-100%)' }}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+        <div className="px-4 sm:px-6">
+          <div className="flex items-center h-16 gap-4">
             <Link to="/" className="flex items-center gap-2.5 group shrink-0">
               <img 
                 src="https://robertsspaceindustries.com/rsi/static/images/account/avatar_default_big.jpg" 
@@ -72,8 +72,8 @@ const Layout = ({ children }) => {
               </div>
             </Link>
 
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center space-x-1">
+            {/* Desktop Navigation - scrollable */}
+            <nav className="hidden md:flex items-center gap-1 overflow-x-auto scrollbar-hide flex-1 min-w-0" data-testid="desktop-nav">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 return (
@@ -81,27 +81,27 @@ const Layout = ({ children }) => {
                     key={item.path}
                     to={item.path}
                     data-testid={`nav-${item.label.toLowerCase()}`}
-                    className={`flex items-center space-x-2 px-4 py-2 rounded-full transition-all duration-300 ${
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all duration-300 whitespace-nowrap shrink-0 text-sm ${
                       isActive(item.path)
                         ? 'bg-cyan-500 text-black'
                         : 'text-gray-400 hover:text-cyan-500 hover:bg-white/5'
                     }`}
                     style={{ fontFamily: 'Rajdhani, sans-serif', fontWeight: 600, letterSpacing: '0.05em' }}
                   >
-                    <Icon className="w-4 h-4" />
+                    <Icon className="w-3.5 h-3.5" />
                     <span>{item.label}</span>
                   </Link>
                 );
               })}
             </nav>
 
-            <div className="flex items-center space-x-4">
-              <div className="hidden md:flex items-center space-x-3">
-                <span className="text-sm text-gray-400">{user?.username}</span>
+            <div className="flex items-center gap-3 shrink-0 ml-auto">
+              <div className="hidden md:flex items-center gap-3">
+                <span className="text-sm text-gray-400 whitespace-nowrap">{user?.username}</span>
                 <button
                   onClick={logout}
                   data-testid="logout-button"
-                  className="flex items-center space-x-2 px-4 py-2 rounded-full border border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white transition-all duration-300"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white transition-all duration-300 whitespace-nowrap"
                   style={{ fontFamily: 'Rajdhani, sans-serif', fontWeight: 600 }}
                 >
                   <LogOut className="w-4 h-4" />
