@@ -351,6 +351,7 @@ const ArmorCard = ({ armor, index, onClick }) => {
         </div>
 
         {/* Stats */}
+        {armor.type !== 'Backpack' && (
         <div className="grid grid-cols-3 gap-2 mt-3">
           <div className="bg-white/[0.04] rounded-lg p-2 text-center">
             <div className="text-xs font-bold text-orange-400" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{armor.temp_max}°C</div>
@@ -365,6 +366,7 @@ const ArmorCard = ({ armor, index, onClick }) => {
             <div className="text-[9px] text-gray-600">Radiation</div>
           </div>
         </div>
+        )}
 
         <p className="text-[11px] text-gray-500 mt-2 line-clamp-2">{armor.description}</p>
 
@@ -597,7 +599,7 @@ const GearDetailModal = ({ item, onClose }) => {
               <DetailStat label="Fire Rate" value={item.fire_rate} color="#00D4FF" />
               <DetailStat label="Range" value={item.effective_range} color="#00FF9D" />
             </div>
-          ) : isArmor ? (
+          ) : isArmor && item.type !== 'Backpack' ? (
             <div className="grid grid-cols-3 gap-3 mb-5">
               <DetailStat label="Max Temp" value={`${item.temp_max}°C`} color="#FF4500" />
               <DetailStat label="Min Temp" value={`${item.temp_min}°C`} color="#00D4FF" />

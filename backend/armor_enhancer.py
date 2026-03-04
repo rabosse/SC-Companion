@@ -9,6 +9,7 @@ WIKI_API = "https://starcitizen.tools/api.php"
 THUMB_SIZE = 600
 CSTONE_IMG = "https://cstone.space/uifimages/{}.png"
 CSTONE_API = "https://finder.cstone.space/GetArmors/Torsos"
+CSTONE_BACKPACK_API = "https://finder.cstone.space/GetArmors/Backpacks"
 
 ARMOR_WIKI_OVERRIDES = {
     "ADP": "ADP", "ADP-mk4": "ADP-mk4", "Citadel": "Citadel", "Defiance": "Defiance",
@@ -40,6 +41,8 @@ _armor_variant_image_cache = {}
 _armor_variant_cache_loaded = False
 _cstone_armor_cache = {}
 _cstone_cache_loaded = False
+_cstone_backpack_cache = {}
+_cstone_backpack_loaded = False
 
 # Per-set loot location data
 _SET_LOOT_LOCATIONS = {
@@ -244,6 +247,96 @@ async def fetch_cstone_armor_images():
     _cstone_cache_loaded = True
     total = sum(len(v) for v in _cstone_armor_cache.values())
     logger.info(f"CStone armor cache loaded: {len(_cstone_armor_cache)} sets, {total} total variants")
+
+
+async def fetch_cstone_backpack_images():
+    global _cstone_backpack_cache, _cstone_backpack_loaded
+    if _cstone_backpack_loaded:
+        return
+    logger.info("Fetching CStone backpack images...")
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        try:
+            resp = await client.get(CSTONE_BACKPACK_API, follow_redirects=True)
+            if resp.status_code != 200:
+                logger.error(f"CStone backpack API returned {resp.status_code}")
+                _cstone_backpack_loaded = True
+                return
+            items = resp.json()
+            for item in items:
+                name = item.get("Name", "")
+                uuid = item.get("ItemId", "")
+                if not uuid or "(Modified)" in name or "XenoThreat" in name:
+                    continue
+                parts = name.split(" Backpack")
+                if len(parts) < 2:
+                    continue
+                set_name = parts[0].strip()
+                variant = parts[1].strip() if parts[1].strip() else "Base"
+                bp_name = f"{set_name} Backpack"
+                if bp_name not in _cstone_backpack_cache:
+                    _cstone_backpack_cache[bp_name] = {}
+                _cstone_backpack_cache[bp_name][variant] = {
+                    "uuid": uuid, "sold": item.get("Sold", 0),
+                }
+        except Exception as e:
+            logger.error(f"CStone backpack fetch error: {e}")
+    _cstone_backpack_loaded = True
+    total = sum(len(v) for v in _cstone_backpack_cache.values())
+    logger.info(f"CStone backpack cache loaded: {len(_cstone_backpack_cache)} sets, {total} total variants")
+
+
+def get_backpack_image(bp_name):
+    cstone_set = _cstone_backpack_cache.get(bp_name, {})
+    base_entry = cstone_set.get("Base", {})
+    base_uuid = base_entry.get("uuid", "") if isinstance(base_entry, dict) else ""
+    if base_uuid:
+        return CSTONE_IMG.format(base_uuid)
+    if cstone_set:
+        first_entry = next(iter(cstone_set.values()))
+        first_uuid = first_entry.get("uuid", "") if isinstance(first_entry, dict) else ""
+        if first_uuid:
+            return CSTONE_IMG.format(first_uuid)
+    return ""
+
+
+def get_backpack_variant_images(bp_name, variants):
+    base_image = get_backpack_image(bp_name)
+    cstone_set = _cstone_backpack_cache.get(bp_name, {})
+    result = {}
+    for v in variants:
+        suffix = v.replace(bp_name, "").strip()
+        entry = cstone_set.get(suffix, {})
+        cstone_uuid = entry.get("uuid", "") if isinstance(entry, dict) else ""
+        if cstone_uuid:
+            result[v] = CSTONE_IMG.format(cstone_uuid)
+        else:
+            result[v] = base_image
+    return result
+
+
+def get_backpack_variant_data(bp_name, variants, base_price, base_locations, base_loot_locations):
+    cstone_set = _cstone_backpack_cache.get(bp_name, {})
+    result = {}
+    for v in variants:
+        suffix = v.replace(bp_name, "").strip()
+        entry = cstone_set.get(suffix, {})
+        sold = entry.get("sold", 1) if isinstance(entry, dict) else 1
+        if sold:
+            result[v] = {
+                "price_auec": base_price,
+                "locations": base_locations,
+                "loot_locations": [],
+                "sold": True,
+            }
+        else:
+            loot_locs = base_loot_locations if base_loot_locations else ["Looted from NPCs", "Found in the verse"]
+            result[v] = {
+                "price_auec": 0,
+                "locations": [],
+                "loot_locations": loot_locs,
+                "sold": False,
+            }
+    return result
 
 
 def get_armor_image(armor_name):

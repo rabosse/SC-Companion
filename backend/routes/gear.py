@@ -4,6 +4,8 @@ from personal_gear import get_all_fps_weapons, get_all_armor_sets, get_all_equip
 from armor_enhancer import (
     get_armor_image, get_armor_variant_images, get_armor_variant_data,
     fetch_armor_images, fetch_armor_variant_images, fetch_cstone_armor_images,
+    fetch_cstone_backpack_images,
+    get_backpack_image, get_backpack_variant_images, get_backpack_variant_data,
 )
 from weapon_enhancer import (
     get_weapon_image, get_weapon_variant_images, get_weapon_variant_data,
@@ -26,6 +28,7 @@ async def get_fps_weapons():
     if not _variant_images_fetched:
         await fetch_armor_images()
         await fetch_cstone_armor_images()
+        await fetch_cstone_backpack_images()
         await fetch_cstone_weapon_images()
         await fetch_cstone_equipment_images()
         await fetch_armor_variant_images(get_all_armor_sets())
@@ -50,20 +53,32 @@ async def get_armor_sets():
     if not _variant_images_fetched:
         await fetch_armor_images()
         await fetch_cstone_armor_images()
+        await fetch_cstone_backpack_images()
         await fetch_cstone_weapon_images()
         await fetch_cstone_equipment_images()
         await fetch_armor_variant_images(sets)
         _variant_images_fetched = True
 
     for s in sets:
-        s["image"] = get_armor_image(s["name"])
-        s["variant_images"] = get_armor_variant_images(s["name"], s.get("variants", []))
-        s["variant_data"] = get_armor_variant_data(
-            s["name"], s.get("variants", []),
-            s.get("price_auec", 0),
-            s.get("locations", []),
-            s.get("loot_locations", []),
-        )
+        is_backpack = s.get("type") == "Backpack"
+        if is_backpack:
+            s["image"] = get_backpack_image(s["name"])
+            s["variant_images"] = get_backpack_variant_images(s["name"], s.get("variants", []))
+            s["variant_data"] = get_backpack_variant_data(
+                s["name"], s.get("variants", []),
+                s.get("price_auec", 0),
+                s.get("locations", []),
+                s.get("loot_locations", []),
+            )
+        else:
+            s["image"] = get_armor_image(s["name"])
+            s["variant_images"] = get_armor_variant_images(s["name"], s.get("variants", []))
+            s["variant_data"] = get_armor_variant_data(
+                s["name"], s.get("variants", []),
+                s.get("price_auec", 0),
+                s.get("locations", []),
+                s.get("loot_locations", []),
+            )
     return {"success": True, "data": sets}
 
 
@@ -75,6 +90,7 @@ async def get_equipment():
     if not _variant_images_fetched:
         await fetch_armor_images()
         await fetch_cstone_armor_images()
+        await fetch_cstone_backpack_images()
         await fetch_cstone_weapon_images()
         await fetch_cstone_equipment_images()
         await fetch_armor_variant_images(get_all_armor_sets())

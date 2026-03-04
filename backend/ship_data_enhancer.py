@@ -14,6 +14,8 @@ import re
 from armor_enhancer import (
     fetch_armor_images, fetch_armor_variant_images, fetch_cstone_armor_images,
     get_armor_image, get_armor_variant_images, get_armor_variant_data,
+    fetch_cstone_backpack_images,
+    get_backpack_image, get_backpack_variant_images, get_backpack_variant_data,
 )
 from weapon_enhancer import (
     fetch_weapon_images, fetch_cstone_weapon_images,
