@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends
+import re
 
 from deps import get_current_user
 from ship_data_enhancer import enhance_ship_data, get_vehicle_image, get_ship_image
@@ -6,6 +7,64 @@ from live_api import fetch_live_vehicles, fetch_live_weapons, fetch_live_compone
 from ship_purchases import get_purchase_info
 
 router = APIRouter(prefix="/api", tags=["ships"])
+
+# Suffixes that indicate a variant (cosmetic/edition) of a base ship
+_VARIANT_SUFFIXES = [
+    r"\s+PYAM Exec$",
+    r"\s+Executive Edition$",
+    r"\s+Emerald$",
+    r"\s+Pirate$",
+    r"\s+Star Kitten$",
+    r"\s+Wikelo.*$",
+    r"\s+Teach'?s?\s+Special$",
+    r"\s+CitizenCon\s+\d+.*$",
+    r"\s+2949\s+Best\s+In\s+Show.*$",
+    r"\s+Carbon$",
+    r"\s+Talus$",
+    r"\s+Dunestalker$",
+    r"\s+Snowblind$",
+    r"\s+Savior\s+Special$",
+    r"\s+Speedy\s+Special$",
+]
+
+
+def _get_variant_base(name):
+    """Return the base name for variant grouping."""
+    base = name
+    for pattern in _VARIANT_SUFFIXES:
+        base = re.sub(pattern, "", base, flags=re.IGNORECASE).strip()
+    return base
+
+
+def _dedupe_and_group_variants(ships):
+    """Deduplicate ships by name and group variants under base ships."""
+    seen_names = set()
+    unique = []
+    for s in ships:
+        if s["name"] not in seen_names:
+            seen_names.add(s["name"])
+            unique.append(s)
+
+    base_map = {}
+    result = []
+    for s in unique:
+        base_name = _get_variant_base(s["name"])
+        if base_name != s["name"] and base_name in base_map:
+            idx = base_map[base_name]
+            if "variants" not in result[idx]:
+                result[idx]["variants"] = []
+            result[idx]["variants"].append({
+                "name": s["name"],
+                "id": s["id"],
+                "image": s.get("image", ""),
+            })
+        else:
+            s["variants"] = s.get("variants", [])
+            base_map[s["name"]] = len(result)
+            if base_name != s["name"]:
+                base_map[base_name] = len(result)
+            result.append(s)
+    return result
 
 
 @router.get("/ships")
@@ -22,6 +81,7 @@ async def get_ships(user_id: str = Depends(get_current_user)):
             s["purchase_locations"] = pinfo["dealers"]
             s["price_usd"] = s.get("msrp", 0)
             s["pledge_url"] = s.get("pledge_url", "")
+        ships = _dedupe_and_group_variants(ships)
         return {"success": True, "data": ships, "source": "live"}
     ships = enhance_ship_data(_get_comprehensive_ship_list())
     for s in ships:
@@ -44,6 +104,8 @@ async def get_vehicles(user_id: str = Depends(get_current_user)):
             v["price_auec"] = pinfo["price_auec"]
             v["purchase_locations"] = pinfo["dealers"]
         if ground:
+            ground = _dedupe_and_group_variants(ground)
+            return {"success": True, "data": ground, "source": "live"}
             return {"success": True, "data": ground, "source": "live"}
     mock_vehicles = [
         {"id": "cyclone", "name": "Cyclone", "manufacturer": "Tumbril", "type": "Ground", "crew": "2", "image": get_vehicle_image("Cyclone")},
