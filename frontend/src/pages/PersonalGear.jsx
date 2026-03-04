@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
-import { Search, Shield, Crosshair, ChevronDown, ChevronUp, MapPin, Shirt, Zap, Target, Package, Pickaxe, DollarSign } from 'lucide-react';
+import { Search, Shield, Crosshair, ChevronDown, ChevronUp, MapPin, Shirt, Zap, Target, Package, Pickaxe, DollarSign, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 
@@ -25,6 +25,7 @@ const PersonalGear = () => {
   const [activeTab, setActiveTab] = useState('weapons');
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('all');
+  const [selectedItem, setSelectedItem] = useState(null);
 
   useEffect(() => {
     const fetch = async () => {
@@ -116,8 +117,8 @@ const PersonalGear = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredItems.map((item, i) => (
             activeTab === 'armor'
-              ? <ArmorCard key={item.id} armor={item} index={i} />
-              : <WeaponCard key={item.id} weapon={item} index={i} />
+              ? <ArmorCard key={item.id} armor={item} index={i} onClick={() => setSelectedItem({ ...item, _kind: 'armor' })} />
+              : <WeaponCard key={item.id} weapon={item} index={i} onClick={() => setSelectedItem({ ...item, _kind: 'weapon' })} />
           ))}
           {filteredItems.length === 0 && (
             <div className="col-span-full text-center py-16 glass-panel rounded-2xl">
@@ -141,6 +142,13 @@ const PersonalGear = () => {
           )}
         </div>
       )}
+
+      {/* Detail Modal */}
+      <AnimatePresence>
+        {selectedItem && (
+          <GearDetailModal item={selectedItem} onClose={() => setSelectedItem(null)} />
+        )}
+      </AnimatePresence>
     </div>
   );
 };
@@ -153,7 +161,7 @@ const FilterBtn = ({ label, active, onClick, color, testId }) => (
   </button>
 );
 
-const WeaponCard = ({ weapon, index }) => {
+const WeaponCard = ({ weapon, index, onClick }) => {
   const [expanded, setExpanded] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState(weapon.name);
   const color = TYPE_COLORS[weapon.type] || '#888';
@@ -161,7 +169,8 @@ const WeaponCard = ({ weapon, index }) => {
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.04 }}
-      className="glass-panel rounded-2xl overflow-hidden group" data-testid={`weapon-${weapon.id}`}>
+      className="glass-panel rounded-2xl overflow-hidden group cursor-pointer" data-testid={`weapon-${weapon.id}`}
+      onClick={(e) => { if (!e.target.closest('select') && !e.target.closest('button')) onClick?.(); }}>
       {/* Image section */}
       <div className="relative h-44 overflow-hidden bg-[#0c0c16]">
         {hasImage ? (
@@ -251,7 +260,7 @@ const WeaponCard = ({ weapon, index }) => {
   );
 };
 
-const ArmorCard = ({ armor, index }) => {
+const ArmorCard = ({ armor, index, onClick }) => {
   const [expanded, setExpanded] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState(armor.name);
   const color = TYPE_COLORS[armor.type] || '#888';
@@ -259,7 +268,8 @@ const ArmorCard = ({ armor, index }) => {
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.04 }}
-      className="glass-panel rounded-2xl overflow-hidden group" data-testid={`armor-${armor.id}`}>
+      className="glass-panel rounded-2xl overflow-hidden group cursor-pointer" data-testid={`armor-${armor.id}`}
+      onClick={(e) => { if (!e.target.closest('select') && !e.target.closest('button')) onClick?.(); }}>
       {/* Image section */}
       <div className="relative h-52 overflow-hidden bg-[#0c0c16]">
         {hasImage ? (
@@ -432,5 +442,128 @@ const StatPill = ({ label, value, icon: Icon, color }) => (
     <div className="text-[10px] text-gray-600">{label}</div>
   </div>
 );
+
+
+const GearDetailModal = ({ item, onClose }) => {
+  const isWeapon = item._kind === 'weapon';
+  const color = TYPE_COLORS[item.type] || '#888';
+  const hasImage = !!item.image;
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+      onClick={onClose} data-testid="gear-detail-modal">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      {/* Modal */}
+      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+        transition={{ type: 'spring', damping: 25 }}
+        className="relative w-full max-w-lg glass-panel rounded-2xl overflow-hidden max-h-[85vh] overflow-y-auto"
+        onClick={e => e.stopPropagation()}>
+        {/* Close button */}
+        <button onClick={onClose} data-testid="modal-close-btn"
+          className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-black/50 text-gray-400 hover:text-white backdrop-blur-md border border-white/10 transition-colors">
+          <X className="w-4 h-4" />
+        </button>
+
+        {/* Image */}
+        <div className="relative h-56 bg-[#0c0c16]">
+          {hasImage ? (
+            <img src={item.image} alt={item.name} className="w-full h-full object-contain" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              {isWeapon ? <Crosshair className="w-20 h-20 text-gray-700" /> : <Shield className="w-20 h-20 text-gray-700" />}
+            </div>
+          )}
+          <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[#0a0a12] to-transparent" />
+          <div className="absolute top-3 left-3 flex items-center gap-2">
+            <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase backdrop-blur-md"
+              style={{ background: `${color}30`, color, border: `1px solid ${color}40` }}>
+              {item.type}
+            </span>
+            {isWeapon && (
+              <span className="px-2 py-1 rounded-lg text-[10px] font-bold backdrop-blur-md bg-white/10 text-gray-300 border border-white/10">
+                S{item.size}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-5 -mt-4 relative">
+          <h2 className="text-2xl font-bold text-white mb-1" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{item.name}</h2>
+          <div className="text-sm text-gray-400 mb-4">{item.manufacturer}</div>
+
+          <p className="text-sm text-gray-300 leading-relaxed mb-5">{item.description}</p>
+
+          {/* Stats */}
+          {isWeapon ? (
+            <div className="grid grid-cols-2 gap-3 mb-5">
+              <DetailStat label="Damage" value={item.damage} color="#FF0055" />
+              <DetailStat label="Ammo" value={item.ammo} color="#FFAE00" />
+              <DetailStat label="Fire Rate" value={item.fire_rate} color="#00D4FF" />
+              <DetailStat label="Range" value={item.effective_range} color="#00FF9D" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-3 mb-5">
+              <DetailStat label="Max Temp" value={`${item.temp_max}°C`} color="#FF4500" />
+              <DetailStat label="Min Temp" value={`${item.temp_min}°C`} color="#00D4FF" />
+              <DetailStat label="Radiation" value={item.radiation?.toLocaleString()} color="#00FF9D" />
+            </div>
+          )}
+
+          {/* Variants */}
+          {item.variants?.length > 0 && (
+            <div className="mb-5">
+              <div className="text-xs text-gray-500 uppercase font-semibold mb-2">Variants ({item.variants.length})</div>
+              <div className="flex flex-wrap gap-1.5">
+                {item.variants.map(v => (
+                  <span key={v} className="px-2.5 py-1 rounded-lg text-[11px] bg-white/[0.06] text-gray-300 border border-white/10">
+                    {v}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Locations */}
+          {item.locations?.length > 0 && (
+            <div className="mb-3">
+              <div className="text-xs text-gray-500 uppercase font-semibold mb-2">Purchase Locations</div>
+              <div className="space-y-1.5">
+                {item.locations.map((loc, i) => (
+                  <div key={i} className="flex items-center gap-2 text-sm text-gray-300">
+                    <Shirt className="w-3.5 h-3.5 text-green-500 shrink-0" /> {loc}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {item.loot_locations?.length > 0 && (
+            <div>
+              <div className="text-xs text-gray-500 uppercase font-semibold mb-2">Loot / Farm Locations</div>
+              <div className="space-y-1.5">
+                {item.loot_locations.map((loc, i) => (
+                  <div key={i} className="flex items-center gap-2 text-sm text-yellow-400">
+                    <MapPin className="w-3.5 h-3.5 shrink-0" /> {loc}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+const DetailStat = ({ label, value, color }) => (
+  <div className="bg-white/[0.04] rounded-xl p-3 text-center">
+    <div className="text-lg font-bold" style={{ color, fontFamily: 'Rajdhani, sans-serif' }}>{value}</div>
+    <div className="text-[10px] text-gray-500 uppercase">{label}</div>
+  </div>
+);
+
 
 export default PersonalGear;

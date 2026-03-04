@@ -56,19 +56,19 @@ const Layout = ({ children }) => {
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <Link to="/" className="flex items-center gap-3 group">
+            <Link to="/" className="flex items-center gap-2.5 group shrink-0">
               <img 
                 src="https://robertsspaceindustries.com/rsi/static/images/account/avatar_default_big.jpg" 
                 alt="Star Citizen Logo"
-                className="w-9 h-9 rounded-full ring-2 ring-cyan-500/30 group-hover:ring-cyan-500/60 transition-all"
+                className="w-8 h-8 rounded-full ring-2 ring-cyan-500/30 group-hover:ring-cyan-500/60 transition-all"
                 onError={(e) => {
                   e.target.onerror = null;
                   e.target.src = "https://media.robertsspaceindustries.com/logo/SC-Logo-white.png";
                 }}
               />
-              <div className="leading-none">
-                <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-cyan-500/70" style={{ fontFamily: 'Rajdhani, sans-serif' }}>Star Citizen</span>
-                <div className="text-lg font-bold uppercase tracking-wide text-white" style={{ fontFamily: 'Rajdhani, sans-serif' }}>Companion</div>
+              <div className="leading-none hidden lg:block">
+                <span className="text-[9px] font-bold uppercase tracking-[0.25em] text-cyan-500/70" style={{ fontFamily: 'Rajdhani, sans-serif' }}>Star Citizen</span>
+                <div className="text-base font-bold uppercase tracking-wide text-white" style={{ fontFamily: 'Rajdhani, sans-serif' }}>Companion</div>
               </div>
             </Link>
 
