@@ -4,7 +4,7 @@ import os
 import logging
 
 from deps import client
-from ship_data_enhancer import fetch_all_wiki_images, fetch_armor_images, fetch_weapon_images, fetch_armor_variant_images
+from ship_data_enhancer import fetch_all_wiki_images, fetch_armor_images, fetch_weapon_images, fetch_armor_variant_images, fetch_cstone_armor_images
 from live_api import prefetch_all
 
 from routes.auth import router as auth_router
@@ -52,7 +52,9 @@ async def startup_event():
     await fetch_all_wiki_images(ship_names=all_names)
     await fetch_armor_images()
     await fetch_weapon_images()
-    # Fetch variant-specific armor images
+    # Fetch CStone armor images (comprehensive UUID-based coverage)
+    await fetch_cstone_armor_images()
+    # Fetch variant-specific armor images from wiki
     from personal_gear import get_all_armor_sets
     await fetch_armor_variant_images(get_all_armor_sets())
     # Take initial price snapshot

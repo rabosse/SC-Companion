@@ -244,6 +244,12 @@ _armor_cache_loaded = False
 # variant name -> image URL  (e.g. "ORC-mkX Woodland" -> "https://...")
 _armor_variant_image_cache = {}
 _armor_variant_cache_loaded = False
+# CStone UUID-based images: {set_name -> {variant_suffix -> uuid}}
+_cstone_armor_cache = {}
+_cstone_cache_loaded = False
+
+CSTONE_API = "https://finder.cstone.space/GetArmors/Torsos"
+CSTONE_IMG = "https://cstone.space/uifimages/{}.png"
 
 
 async def fetch_armor_images():
@@ -366,19 +372,80 @@ async def fetch_armor_variant_images(armor_sets):
     logger.info(f"Armor variant image cache loaded: {len(_armor_variant_image_cache)} variant images cached")
 
 
+async def fetch_cstone_armor_images():
+    """Fetch all armor torso items from CStone API and build UUID->image cache."""
+    global _cstone_armor_cache, _cstone_cache_loaded
+    if _cstone_cache_loaded:
+        return
+
+    logger.info("Fetching CStone armor images...")
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        try:
+            resp = await client.get(CSTONE_API, follow_redirects=True)
+            if resp.status_code != 200:
+                logger.error(f"CStone API returned {resp.status_code}")
+                _cstone_cache_loaded = True
+                return
+
+            items = resp.json()
+            for item in items:
+                name = item.get("Name", "")
+                uuid = item.get("ItemId", "")
+                if not uuid or "(Modified)" in name or "XenoThreat" in name:
+                    continue
+                if " Core" not in name:
+                    continue
+
+                parts = name.split(" Core", 1)
+                set_name = parts[0].strip()
+                variant = parts[1].strip() if len(parts) > 1 and parts[1].strip() else "Base"
+
+                if set_name not in _cstone_armor_cache:
+                    _cstone_armor_cache[set_name] = {}
+                _cstone_armor_cache[set_name][variant] = uuid
+
+        except Exception as e:
+            logger.error(f"CStone fetch error: {e}")
+
+    _cstone_cache_loaded = True
+    total = sum(len(v) for v in _cstone_armor_cache.values())
+    logger.info(f"CStone armor cache loaded: {len(_cstone_armor_cache)} sets, {total} total variants")
+
+
 def get_armor_image(armor_name):
-    """Get cached wiki image URL for an armor set by name."""
+    """Get cached image URL for an armor set. CStone base image as fallback."""
     wiki_title = ARMOR_WIKI_OVERRIDES.get(armor_name, armor_name)
-    return _armor_image_cache.get(wiki_title, "")
+    wiki_img = _armor_image_cache.get(wiki_title, "")
+    if wiki_img:
+        return wiki_img
+    # Fallback to CStone base image
+    cstone_set = _cstone_armor_cache.get(armor_name, {})
+    base_uuid = cstone_set.get("Base", "")
+    if base_uuid:
+        return CSTONE_IMG.format(base_uuid)
+    return ""
 
 
 def get_armor_variant_images(armor_name, variants):
     """Get a dict mapping variant names to their image URLs.
-    Falls back to the base armor image if no variant image found."""
+    Priority: 1) Wiki variant image, 2) CStone variant image, 3) Base image."""
     base_image = get_armor_image(armor_name)
+    cstone_set = _cstone_armor_cache.get(armor_name, {})
     result = {}
     for v in variants:
-        result[v] = _armor_variant_image_cache.get(v, base_image)
+        # Check wiki cache first
+        wiki_img = _armor_variant_image_cache.get(v)
+        if wiki_img:
+            result[v] = wiki_img
+            continue
+        # Check CStone cache
+        suffix = v.replace(armor_name, "").strip()
+        cstone_uuid = cstone_set.get(suffix, "")
+        if cstone_uuid:
+            result[v] = CSTONE_IMG.format(cstone_uuid)
+            continue
+        # Fallback to base image
+        result[v] = base_image
     return result
 
 

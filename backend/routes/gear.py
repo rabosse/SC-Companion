@@ -3,7 +3,7 @@ from fastapi import APIRouter
 from personal_gear import get_all_fps_weapons, get_all_armor_sets, get_all_equipment
 from ship_data_enhancer import (
     get_armor_image, get_weapon_image, get_armor_variant_images,
-    fetch_armor_variant_images, fetch_armor_images,
+    fetch_armor_variant_images, fetch_armor_images, fetch_cstone_armor_images,
 )
 
 router = APIRouter(prefix="/api/gear", tags=["gear"])
@@ -27,6 +27,7 @@ async def get_armor_sets():
     # Ensure variant images are fetched (runs once)
     if not _variant_images_fetched:
         await fetch_armor_images()
+        await fetch_cstone_armor_images()
         await fetch_armor_variant_images(sets)
         _variant_images_fetched = True
 

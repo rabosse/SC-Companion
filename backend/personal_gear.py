@@ -310,7 +310,7 @@ ARMOR_SETS = [
      "price_auec": 16800,
      "locations": ["Dumper's Depot (New Babbage)", "Armor shops (Orison)"],
      "loot_locations": ["Cave exploration sites"],
-     "variants": ["Antium Cobalt", "Antium Ember", "Antium Gold", "Antium Ice"]},
+     "variants": ["Antium Jet", "Antium Maroon", "Antium Midnight Sun", "Antium Moss Camo", "Antium Sand", "Antium Storm"]},
 
     {"id": "citadel-heavy", "name": "Citadel", "type": "Heavy", "manufacturer": "Kastak Arms",
      "temp_max": 100, "temp_min": -80, "radiation": 26800,
@@ -318,7 +318,7 @@ ARMOR_SETS = [
      "price_auec": 19500,
      "locations": ["ASD Facilities (Pyro)", "Crusader Security loot"],
      "loot_locations": ["ASD Facilities", "Security bunkers"],
-     "variants": ["Citadel Ash", "Citadel Crimson", "Citadel Olive", "Citadel Storm"]},
+     "variants": ["Citadel Brimstone", "Citadel Dark Red", "Citadel Earthwork", "Citadel Icefall", "Citadel Ignitor", "Citadel Outcrop", "Citadel Roughshod"]},
 
     {"id": "corbel-heavy", "name": "Corbel", "type": "Heavy", "manufacturer": "Odin Munitions",
      "temp_max": 100, "temp_min": -70, "radiation": 26800,
@@ -326,7 +326,7 @@ ARMOR_SETS = [
      "price_auec": 17600,
      "locations": ["Armor shops (Lorville)", "Distribution Centers"],
      "loot_locations": ["Ground bunker missions"],
-     "variants": ["Corbel Dustwalker", "Corbel Nightwatch", "Corbel Frostbite", "Corbel Pyro"]},
+     "variants": ["Corbel Crush", "Corbel Halcyon", "Corbel Mire", "Corbel Patina", "Corbel Smolder"]},
 
     {"id": "defiance-heavy", "name": "Defiance", "type": "Heavy", "manufacturer": "Clark Defense Systems",
      "temp_max": 102, "temp_min": -72, "radiation": 26800,
@@ -334,7 +334,7 @@ ARMOR_SETS = [
      "price_auec": 20200,
      "locations": ["Subscriber rewards", "Rare loot"],
      "loot_locations": ["High-threat bunkers"],
-     "variants": ["Defiance Charcoal", "Defiance Desert", "Defiance Firestarter", "Defiance Hailstorm", "Defiance Sunchaser", "Defiance Tactical"]},
+     "variants": ["Defiance Charcoal", "Defiance Desert", "Defiance Firestarter", "Defiance Hailstorm", "Defiance Scorched", "Defiance Sunchaser", "Defiance Tactical"]},
 
     {"id": "morozov-sh-heavy", "name": "Morozov-SH", "type": "Heavy", "manufacturer": "Roussimoff",
      "temp_max": 105, "temp_min": -75, "radiation": 26800,
@@ -358,7 +358,7 @@ ARMOR_SETS = [
      "price_auec": 11200,
      "locations": ["All Distribution Centers", "Armor shops (all landing zones)"],
      "loot_locations": ["Distribution Centers"],
-     "variants": ["Palatino Forest", "Palatino Desert", "Palatino Urban", "Palatino Snow"]},
+     "variants": ["Palatino Daystar", "Palatino Deadlock", "Palatino Mark I", "Palatino Metropolis", "Palatino Moonfall", "Palatino Necropolis", "Palatino Shadow Gild", "Palatino Sunstone"]},
 
     # === MEDIUM ARMOR ===
     {"id": "artimex-medium", "name": "Artimex", "type": "Medium", "manufacturer": "Clark Defense Systems",
@@ -383,7 +383,7 @@ ARMOR_SETS = [
      "price_auec": 9200,
      "locations": ["Armor shops (Lorville)", "Grim HEX"],
      "loot_locations": ["Bounty hunt targets"],
-     "variants": ["Aves Midnight", "Aves Sandstorm", "Aves Charcoal", "Aves Crimson"]},
+     "variants": ["Aves Epoque"]},
 
     {"id": "novikov-medium", "name": "Novikov", "type": "Medium", "manufacturer": "Odin Munitions",
      "temp_max": 95, "temp_min": -65, "radiation": 26400,
@@ -424,7 +424,7 @@ ARMOR_SETS = [
      "price_auec": 5800,
      "locations": ["Armor shops (Lorville)", "Live Fire Weapons"],
      "loot_locations": ["Ground combat zones"],
-     "variants": ["Calico Tactical"]},
+     "variants": ["Calico Desert", "Calico Tactical"]},
 
     {"id": "fbl-8a-light", "name": "FBL-8a", "type": "Light", "manufacturer": "Clark Defense Systems",
      "temp_max": 65, "temp_min": -35, "radiation": 26000,
@@ -457,7 +457,7 @@ ARMOR_SETS = [
      "price_auec": 2800,
      "locations": ["Armor shops (Hurston)", "Distribution Centers"],
      "loot_locations": ["Bunker missions", "Security NPC drops"],
-     "variants": ["ORC-mkV Desert", "ORC-mkV Arctic", "ORC-mkV Woodland", "ORC-mkV Olive"]},
+     "variants": ["ORC-mkV Aqua", "ORC-mkV Black", "ORC-mkV Blue", "ORC-mkV Dark Green", "ORC-mkV Dark Red", "ORC-mkV Grey", "ORC-mkV Orange", "ORC-mkV Scorched", "ORC-mkV Twilight"]},
 
     {"id": "macflex-medium", "name": "MacFlex", "type": "Medium", "manufacturer": "Clark Defense Systems",
      "temp_max": 82, "temp_min": -52, "radiation": 26400,
@@ -489,7 +489,7 @@ ARMOR_SETS = [
      "price_auec": 5500,
      "locations": ["Armor shops (most stations)", "Security facilities"],
      "loot_locations": ["Security NPC drops", "Advocacy missions"],
-     "variants": ["TrueDef-Pro Red Silver", "TrueDef-Pro Black Grey", "TrueDef-Pro Black Grey Red", "TrueDef-Pro CDF", "TrueDef-Pro Black Silver Green", "TrueDef-Pro Aqua Black"]},
+     "variants": ["TrueDef-Pro Red/Silver", "TrueDef-Pro Black/Grey", "TrueDef-Pro Black/Grey/Red", "TrueDef-Pro CDF", "TrueDef-Pro Black/Silver/Green", "TrueDef-Pro Aqua/Black"]},
 
     {"id": "pab1-light", "name": "PAB-1", "type": "Light", "manufacturer": "Clark Defense Systems",
      "temp_max": 65, "temp_min": -35, "radiation": 26000,
@@ -514,7 +514,7 @@ ARMOR_SETS = [
      "price_auec": 10200,
      "locations": ["Military surplus shops", "Looted from UEE Navy NPCs"],
      "loot_locations": ["UEE naval vessels"],
-     "variants": ["Sol-III Olive", "Sol-III Grey", "Sol-III Navy", "Sol-III Black"]},
+     "variants": ["Sol-III Aviator", "Sol-III Bombardier"]},
 ]
 
 
