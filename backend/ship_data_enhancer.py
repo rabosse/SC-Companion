@@ -230,10 +230,20 @@ ARMOR_WIKI_OVERRIDES = {
     "Pembroke": "Pembroke Exploration Suit",
     "Odyssey II": "Odyssey II",
     "Sol-III": "Sol-III",
+    "ORC-mkX": "ORC-mkX",
+    "ORC-mkV": "ORC-mkV",
+    "MacFlex": "MacFlex",
+    "Venture": "Venture",
+    "PAB-1": "PAB-1",
+    "Corbel": "Corbel",
+    "Antium": "Antium",
 }
 
 _armor_image_cache = {}
 _armor_cache_loaded = False
+# variant name -> image URL  (e.g. "ORC-mkX Woodland" -> "https://...")
+_armor_variant_image_cache = {}
+_armor_variant_cache_loaded = False
 
 
 async def fetch_armor_images():
@@ -242,7 +252,7 @@ async def fetch_armor_images():
     if _armor_cache_loaded:
         return
 
-    titles = list(ARMOR_WIKI_OVERRIDES.values())
+    titles = list(set(ARMOR_WIKI_OVERRIDES.values()))
     logger.info(f"Fetching wiki armor images for {len(titles)} sets...")
 
     async with httpx.AsyncClient(timeout=30.0) as client:
@@ -271,10 +281,105 @@ async def fetch_armor_images():
     logger.info(f"Armor image cache loaded: {len(_armor_image_cache)} images cached")
 
 
+async def fetch_armor_variant_images(armor_sets):
+    """Fetch variant-specific images for all armor sets using the wiki allimages API.
+    Looks for images matching pattern: {SetName}_Core_{VariantSuffix}_-_In-game_SCT_logo.jpg
+    """
+    global _armor_variant_image_cache, _armor_variant_cache_loaded
+    if _armor_variant_cache_loaded:
+        return
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        for armor in armor_sets:
+            armor_name = armor["name"]
+            wiki_prefix = ARMOR_WIKI_OVERRIDES.get(armor_name, armor_name)
+            variants = armor.get("variants", [])
+            if not variants:
+                continue
+
+            try:
+                resp = await client.get(WIKI_API, params={
+                    "action": "query",
+                    "list": "allimages",
+                    "aifrom": wiki_prefix,
+                    "ailimit": 50,
+                    "format": "json",
+                }, follow_redirects=True)
+                if resp.status_code != 200:
+                    continue
+
+                images = resp.json().get("query", {}).get("allimages", [])
+                # Build a lookup: normalize image filenames for matching
+                prefix_lower = wiki_prefix.lower().replace("-", "").replace(" ", "")
+                core_images = {}
+                set_images = {}
+                for img in images:
+                    fname = img["name"]
+                    fname_lower = fname.lower().replace("-", "").replace(" ", "")
+                    # Only consider images that belong to this armor set
+                    if prefix_lower not in fname_lower:
+                        continue
+                    # Variant core images: {Set}_Core_{Variant}_-_In-game_SCT_logo.jpg
+                    if "core" in fname_lower and "ingame" in fname_lower:
+                        core_images[fname] = img["url"]
+                    # Full armor set images: {Set}_{Variant}_armor_set.jpg
+                    elif "armor_set" in fname_lower:
+                        set_images[fname] = img["url"]
+
+                # Match variants to images
+                for variant in variants:
+                    # Extract the variant suffix (e.g., "ORC-mkX Woodland" -> "Woodland")
+                    suffix = variant.replace(armor_name, "").strip()
+                    if not suffix:
+                        continue
+                    # Normalize suffix for matching: "Red Silver" -> "red_silver"
+                    suffix_normalized = suffix.replace("/", "_").replace(" ", "_").lower()
+
+                    # Try core images first (best quality single-piece representation)
+                    matched = False
+                    for fname, url in core_images.items():
+                        # Extract variant part from filename: {Set}_Core_{Variant}_-_In-game...
+                        fname_part = fname.split("_-_")[0] if "_-_" in fname else fname
+                        # Get the part after _Core_
+                        if "_Core_" in fname_part:
+                            fname_variant = fname_part.split("_Core_", 1)[1].replace("_", " ").strip().lower()
+                            fname_variant_norm = fname_variant.replace(" ", "_")
+                            if suffix_normalized == fname_variant_norm or suffix.lower() == fname_variant:
+                                _armor_variant_image_cache[variant] = url
+                                matched = True
+                                break
+
+                    # Fallback to full set images
+                    if not matched:
+                        for fname, url in set_images.items():
+                            fname_clean = fname.lower().replace("-", "").replace("_", "")
+                            suffix_clean = suffix.lower().replace("-", "").replace(" ", "").replace("_", "")
+                            if suffix_clean in fname_clean:
+                                _armor_variant_image_cache[variant] = url
+                                matched = True
+                                break
+
+            except Exception as e:
+                logger.error(f"Variant image fetch error for {armor_name}: {e}")
+
+    _armor_variant_cache_loaded = True
+    logger.info(f"Armor variant image cache loaded: {len(_armor_variant_image_cache)} variant images cached")
+
+
 def get_armor_image(armor_name):
     """Get cached wiki image URL for an armor set by name."""
     wiki_title = ARMOR_WIKI_OVERRIDES.get(armor_name, armor_name)
     return _armor_image_cache.get(wiki_title, "")
+
+
+def get_armor_variant_images(armor_name, variants):
+    """Get a dict mapping variant names to their image URLs.
+    Falls back to the base armor image if no variant image found."""
+    base_image = get_armor_image(armor_name)
+    result = {}
+    for v in variants:
+        result[v] = _armor_variant_image_cache.get(v, base_image)
+    return result
 
 
 # ---- FPS Weapon Image Support ----

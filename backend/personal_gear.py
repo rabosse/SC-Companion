@@ -294,7 +294,7 @@ ARMOR_SETS = [
      "price_auec": 15400,
      "locations": ["Distribution Centers (all)", "Armor shops (Lorville, Area 18)"],
      "loot_locations": ["Bunker missions", "Distribution Centers"],
-     "variants": ["ADP Stormcloud", "ADP Desert", "ADP Rust Society", "ADP Ember", "ADP Olive"]},
+     "variants": ["ADP Aqua", "ADP Black", "ADP Dark Green", "ADP Grey", "ADP Olive", "ADP Twilight", "ADP Imperial", "ADP Sienna"]},
 
     {"id": "adp-mk4-heavy", "name": "ADP-mk4", "type": "Heavy", "manufacturer": "Clark Defense Systems",
      "temp_max": 100, "temp_min": -70, "radiation": 26800,
@@ -302,7 +302,7 @@ ARMOR_SETS = [
      "price_auec": 18200,
      "locations": ["Pyro One contested zones", "High-security bunkers"],
      "loot_locations": ["Pyro I", "Xenomorph encounter zones"],
-     "variants": ["ADP-mk4 Desert Storm", "ADP-mk4 Snow", "ADP-mk4 Justified", "ADP-mk4 Ember"]},
+     "variants": ["ADP-mk4 Red Alert", "ADP-mk4 Woodland"]},
 
     {"id": "antium-heavy", "name": "Antium", "type": "Heavy", "manufacturer": "Quirinus Tech",
      "temp_max": 120, "temp_min": -95, "radiation": 26800,
@@ -334,7 +334,7 @@ ARMOR_SETS = [
      "price_auec": 20200,
      "locations": ["Subscriber rewards", "Rare loot"],
      "loot_locations": ["High-threat bunkers"],
-     "variants": ["Defiance Sandstorm", "Defiance Arctic", "Defiance Firestarter", "Defiance Scorched", "Defiance Shadowstrike"]},
+     "variants": ["Defiance Charcoal", "Defiance Desert", "Defiance Firestarter", "Defiance Hailstorm", "Defiance Sunchaser", "Defiance Tactical"]},
 
     {"id": "morozov-sh-heavy", "name": "Morozov-SH", "type": "Heavy", "manufacturer": "Roussimoff",
      "temp_max": 105, "temp_min": -75, "radiation": 26800,
@@ -342,7 +342,7 @@ ARMOR_SETS = [
      "price_auec": 12800,
      "locations": ["ASD Facilities", "Looted from Crusader Security NPCs"],
      "loot_locations": ["ASD Facilities", "Crusader security zones"],
-     "variants": ["Morozov-SH Desert", "Morozov-SH Arctic", "Morozov-SH Terracotta", "Morozov-SH Thule", "Morozov-SH Pyrotechnic"]},
+     "variants": ["Morozov-SH Aftershock", "Morozov-SH Brushdrift", "Morozov-SH Crusader Edition", "Morozov-SH Redshift", "Morozov-SH Snowdrift", "Morozov-SH Terracotta", "Morozov-SH Thule"]},
 
     {"id": "overlord-heavy", "name": "Overlord", "type": "Heavy", "manufacturer": "Doomsday",
      "temp_max": 100, "temp_min": -70, "radiation": 26800,
@@ -350,7 +350,7 @@ ARMOR_SETS = [
      "price_auec": 13500,
      "locations": ["Grim HEX", "Subscription exclusive variants"],
      "loot_locations": ["Outlaw bunkers"],
-     "variants": ["Overlord Dust Storm", "Overlord Nightstalker", "Overlord Rime", "Overlord Stinger", "Overlord Predator"]},
+     "variants": ["Overlord Dust Storm", "Overlord Predator", "Overlord Riptide", "Overlord Stinger", "Overlord Supernova", "Overlord Switchback"]},
 
     {"id": "palatino-heavy", "name": "Palatino", "type": "Heavy", "manufacturer": "Quirinus Tech",
      "temp_max": 100, "temp_min": -70, "radiation": 26800,
@@ -367,7 +367,7 @@ ARMOR_SETS = [
      "price_auec": 14200,
      "locations": ["Armor shops (most stations)", "Distribution Centers"],
      "loot_locations": ["Bunker missions"],
-     "variants": ["Artimex Ash", "Artimex Cobalt", "Artimex Sand", "Artimex Ivory"]},
+     "variants": ["Artimex Canuto", "Artimex Lodestone", "Artimex Red Alert", "Artimex Wildwood"]},
 
     {"id": "aril-medium", "name": "Aril", "type": "Medium", "manufacturer": "Quirinus Tech",
      "temp_max": 88, "temp_min": -58, "radiation": 26400,
@@ -375,7 +375,7 @@ ARMOR_SETS = [
      "price_auec": 8400,
      "locations": ["Dumper's Depot (New Babbage)", "Cargo Decks (most stations)"],
      "loot_locations": ["Mining outposts"],
-     "variants": ["Aril Snow", "Aril Forest", "Aril Slate", "Aril Ember"]},
+     "variants": ["Aril Black Cherry", "Aril Harvester", "Aril Hazard", "Aril Quicksilver", "Aril Red Alert"]},
 
     {"id": "aves-medium", "name": "Aves", "type": "Medium", "manufacturer": "Kastak Arms",
      "temp_max": 82, "temp_min": -52, "radiation": 26400,
@@ -399,7 +399,7 @@ ARMOR_SETS = [
      "price_auec": 7800,
      "locations": ["Armor shops (most stations)"],
      "loot_locations": ["General NPC loot"],
-     "variants": ["Lynx Ranger", "Lynx Shadow", "Lynx Slate", "Lynx Olive"]},
+     "variants": ["Lynx Blue", "Lynx Draas", "Lynx Firebrick", "Lynx Lichen", "Lynx Olive", "Lynx Orange", "Lynx Sandstorm", "Lynx Seagreen"]},
 
     # === LIGHT ARMOR ===
     {"id": "arden-sl-light", "name": "Arden-SL", "type": "Light", "manufacturer": "Roussimoff",
@@ -408,7 +408,7 @@ ARMOR_SETS = [
      "price_auec": 8800,
      "locations": ["Armor shops (most stations)", "Cargo Decks"],
      "loot_locations": ["Security NPC drops"],
-     "variants": ["Arden-SL Blue", "Arden-SL White", "Arden-SL Black", "Arden-SL Navy"]},
+     "variants": ["Arden-SL Archangel", "Arden-SL Balefire", "Arden-SL Red Alert", "Arden-SL Rime"]},
 
     {"id": "aztalan-light", "name": "Aztalan", "type": "Light", "manufacturer": "Tehachapi",
      "temp_max": 68, "temp_min": -38, "radiation": 26000,
@@ -424,7 +424,7 @@ ARMOR_SETS = [
      "price_auec": 5800,
      "locations": ["Armor shops (Lorville)", "Live Fire Weapons"],
      "loot_locations": ["Ground combat zones"],
-     "variants": ["Calico Crimson", "Calico Midnight", "Calico Dust", "Calico Arctic"]},
+     "variants": ["Calico Tactical"]},
 
     {"id": "fbl-8a-light", "name": "FBL-8a", "type": "Light", "manufacturer": "Clark Defense Systems",
      "temp_max": 65, "temp_min": -35, "radiation": 26000,
@@ -432,7 +432,7 @@ ARMOR_SETS = [
      "price_auec": 6800,
      "locations": ["Armor shops (all landing zones)"],
      "loot_locations": ["General NPC drops"],
-     "variants": ["FBL-8a Forest", "FBL-8a Urban", "FBL-8a Desert", "FBL-8a Snow"]},
+     "variants": ["FBL-8a Arctic Digital", "FBL-8a Desert Digital", "FBL-8a Imperial Red"]},
 
     {"id": "sterling-light", "name": "Sterling", "type": "Light", "manufacturer": "Quirinus Tech",
      "temp_max": 70, "temp_min": -40, "radiation": 26000,
@@ -441,6 +441,63 @@ ARMOR_SETS = [
      "locations": ["Pyro One", "Larger loot locations"],
      "loot_locations": ["Pyro I facilities", "Exploration sites"],
      "variants": ["Sterling Explorer", "Sterling Ranger", "Sterling Shadow", "Sterling Frost"]},
+
+    # === ADDITIONAL MISSING SETS ===
+    {"id": "orc-mkx-medium", "name": "ORC-mkX", "type": "Medium", "manufacturer": "Clark Defense Systems",
+     "temp_max": 91, "temp_min": -61, "radiation": 26400,
+     "description": "Medium combat armor used by Protector Marines. Successor to ORC-mkV. 30% damage reduction. EVA-rated.",
+     "price_auec": 3200,
+     "locations": ["Galleria FPS Armor (Jump Points)", "MIC-L4", "Area 18 Armor shops"],
+     "loot_locations": ["Bunker missions", "Distribution Centers"],
+     "variants": ["ORC-mkX Desert", "ORC-mkX Iceborn", "ORC-mkX Nightfire", "ORC-mkX Woodland", "ORC-mkX Singularity", "ORC-mkX Arctic", "ORC-mkX Autumn", "ORC-mkX Twilight"]},
+
+    {"id": "orc-mkv-medium", "name": "ORC-mkV", "type": "Medium", "manufacturer": "Clark Defense Systems",
+     "temp_max": 85, "temp_min": -55, "radiation": 26400,
+     "description": "Predecessor to the ORC-mkX. Reliable medium combat armor still widely found in the verse.",
+     "price_auec": 2800,
+     "locations": ["Armor shops (Hurston)", "Distribution Centers"],
+     "loot_locations": ["Bunker missions", "Security NPC drops"],
+     "variants": ["ORC-mkV Desert", "ORC-mkV Arctic", "ORC-mkV Woodland", "ORC-mkV Olive"]},
+
+    {"id": "macflex-medium", "name": "MacFlex", "type": "Medium", "manufacturer": "Clark Defense Systems",
+     "temp_max": 82, "temp_min": -52, "radiation": 26400,
+     "description": "Flex-weave medium armor with excellent mobility. Common civilian and security armor.",
+     "price_auec": 4200,
+     "locations": ["Armor shops (most stations)", "Cargo Decks"],
+     "loot_locations": ["Distribution Centers", "General NPC drops"],
+     "variants": ["MacFlex Black", "MacFlex Aqua", "MacFlex Blue", "MacFlex Dark Green", "MacFlex Dark Red", "MacFlex Grey", "MacFlex Imperial", "MacFlex Olive", "MacFlex Orange"]},
+
+    {"id": "venture-light", "name": "Venture", "type": "Light", "manufacturer": "RSI",
+     "temp_max": 70, "temp_min": -40, "radiation": 26000,
+     "description": "RSI light exploration armor. Space-optimized with glass cockpit HUD integration.",
+     "price_auec": 7200,
+     "locations": ["Clothing shops (most stations)", "Dumper's Depot"],
+     "loot_locations": [],
+     "variants": ["Venture Black", "Venture Aqua", "Venture Blue", "Venture Dark Green", "Venture Grey", "Venture Executive", "Venture Ascension", "Venture Envy", "Venture Lovestruck"]},
+
+    {"id": "inquisitor-medium", "name": "Inquisitor", "type": "Medium", "manufacturer": "Kastak Arms",
+     "temp_max": 88, "temp_min": -58, "radiation": 26400,
+     "description": "Enforcement-grade medium armor. Distinctive angular visor design. Favored by bounty hunters.",
+     "price_auec": 11500,
+     "locations": ["Grim HEX", "Armor shops (Lorville)"],
+     "loot_locations": ["Bunker missions", "Nine Tails enemy drops"],
+     "variants": ["Inquisitor Black Steel", "Inquisitor Neon Pink", "Inquisitor Raven"]},
+
+    {"id": "truedef-pro-light", "name": "TrueDef-Pro", "type": "Light", "manufacturer": "Virgil Ltd",
+     "temp_max": 65, "temp_min": -35, "radiation": 26000,
+     "description": "Law enforcement light armor. 20% damage reduction. Used by Advocacy and CDF personnel.",
+     "price_auec": 5500,
+     "locations": ["Armor shops (most stations)", "Security facilities"],
+     "loot_locations": ["Security NPC drops", "Advocacy missions"],
+     "variants": ["TrueDef-Pro Red Silver", "TrueDef-Pro Black Grey", "TrueDef-Pro Black Grey Red", "TrueDef-Pro CDF", "TrueDef-Pro Black Silver Green", "TrueDef-Pro Aqua Black"]},
+
+    {"id": "pab1-light", "name": "PAB-1", "type": "Light", "manufacturer": "Clark Defense Systems",
+     "temp_max": 65, "temp_min": -35, "radiation": 26000,
+     "description": "Police and security light armor. Minimal protection with high visibility markings.",
+     "price_auec": 4800,
+     "locations": ["Armor shops (all landing zones)", "Security outfitters"],
+     "loot_locations": ["Security NPC drops", "Crusader Security zones"],
+     "variants": ["PAB-1 Black", "PAB-1 Aqua", "PAB-1 Blue", "PAB-1 Desert", "PAB-1 Red", "PAB-1 Crusader Edition", "PAB-1 Imperial"]},
 
     # === FLIGHT SUITS ===
     {"id": "odyssey-ii-flight", "name": "Odyssey II", "type": "Flight Suit", "manufacturer": "RSI",

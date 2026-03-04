@@ -267,7 +267,12 @@ const ArmorCard = ({ armor, index, onClick }) => {
   const [expanded, setExpanded] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState(armor.name);
   const color = TYPE_COLORS[armor.type] || '#888';
-  const hasImage = !!armor.image;
+
+  // Determine current image: variant image if available, else base image
+  const currentImage = selectedVariant !== armor.name && armor.variant_images?.[selectedVariant]
+    ? armor.variant_images[selectedVariant]
+    : armor.image;
+  const hasImage = !!currentImage;
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.04 }}
@@ -276,7 +281,7 @@ const ArmorCard = ({ armor, index, onClick }) => {
       {/* Image section */}
       <div className="relative h-52 overflow-hidden bg-[#0c0c16]">
         {hasImage ? (
-          <img src={armor.image} alt={selectedVariant} loading="lazy"
+          <img src={currentImage} alt={selectedVariant} loading="lazy"
             className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105" />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
@@ -307,11 +312,11 @@ const ArmorCard = ({ armor, index, onClick }) => {
             )}
           </div>
           {armor.variants?.length > 0 && (
-            <select value={selectedVariant} onChange={e => setSelectedVariant(e.target.value)}
+            <select value={selectedVariant} onChange={e => { e.stopPropagation(); setSelectedVariant(e.target.value); }}
               data-testid={`variant-select-${armor.id}`}
               className="px-2 py-1 bg-[#0a0a10] border border-white/10 rounded-lg text-[10px] text-white focus:outline-none focus:border-cyan-500 max-w-[130px]"
               style={{ colorScheme: 'dark' }}>
-              <option value={armor.name} className="bg-[#0a0a10]">{armor.name}</option>
+              <option value={armor.name} className="bg-[#0a0a10]">{armor.name} (Base)</option>
               {armor.variants.map(v => <option key={v} value={v} className="bg-[#0a0a10]">{v}</option>)}
             </select>
           )}
@@ -452,8 +457,15 @@ const StatPill = ({ label, value, icon: Icon, color }) => (
 
 const GearDetailModal = ({ item, onClose }) => {
   const isWeapon = item._kind === 'weapon';
+  const isArmor = item._kind === 'armor';
   const color = TYPE_COLORS[item.type] || '#888';
-  const hasImage = !!item.image;
+  const [selectedVariant, setSelectedVariant] = useState(null);
+
+  // Determine current image based on selected variant
+  const currentImage = isArmor && selectedVariant && item.variant_images?.[selectedVariant]
+    ? item.variant_images[selectedVariant]
+    : item.image;
+  const hasImage = !!currentImage;
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -475,7 +487,7 @@ const GearDetailModal = ({ item, onClose }) => {
         {/* Image */}
         <div className="relative h-56 bg-[#0c0c16]">
           {hasImage ? (
-            <img src={item.image} alt={item.name} className="w-full h-full object-contain" />
+            <img src={currentImage} alt={selectedVariant || item.name} className="w-full h-full object-contain" />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
               {isWeapon ? <Crosshair className="w-20 h-20 text-gray-700" /> : <Shield className="w-20 h-20 text-gray-700" />}
@@ -497,7 +509,7 @@ const GearDetailModal = ({ item, onClose }) => {
 
         {/* Content */}
         <div className="p-5 -mt-4 relative">
-          <h2 className="text-2xl font-bold text-white mb-1" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{item.name}</h2>
+          <h2 className="text-2xl font-bold text-white mb-1" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{selectedVariant || item.name}</h2>
           <div className="text-sm text-gray-400">{item.manufacturer}</div>
           {item.price_auec > 0 && (
             <div className="text-base font-bold text-amber-400 mt-1" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{item.price_auec.toLocaleString()} aUEC</div>
@@ -522,17 +534,26 @@ const GearDetailModal = ({ item, onClose }) => {
             </div>
           )}
 
-          {/* Variants */}
+          {/* Variants - clickable for armor to swap images */}
           {item.variants?.length > 0 && (
             <div className="mb-5">
-              <div className="text-xs text-gray-500 uppercase font-semibold mb-2">Variants ({item.variants.length})</div>
+              <div className="text-xs text-gray-500 uppercase font-semibold mb-2">Variants ({item.variants.length}){isArmor && ' — click to preview'}</div>
               <div className="flex flex-wrap gap-1.5">
-                {item.variants.map(v => (
-                  <span key={v} className="px-2.5 py-1 rounded-lg text-[11px] bg-white/[0.06] text-gray-300 border border-white/10">
-                    {v}
-                  </span>
-                ))}
+                <button onClick={() => setSelectedVariant(null)} data-testid="variant-btn-base"
+                  className={`px-2.5 py-1 rounded-lg text-[11px] border transition-all cursor-pointer ${!selectedVariant ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' : 'bg-white/[0.06] text-gray-300 border-white/10 hover:bg-white/10'}`}>
+                  {item.name} (Base)
+                </button>
+                {item.variants.map(v => {
+                  const hasVarImg = isArmor && item.variant_images?.[v] && item.variant_images[v] !== item.image;
+                  return (
+                    <button key={v} onClick={() => setSelectedVariant(v)} data-testid={`variant-btn-${v.replace(/[\s/]/g, '-').toLowerCase()}`}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] border transition-all cursor-pointer ${selectedVariant === v ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' : 'bg-white/[0.06] text-gray-300 border-white/10 hover:bg-white/10'}`}>
+                      {v.replace(item.name + ' ', '')}{hasVarImg && ' *'}
+                    </button>
+                  );
+                })}
               </div>
+              {isArmor && <div className="text-[10px] text-gray-600 mt-1">* = unique variant image available</div>}
             </div>
           )}
 
