@@ -21,7 +21,21 @@ Build a full-stack application called "Star Citizen Fleet Manager" / "Star Citiz
 - **Frontend**: React, Tailwind CSS, Shadcn UI, react-router-dom, axios, lucide-react, framer-motion
 - **Backend**: FastAPI, Pydantic, JWT auth, modular routing (APIRouter)
 - **Database**: MongoDB
-- **External APIs**: starcitizen.tools (wiki), finder.cstone.space (CStone armor/weapon data)
+- **External APIs**: starcitizen.tools (wiki), finder.cstone.space (CStone armor/weapon/gadget data)
+
+## Backend Module Structure (Refactored Mar 2026)
+```
+/app/backend/
+├── server.py                # Main FastAPI app, startup events
+├── armor_enhancer.py        # CStone + Wiki images for armor sets
+├── weapon_enhancer.py       # CStone + Wiki images for FPS weapons
+├── equipment_enhancer.py    # CStone gadget images for equipment
+├── ship_data_enhancer.py    # Wiki images for ships/vehicles (re-exports from above)
+├── personal_gear.py         # Static data for armor, weapons, equipment
+├── routes/
+│   ├── gear.py              # /api/gear/* endpoints (weapons, armor, equipment)
+│   ├── auth.py, fleet.py, ships.py, loadouts.py, etc.
+```
 
 ## Key DB Schema
 - **users**: `{username, email, password_hash, fleet: [str]}`
@@ -37,23 +51,22 @@ Build a full-stack application called "Star Citizen Fleet Manager" / "Star Citiz
 - Route Planner (Stanton, Pyro, Nyx) with interdiction/chase modes
 - Dashboard with fleet overview and total value
 - Price Tracker page
-- Personal Gear section (FPS Weapons, Armor Sets, Equipment)
+- Personal Gear section - ALL 3 tabs fully integrated:
   - **Armor tab**: 28 sets with CStone images, per-variant pricing/locations/loot data
-  - **Weapons tab**: 50 weapons with CStone images, per-variant pricing/locations/loot data (COMPLETED Mar 2026)
-  - **Equipment tab**: 30 items with clickable cards and detail modals
-  - All 3 tabs share identical functionality: variant selectors, dynamic image/price/location updates, LOOT ONLY badges, detail modals with clickable variant buttons
+  - **Weapons tab**: 50 weapons with CStone images, per-variant pricing/locations/loot data
+  - **Equipment tab**: 30 items with CStone images (medical items), image thumbnails, variant selectors, detail modals with stats
 - Hide-on-scroll header, "Star Citizen Companion" branding
 
 ## Completed (Mar 2026 - Latest Session)
 1. Completed CStone API integration for FPS Weapons tab (feature parity with Armor)
-2. Weapon cards now show CStone variant images, dynamic pricing, LOOT ONLY badges
-3. Weapon variant selectors update card title, image, price, and Buy/Loot locations
-4. GearDetailModal now supports both armor AND weapon variant interaction
-5. Equipment cards made clickable with detail modal showing stats and locations
-6. All 3 Gear tabs verified with 100% test pass rate (iteration 17)
+2. Completed CStone API integration for Equipment tab (GetGadgets endpoint for medical items)
+3. Refactored ship_data_enhancer.py (805 lines) into 4 focused modules:
+   - armor_enhancer.py, weapon_enhancer.py, equipment_enhancer.py, ship_data_enhancer.py (ships only)
+4. EquipmentCard upgraded with image thumbnails, variant selectors, clickable detail modals
+5. GearDetailModal extended to support all 3 item types (armor, weapons, equipment)
+6. All tests passed: iteration 17 (100%), iteration 18 (100% - 19 backend + all frontend)
 
 ## Backlog
-- P0: CStone Integration for Equipment tab (variant images if CStone adds equipment endpoints)
-- P2: Refactor ship_data_enhancer.py into smaller modules (armor_enhancer.py, weapon_enhancer.py)
-- P2: Price change alerts for fleet ships
 - P2: Add more armor sets from CStone (27 additional sets available)
+- P2: Price change alerts for fleet ships
+- P3: Wiki image integration for equipment items without CStone coverage (mining tools, backpacks)
