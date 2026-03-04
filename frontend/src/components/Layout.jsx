@@ -1,13 +1,31 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../App';
 import { Users, Box, Crosshair, LogOut, Menu, X, Briefcase, GitCompareArrows, Wrench, Globe, Navigation, Shield, TrendingUp } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import SpaceshipIcon from './SpaceshipIcon';
 
 const Layout = ({ children }) => {
   const { user, logout } = useAuth();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [headerVisible, setHeaderVisible] = useState(true);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentY = window.scrollY;
+      if (currentY < 10) {
+        setHeaderVisible(true);
+      } else if (currentY > lastScrollY.current) {
+        setHeaderVisible(false);
+      } else {
+        setHeaderVisible(true);
+      }
+      lastScrollY.current = currentY;
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const navItems = [
     { path: '/', label: 'Dashboard', icon: SpaceshipIcon },
@@ -32,23 +50,27 @@ const Layout = ({ children }) => {
   return (
     <div className="min-h-screen" style={{ background: '#050508' }}>
       {/* Header */}
-      <header className="glass-panel border-b border-white/5 sticky top-0 z-50">
+      <header
+        className="glass-panel border-b border-white/5 fixed top-0 left-0 right-0 z-50 transition-transform duration-300"
+        style={{ transform: headerVisible ? 'translateY(0)' : 'translateY(-100%)' }}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
+            <Link to="/" className="flex items-center gap-3 group">
               <img 
                 src="https://robertsspaceindustries.com/rsi/static/images/account/avatar_default_big.jpg" 
                 alt="Star Citizen Logo"
-                className="w-10 h-10 rounded-full"
+                className="w-9 h-9 rounded-full ring-2 ring-cyan-500/30 group-hover:ring-cyan-500/60 transition-all"
                 onError={(e) => {
                   e.target.onerror = null;
                   e.target.src = "https://media.robertsspaceindustries.com/logo/SC-Logo-white.png";
                 }}
               />
-              <h1 className="text-2xl font-bold tracking-tight uppercase" style={{ fontFamily: 'Rajdhani, sans-serif', color: '#00D4FF' }}>
-                Star Citizen Fleet Manager
-              </h1>
-            </div>
+              <div className="leading-none">
+                <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-cyan-500/70" style={{ fontFamily: 'Rajdhani, sans-serif' }}>Star Citizen</span>
+                <div className="text-lg font-bold uppercase tracking-wide text-white" style={{ fontFamily: 'Rajdhani, sans-serif' }}>Companion</div>
+              </div>
+            </Link>
 
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center space-x-1">
@@ -131,8 +153,8 @@ const Layout = ({ children }) => {
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Main Content — offset for fixed header */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mt-16">
         {children}
       </main>
     </div>
