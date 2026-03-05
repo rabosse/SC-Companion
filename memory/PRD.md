@@ -44,6 +44,7 @@ Build a full-stack "Star Citizen Fleet Manager" application to allow players to 
 - **Weapon Hardpoint Accuracy**: Curated per-ship hardpoint mapping for 100+ ships replacing generic size-based approximation; ships now expose quantum drive data from the Wiki API
 - **Interdiction Planner**: QED snare position calculator with coverage analysis
 - **Chase Calculator**: QD speed comparison tool
+- **Gear Tab Unification**: Equipment tab rewritten to match Armor/Weapons layout — 3-column card grid, large image headers, type/subtype badges, Buy/Loot location sections, variant selector, and detail modal all unified across all 3 gear tabs
 
 ## Prioritized Backlog
 ### P1 - Next
