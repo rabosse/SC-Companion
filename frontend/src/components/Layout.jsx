@@ -122,7 +122,7 @@ const Layout = ({ children }) => {
 
           {/* Mobile Navigation */}
           {mobileMenuOpen && (
-            <div className="md:hidden pb-4 space-y-2" data-testid="mobile-menu">
+            <div className="md:hidden pb-4 pt-2 px-2 space-y-2 bg-[#0a0e14] border-t border-white/5" data-testid="mobile-menu">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 return (
