@@ -42,8 +42,7 @@ Build a full-stack "Star Citizen Fleet Manager" application to allow players to 
 - **Route Planner Overhaul**: Complete redesign with Mobi-Glass HUD aesthetic, fuel consumption model, fuel stops at rest stations, cross-system routing with jump waypoints
 - **Fleet Integration**: Toggle switch between Fleet ships and All Ships in route planner ship selector; ship QD stats (speed, range, fuel) displayed
 - **Weapon Hardpoint Accuracy**: Curated per-ship hardpoint mapping for 100+ ships replacing generic size-based approximation; ships now expose quantum drive data from the Wiki API
-- **Interdiction Planner**: QED snare position calculator with coverage analysis
-- **Chase Calculator**: QD speed comparison tool
+- **Starmap Visual Overhaul**: Complete rewrite of the star map canvas with requestAnimationFrame animation loop — 500 twinkling stars, per-system nebula glow (blue Stanton, red Pyro, purple Nyx), multi-layer star halos, atmospheric planet bodies, diamond gateways, pulsing node highlights, animated flowing route lines, HUD scan-line sweep, smart zoom-based labels, orbit rings
 - **Gear Tab Unification**: Equipment tab rewritten to match Armor/Weapons layout — 3-column card grid, large image headers, type/subtype badges, Buy/Loot location sections, variant selector, and detail modal all unified across all 3 gear tabs
 
 ## Prioritized Backlog
