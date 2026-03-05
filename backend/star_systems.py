@@ -668,53 +668,179 @@ def calculate_interdiction(origin_ids, destination_id, snare_range_mkm=7.5, your
 
 
 def calculate_chase(your_qd_size, target_qd_size, distance_mkm, prep_time_seconds=30):
-    """Calculate if you can catch a target in a quantum chase.
-    
-    your_qd_size: your ship's QD size
-    target_qd_size: target's QD size
-    distance_mkm: distance between you and target's route
-    prep_time_seconds: time to spool QD and start pursuit
-    """
+    """Simple chase calculator (legacy). Used as fallback."""
     your_speed = QD_SPEEDS.get(your_qd_size, QD_SPEEDS[1])
     target_speed = QD_SPEEDS.get(target_qd_size, QD_SPEEDS[1])
-
     distance_km = distance_mkm * 1_000_000
 
-    # Time for you to close the distance
-    your_travel_time = distance_km / your_speed + prep_time_seconds
-
-    # If you're faster, calculate intercept
     if your_speed > target_speed:
-        # Closing speed
         closing_speed = your_speed - target_speed
-        # Time to catch up once both in QT
         catch_time = distance_km / closing_speed
         total_time = catch_time + prep_time_seconds
-
         return {
-            "can_catch": True,
-            "your_speed_kms": your_speed,
-            "target_speed_kms": target_speed,
+            "can_catch": True, "your_speed_kms": your_speed, "target_speed_kms": target_speed,
             "speed_advantage_kms": your_speed - target_speed,
-            "closing_time_seconds": round(catch_time),
-            "total_time_seconds": round(total_time),
-            "prep_time_seconds": prep_time_seconds,
-            "distance_mkm": distance_mkm,
+            "closing_time_seconds": round(catch_time), "total_time_seconds": round(total_time),
+            "prep_time_seconds": prep_time_seconds, "distance_mkm": distance_mkm,
             "verdict": f"You can catch the target in ~{round(total_time)}s ({round(total_time/60, 1)} min). Your QD is {your_speed - target_speed:,} km/s faster.",
         }
     elif your_speed == target_speed:
-        return {
-            "can_catch": False,
-            "your_speed_kms": your_speed,
-            "target_speed_kms": target_speed,
-            "speed_advantage_kms": 0,
-            "verdict": "Same QD speed - you cannot close the gap. Consider upgrading your quantum drive.",
-        }
+        return {"can_catch": False, "your_speed_kms": your_speed, "target_speed_kms": target_speed,
+                "speed_advantage_kms": 0, "verdict": "Same QD speed — you cannot close the gap. Consider upgrading your quantum drive."}
     else:
-        return {
-            "can_catch": False,
-            "your_speed_kms": your_speed,
-            "target_speed_kms": target_speed,
-            "speed_advantage_kms": your_speed - target_speed,
-            "verdict": f"Target's QD is {target_speed - your_speed:,} km/s faster. You cannot catch them in quantum. Use interdiction instead.",
-        }
+        return {"can_catch": False, "your_speed_kms": your_speed, "target_speed_kms": target_speed,
+                "speed_advantage_kms": your_speed - target_speed,
+                "verdict": f"Target's QD is {target_speed - your_speed:,} km/s faster. You cannot catch them in quantum. Use interdiction instead."}
+
+
+def calculate_chase_advanced(your_position_id, target_position_id, your_qd_size=1, target_qd_size=1, prep_time_seconds=30):
+    """Advanced pursuit planner: analyses every escape destination a target might flee to."""
+    your_loc = _loc_by_id.get(your_position_id)
+    target_loc = _loc_by_id.get(target_position_id)
+    if not your_loc:
+        return {"error": "Your position not found"}
+    if not target_loc:
+        return {"error": "Target position not found"}
+
+    your_speed = QD_SPEEDS.get(your_qd_size, QD_SPEEDS[1])
+    target_speed = QD_SPEEDS.get(target_qd_size, QD_SPEEDS[1])
+    target_range_mkm = QD_FUEL_DEFAULTS.get(target_qd_size, {}).get("range_mkm", 180)
+
+    # Distance between you and target
+    sep_dist_map = math.sqrt((your_loc["map_x"] - target_loc["map_x"]) ** 2 +
+                             (your_loc["map_y"] - target_loc["map_y"]) ** 2)
+    sep_dist_mkm = round(sep_dist_map * 0.3, 2)
+
+    # Find potential escape destinations for the target
+    # (dockable locations: stations, rest_stops, cities, gateways — within their QD fuel range & same system or via gateway)
+    escape_types = {"station", "rest_stop", "city", "gateway"}
+    escape_destinations = []
+
+    for loc in LOCATIONS:
+        if loc["id"] == target_position_id or loc["id"] == your_position_id:
+            continue
+        if loc["type"] not in escape_types:
+            continue
+
+        # Calculate target's distance to this escape point
+        target_dist = _distance_mkm(target_loc, loc)
+        if target_dist is None:
+            # Cross-system — only reachable via gateway, skip for simplicity
+            continue
+        if target_dist > target_range_mkm:
+            continue  # Out of fuel range
+        if target_dist < 0.5:
+            continue  # Too close, effectively same location
+
+        # Calculate your distance to intercept (head to same location)
+        your_dist = _distance_mkm(your_loc, loc)
+        if your_dist is None:
+            continue
+
+        target_travel_km = target_dist * 1_000_000
+        your_travel_km = your_dist * 1_000_000
+
+        target_time = round(target_travel_km / target_speed) if target_speed > 0 else 9999
+        your_time = round(your_travel_km / your_speed + prep_time_seconds) if your_speed > 0 else 9999
+
+        can_intercept = your_time <= target_time
+        time_diff = target_time - your_time  # positive = you arrive first
+
+        escape_destinations.append({
+            "id": loc["id"],
+            "name": loc["name"],
+            "type": loc["type"],
+            "system": loc["system"],
+            "target_distance_mkm": round(target_dist, 2),
+            "your_distance_mkm": round(your_dist, 2),
+            "target_time_s": target_time,
+            "your_time_s": your_time,
+            "can_intercept": can_intercept,
+            "time_margin_s": time_diff,
+            "map_x": loc["map_x"],
+            "map_y": loc["map_y"],
+        })
+
+    # Sort: interceptable first (by time margin desc), then non-interceptable (by time margin desc)
+    escape_destinations.sort(key=lambda d: (-int(d["can_intercept"]), -d["time_margin_s"]))
+
+    interceptable = [d for d in escape_destinations if d["can_intercept"]]
+    escapable = [d for d in escape_destinations if not d["can_intercept"]]
+    total = len(escape_destinations)
+    intercept_pct = round((len(interceptable) / total) * 100) if total > 0 else 0
+
+    # Pursuit recommendation
+    if len(interceptable) == total and total > 0:
+        recommendation = "Full pursuit advantage — you can reach every escape destination before the target."
+        threat_level = "low"
+    elif len(interceptable) > len(escapable):
+        recommendation = f"You control {len(interceptable)}/{total} escape routes. Focus on blocking the {len(escapable)} uncovered destination(s)."
+        threat_level = "medium"
+    elif len(interceptable) > 0:
+        recommendation = f"Target has {len(escapable)} escape options you can't reach in time. Consider interdiction instead of pursuit."
+        threat_level = "high"
+    else:
+        recommendation = "Target can reach all safe havens before you. Deploy QED snare or disengage."
+        threat_level = "critical"
+
+    # Best pursuit destination: the one where you arrive earliest relative to target
+    best_pursuit = interceptable[0] if interceptable else None
+
+    # Tactical notes
+    tactics = []
+    if your_speed > target_speed:
+        tactics.append(f"Speed advantage: {your_speed - target_speed:,} km/s faster. Direct pursuit viable in open space.")
+    elif your_speed == target_speed:
+        tactics.append("Matched QD speed — you can't close in open space. Cut them off at a destination.")
+    else:
+        tactics.append(f"Target is {target_speed - your_speed:,} km/s faster. Direct pursuit futile — focus on interception points.")
+
+    if prep_time_seconds > 15:
+        tactics.append(f"{prep_time_seconds}s prep delay costs you {round(your_speed * prep_time_seconds / 1_000_000, 1)} Mkm of ground.")
+
+    gateways_escape = [d for d in escapable if d["type"] == "gateway"]
+    if gateways_escape:
+        tactics.append(f"Target can flee to {gateways_escape[0]['name']} — they may jump systems. Act fast.")
+
+    stations_close = [d for d in escape_destinations if d["type"] in ("station", "rest_stop") and d["target_distance_mkm"] < 5]
+    if stations_close:
+        tactics.append(f"Target is close to {stations_close[0]['name']} ({stations_close[0]['target_distance_mkm']} Mkm). They may dock before you arrive.")
+
+    if best_pursuit:
+        tactics.append(f"Best intercept: head to {best_pursuit['name']} — you arrive {abs(best_pursuit['time_margin_s'])}s before the target.")
+
+    if not tactics:
+        tactics.append("Assess the situation — consider wing support or coordinated interdiction.")
+
+    # Build chase lines for canvas visualization
+    chase_lines = []
+    for dest in escape_destinations[:12]:
+        chase_lines.append({
+            "target_x": target_loc["map_x"], "target_y": target_loc["map_y"],
+            "dest_x": dest["map_x"], "dest_y": dest["map_y"],
+            "your_x": your_loc["map_x"], "your_y": your_loc["map_y"],
+            "can_intercept": dest["can_intercept"],
+            "dest_name": dest["name"],
+        })
+
+    return {
+        "your_position": {"id": your_position_id, "name": your_loc["name"], "system": your_loc["system"],
+                          "map_x": your_loc["map_x"], "map_y": your_loc["map_y"]},
+        "target_position": {"id": target_position_id, "name": target_loc["name"], "system": target_loc["system"],
+                            "map_x": target_loc["map_x"], "map_y": target_loc["map_y"]},
+        "separation_mkm": sep_dist_mkm,
+        "your_speed_kms": your_speed,
+        "target_speed_kms": target_speed,
+        "speed_diff_kms": your_speed - target_speed,
+        "prep_time_seconds": prep_time_seconds,
+        "intercept_pct": intercept_pct,
+        "interceptable_count": len(interceptable),
+        "escapable_count": len(escapable),
+        "total_destinations": total,
+        "threat_level": threat_level,
+        "recommendation": recommendation,
+        "best_pursuit": best_pursuit,
+        "escape_destinations": escape_destinations[:15],
+        "tactical_notes": tactics,
+        "chase_lines": chase_lines,
+    }

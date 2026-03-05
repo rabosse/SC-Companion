@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from star_systems import get_all_locations, get_systems, calculate_route, calculate_interdiction, calculate_chase, QD_SPEEDS, QD_FUEL_DEFAULTS
+from star_systems import get_all_locations, get_systems, calculate_route, calculate_interdiction, calculate_chase, calculate_chase_advanced, QD_SPEEDS, QD_FUEL_DEFAULTS
 
 router = APIRouter(prefix="/api/routes", tags=["starmap"])
 
@@ -57,4 +57,20 @@ class ChaseRequest(BaseModel):
 @router.post("/chase")
 async def calculate_chase_scenario(data: ChaseRequest):
     result = calculate_chase(data.your_qd_size, data.target_qd_size, data.distance_mkm, data.prep_time_seconds)
+    return {"success": True, "data": result}
+
+
+class ChaseAdvancedRequest(BaseModel):
+    your_position: str
+    target_position: str
+    your_qd_size: int = 1
+    target_qd_size: int = 1
+    prep_time_seconds: int = 30
+
+
+@router.post("/chase/advanced")
+async def calculate_chase_advanced_route(data: ChaseAdvancedRequest):
+    result = calculate_chase_advanced(data.your_position, data.target_position, data.your_qd_size, data.target_qd_size, data.prep_time_seconds)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
     return {"success": True, "data": result}

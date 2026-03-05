@@ -52,11 +52,13 @@ const RoutePlanner = () => {
   const [interdictYourQd, setInterdictYourQd] = useState(2);
   const [interdictTargetQd, setInterdictTargetQd] = useState(1);
 
-  const [chaseYourQd, setChaseYourQd] = useState(1);
+  const [chaseYourQd, setChaseYourQd] = useState(2);
   const [chaseTargetQd, setChaseTargetQd] = useState(1);
-  const [chaseDist, setChaseDist] = useState(10);
+  const [chaseYourPos, setChaseYourPos] = useState('');
+  const [chaseTargetPos, setChaseTargetPos] = useState('');
   const [chasePrep, setChasePrep] = useState(30);
   const [chaseResult, setChaseResult] = useState(null);
+  const [chasing, setChasing] = useState(false);
 
   const canvasRef = useRef(null);
   const animRef = useRef(null);
@@ -69,7 +71,7 @@ const RoutePlanner = () => {
 
   // Keep refs in sync for animation loop
   const stateRef = useRef({});
-  stateRef.current = { locations, systems, origin, destination, route, interdictOrigins, interdictDest, interdictResult, hoveredLoc, activeTab, mapOffset, mapZoom, interdictYourQd, interdictTargetQd };
+  stateRef.current = { locations, systems, origin, destination, route, interdictOrigins, interdictDest, interdictResult, hoveredLoc, activeTab, mapOffset, mapZoom, interdictYourQd, interdictTargetQd, chaseYourPos, chaseTargetPos, chaseResult };
 
   const ships = useMemo(() => useFleet ? fleetShips : allShips, [useFleet, fleetShips, allShips]);
 
@@ -123,11 +125,18 @@ const RoutePlanner = () => {
   }, [interdictOrigins, interdictDest, snareRange, interdictYourQd, interdictTargetQd]);
 
   const calcChase = useCallback(async () => {
+    if (!chaseYourPos || !chaseTargetPos) { toast.error('Select both your position and target position'); return; }
+    setChasing(true);
     try {
-      const res = await axios.post(`${API}/routes/chase`, { your_qd_size: chaseYourQd, target_qd_size: chaseTargetQd, distance_mkm: chaseDist, prep_time_seconds: chasePrep });
+      const res = await axios.post(`${API}/routes/chase/advanced`, {
+        your_position: chaseYourPos, target_position: chaseTargetPos,
+        your_qd_size: chaseYourQd, target_qd_size: chaseTargetQd,
+        prep_time_seconds: chasePrep
+      });
       setChaseResult(res.data.data);
-    } catch { toast.error('Chase calculation failed'); }
-  }, [chaseYourQd, chaseTargetQd, chaseDist, chasePrep]);
+    } catch (err) { toast.error(err.response?.data?.detail || 'Chase calculation failed'); }
+    finally { setChasing(false); }
+  }, [chaseYourPos, chaseTargetPos, chaseYourQd, chaseTargetQd, chasePrep]);
 
   const addInterdictOrigin = (id) => { if (id && !interdictOrigins.includes(id)) { setInterdictOrigins(prev => [...prev, id]); setInterdictResult(null); } };
   const removeInterdictOrigin = (id) => { setInterdictOrigins(prev => prev.filter(o => o !== id)); setInterdictResult(null); };
@@ -171,7 +180,7 @@ const RoutePlanner = () => {
     const draw = (time) => {
       const s = stateRef.current;
       const w = canvas.width, h = canvas.height;
-      const { mapOffset: offset, mapZoom: zoom, locations: locs, systems: sys, origin: org, destination: dst, route: rt, hoveredLoc: hov, activeTab: tab, interdictOrigins: iOrigins, interdictDest: iDest, interdictResult: iResult } = s;
+      const { mapOffset: offset, mapZoom: zoom, locations: locs, systems: sys, origin: org, destination: dst, route: rt, hoveredLoc: hov, activeTab: tab, interdictOrigins: iOrigins, interdictDest: iDest, interdictResult: iResult, chaseYourPos: cYour, chaseTargetPos: cTarget, chaseResult: cResult } = s;
       const t = time * 0.001;
 
       ctx.clearRect(0, 0, w, h);
@@ -352,6 +361,116 @@ const RoutePlanner = () => {
         }
       }
 
+      // === CHASE OVERLAY ===
+      if (tab === 'chase') {
+        // Draw selection rings for your pos and target pos
+        const yourLoc = cYour ? locs.find(l => l.id === cYour) : null;
+        const targetLoc = cTarget ? locs.find(l => l.id === cTarget) : null;
+
+        if (cResult?.chase_lines) {
+          // Draw escape route lines from target to each destination
+          cResult.chase_lines.forEach(cl => {
+            const st = toScreen(cl.target_x, cl.target_y, w, h, offset, zoom);
+            const sd = toScreen(cl.dest_x, cl.dest_y, w, h, offset, zoom);
+            const isBlocked = cl.can_intercept;
+            const lineColor = isBlocked ? 'rgba(0,255,157,0.15)' : 'rgba(255,0,85,0.25)';
+            const glowColor = isBlocked ? 'rgba(0,255,157,0.04)' : 'rgba(255,0,85,0.04)';
+
+            // Glow
+            ctx.strokeStyle = glowColor;
+            ctx.lineWidth = 5 * zoom;
+            ctx.beginPath(); ctx.moveTo(st.x, st.y); ctx.lineTo(sd.x, sd.y); ctx.stroke();
+
+            // Dashed line
+            ctx.strokeStyle = lineColor;
+            ctx.lineWidth = 1.2;
+            ctx.setLineDash([4, 6]);
+            ctx.lineDashOffset = -t * 15;
+            ctx.beginPath(); ctx.moveTo(st.x, st.y); ctx.lineTo(sd.x, sd.y); ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Destination marker
+            ctx.fillStyle = isBlocked ? '#00FF9D' : '#FF0055';
+            ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 4;
+            ctx.beginPath(); ctx.arc(sd.x, sd.y, 2.5 * zoom, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+          });
+
+          // Your pursuit line to best intercept
+          if (cResult.best_pursuit && yourLoc) {
+            const sy = toScreen(yourLoc.map_x, yourLoc.map_y, w, h, offset, zoom);
+            const sb = toScreen(cResult.best_pursuit.map_x, cResult.best_pursuit.map_y, w, h, offset, zoom);
+
+            // Bright pursuit line
+            ctx.strokeStyle = 'rgba(255,174,0,0.08)';
+            ctx.lineWidth = 8 * zoom;
+            ctx.beginPath(); ctx.moveTo(sy.x, sy.y); ctx.lineTo(sb.x, sb.y); ctx.stroke();
+            ctx.strokeStyle = '#FFAE00';
+            ctx.lineWidth = 1.5;
+            ctx.shadowColor = '#FFAE00'; ctx.shadowBlur = 8;
+            ctx.beginPath(); ctx.moveTo(sy.x, sy.y); ctx.lineTo(sb.x, sb.y); ctx.stroke();
+            ctx.shadowBlur = 0;
+            // Animated dash
+            ctx.strokeStyle = 'rgba(255,230,150,0.5)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([3, 10]);
+            ctx.lineDashOffset = -t * 40;
+            ctx.beginPath(); ctx.moveTo(sy.x, sy.y); ctx.lineTo(sb.x, sb.y); ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Arrow at midpoint
+            const angle = Math.atan2(sb.y - sy.y, sb.x - sy.x);
+            const mx = (sy.x + sb.x) / 2, my2 = (sy.y + sb.y) / 2;
+            ctx.fillStyle = '#FFAE00';
+            ctx.shadowColor = '#FFAE00'; ctx.shadowBlur = 6;
+            ctx.beginPath();
+            ctx.moveTo(mx + 7 * Math.cos(angle), my2 + 7 * Math.sin(angle));
+            ctx.lineTo(mx - 5 * Math.cos(angle) - 4 * Math.sin(angle), my2 - 5 * Math.sin(angle) + 4 * Math.cos(angle));
+            ctx.lineTo(mx - 5 * Math.cos(angle) + 4 * Math.sin(angle), my2 - 5 * Math.sin(angle) - 4 * Math.cos(angle));
+            ctx.closePath(); ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // Best intercept label
+            ctx.fillStyle = 'rgba(255,174,0,0.8)';
+            ctx.font = `700 ${Math.max(7, 8 * zoom)}px Rajdhani, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.fillText('INTERCEPT', sb.x, sb.y - 14 * zoom);
+          }
+        }
+
+        // Your position marker
+        if (yourLoc) {
+          const sy = toScreen(yourLoc.map_x, yourLoc.map_y, w, h, offset, zoom);
+          const pulse = Math.sin(t * 3) * 0.3 + 0.7;
+          ctx.strokeStyle = `rgba(0,212,255,${0.5 * pulse})`;
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([4, 4]);
+          ctx.lineDashOffset = -t * 20;
+          ctx.beginPath(); ctx.arc(sy.x, sy.y, 14 * zoom, 0, Math.PI * 2); ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.fillStyle = `rgba(0,212,255,${0.6 * pulse})`;
+          ctx.font = `700 ${Math.max(7, 8 * zoom)}px Rajdhani, sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.fillText('YOU', sy.x, sy.y - 18 * zoom);
+        }
+
+        // Target position marker
+        if (targetLoc) {
+          const st = toScreen(targetLoc.map_x, targetLoc.map_y, w, h, offset, zoom);
+          const pulse = Math.sin(t * 2.5 + 1) * 0.3 + 0.7;
+          ctx.strokeStyle = `rgba(255,0,85,${0.5 * pulse})`;
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([4, 4]);
+          ctx.lineDashOffset = -t * 20;
+          ctx.beginPath(); ctx.arc(st.x, st.y, 14 * zoom, 0, Math.PI * 2); ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.fillStyle = `rgba(255,0,85,${0.6 * pulse})`;
+          ctx.font = `700 ${Math.max(7, 8 * zoom)}px Rajdhani, sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.fillText('TARGET', st.x, st.y - 18 * zoom);
+        }
+      }
+
       // === ROUTE LINES (animated glow) ===
       if (tab === 'route' && rt?.waypoints) {
         // Draw glow layer first, then sharp line, then animated dash
@@ -432,14 +551,15 @@ const RoutePlanner = () => {
 
       // === LOCATION NODES ===
       const isInterdict = tab === 'interdiction';
+      const isChase = tab === 'chase';
       for (const loc of locs) {
         const sc = toScreen(loc.map_x, loc.map_y, w, h, offset, zoom);
         if (sc.x < -30 || sc.x > w + 30 || sc.y < -30 || sc.y > h + 30) continue;
 
         const baseR = (NODE_RADIUS[loc.type] || 3) * zoom;
         const color = TYPE_COLORS[loc.type] || '#888';
-        const isOriginSel = isInterdict ? iOrigins.includes(loc.id) : loc.id === org;
-        const isDestSel = isInterdict ? loc.id === iDest : loc.id === dst;
+        const isOriginSel = isInterdict ? iOrigins.includes(loc.id) : isChase ? loc.id === cYour : loc.id === org;
+        const isDestSel = isInterdict ? loc.id === iDest : isChase ? loc.id === cTarget : loc.id === dst;
         const isHov = hov === loc.id;
         const isActive = isOriginSel || isDestSel || isHov;
         const pulse = Math.sin(t * 2 + loc.map_x * 0.1) * 0.15 + 1;
@@ -626,6 +746,10 @@ const RoutePlanner = () => {
     if (!hoveredLoc) return;
     if (activeTab === 'interdiction') {
       if (!interdictDest) setInterdictDest(hoveredLoc); else addInterdictOrigin(hoveredLoc);
+    } else if (activeTab === 'chase') {
+      if (!chaseYourPos) setChaseYourPos(hoveredLoc);
+      else if (!chaseTargetPos) setChaseTargetPos(hoveredLoc);
+      else { setChaseYourPos(hoveredLoc); setChaseTargetPos(''); setChaseResult(null); }
     } else {
       if (!origin) setOrigin(hoveredLoc);
       else if (!destination) setDestination(hoveredLoc);
@@ -853,29 +977,50 @@ const RoutePlanner = () => {
           {activeTab === 'chase' && (<>
             <div className="hud-panel p-3 space-y-3" data-testid="chase-panel">
               <div className="flex items-center gap-2 text-[10px] text-yellow-400 font-bold uppercase tracking-widest">
-                <Gauge className="w-3.5 h-3.5" /> Chase Calculator
+                <Gauge className="w-3.5 h-3.5" /> Pursuit Planner
               </div>
-              <QdSizeSelector value={chaseYourQd} onChange={v => { setChaseYourQd(v); setChaseResult(null); }} label="Your QD" color="cyan" testPrefix="chase-your-qd" qdSpeeds={qdSpeeds} />
-              <QdSizeSelector value={chaseTargetQd} onChange={v => { setChaseTargetQd(v); setChaseResult(null); }} label="Target QD" color="red" testPrefix="chase-target-qd" qdSpeeds={qdSpeeds} />
-              <div>
-                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Distance: {chaseDist} Mkm</label>
-                <input type="range" min="1" max="60" step="1" value={chaseDist}
-                  onChange={e => { setChaseDist(parseFloat(e.target.value)); setChaseResult(null); }}
-                  data-testid="chase-dist-slider" className="w-full accent-yellow-500" />
+
+              <LocationSelect value={chaseYourPos} onChange={v => { setChaseYourPos(v); setChaseResult(null); }} label="Your Position" color="#00D4FF" testId="chase-your-pos" />
+              <LocationSelect value={chaseTargetPos} onChange={v => { setChaseTargetPos(v); setChaseResult(null); }} label="Target Spotted At" color="#FF0055" testId="chase-target-pos" />
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[9px] font-bold text-cyan-400 uppercase tracking-widest block mb-1">Your QD</label>
+                  <div className="flex gap-1">
+                    {[1, 2, 3].map(s => (
+                      <button key={s} onClick={() => { setChaseYourQd(s); setChaseResult(null); }} data-testid={`chase-your-qd-${s}`}
+                        className={`flex-1 py-1 rounded text-[10px] font-bold font-mono transition-all ${chaseYourQd === s ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30' : 'bg-white/3 text-gray-600 border border-white/5'}`}>S{s}</button>
+                    ))}
+                  </div>
+                  <div className="text-[9px] text-gray-600 mt-0.5 font-mono">{(qdSpeeds[chaseYourQd] || 165000).toLocaleString()} km/s</div>
+                </div>
+                <div>
+                  <label className="text-[9px] font-bold text-red-400 uppercase tracking-widest block mb-1">Target QD</label>
+                  <div className="flex gap-1">
+                    {[1, 2, 3].map(s => (
+                      <button key={s} onClick={() => { setChaseTargetQd(s); setChaseResult(null); }} data-testid={`chase-target-qd-${s}`}
+                        className={`flex-1 py-1 rounded text-[10px] font-bold font-mono transition-all ${chaseTargetQd === s ? 'bg-red-500/15 text-red-400 border border-red-500/30' : 'bg-white/3 text-gray-600 border border-white/5'}`}>S{s}</button>
+                    ))}
+                  </div>
+                  <div className="text-[9px] text-gray-600 mt-0.5 font-mono">{(qdSpeeds[chaseTargetQd] || 165000).toLocaleString()} km/s</div>
+                </div>
               </div>
+
               <div>
                 <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Prep Time: {chasePrep}s</label>
                 <input type="range" min="5" max="120" step="5" value={chasePrep}
                   onChange={e => { setChasePrep(parseInt(e.target.value)); setChaseResult(null); }}
                   data-testid="chase-prep-slider" className="w-full accent-yellow-500" />
               </div>
-              <button onClick={calcChase} data-testid="calc-chase-btn"
+
+              <button onClick={calcChase} disabled={!chaseYourPos || !chaseTargetPos || chasing}
+                data-testid="calc-chase-btn"
                 className="w-full py-2.5 rounded font-bold text-xs uppercase tracking-widest text-black disabled:opacity-30 transition-all hover:shadow-lg hover:shadow-yellow-500/20"
                 style={{ background: 'linear-gradient(135deg, #FFAE00, #CC8A00)' }}>
-                CALCULATE CHASE
+                {chasing ? 'ANALYZING...' : 'ANALYZE PURSUIT'}
               </button>
             </div>
-            {chaseResult && <ChaseResults result={chaseResult} qdSpeeds={qdSpeeds} formatTime={formatTime} />}
+            {chaseResult && <ChaseResults result={chaseResult} formatTime={formatTime} />}
           </>)}
 
           <div className="hud-panel p-2.5" data-testid="map-legend">
@@ -925,19 +1070,6 @@ const RoutePlanner = () => {
 };
 
 // === SUB COMPONENTS ===
-
-const QdSizeSelector = ({ value, onChange, label, color, testPrefix, qdSpeeds }) => (
-  <div>
-    <label className={`text-[10px] font-bold uppercase tracking-widest block mb-1 text-${color}-400`}>{label}</label>
-    <div className="flex gap-1.5">
-      {[1, 2, 3].map(s => (
-        <button key={s} onClick={() => onChange(s)} data-testid={`${testPrefix}-${s}`}
-          className={`flex-1 py-1.5 rounded text-xs font-bold font-mono transition-all ${value === s ? `bg-${color}-500/15 text-${color}-400 border border-${color}-500/30` : 'bg-white/3 text-gray-600 border border-white/5'}`}>S{s}</button>
-      ))}
-    </div>
-    <div className="text-[9px] text-gray-600 mt-0.5 font-mono">{(qdSpeeds[value] || 165000).toLocaleString()} km/s</div>
-  </div>
-);
 
 const RouteResults = ({ route, formatTime }) => (
   <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="hud-panel p-3 space-y-2.5" data-testid="route-results">
@@ -1147,27 +1279,116 @@ const InterdictionResults = ({ result, formatTime, qdSpeeds }) => (
   </motion.div>
 );
 
-const ChaseResults = ({ result, qdSpeeds, formatTime }) => (
-  <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="hud-panel p-3 space-y-2.5" data-testid="chase-results">
-    <div className="flex items-center gap-2">
-      {result.can_catch ? <CheckCircle className="w-3.5 h-3.5 text-green-400" /> : <AlertTriangle className="w-3.5 h-3.5 text-red-400" />}
-      <span className={`text-[10px] font-bold uppercase tracking-wider ${result.can_catch ? 'text-green-400' : 'text-red-400'}`}>{result.can_catch ? 'Target Catchable' : 'Cannot Catch'}</span>
-    </div>
-    <div className="p-2 rounded text-[10px] leading-relaxed font-mono" style={{
-      background: result.can_catch ? 'rgba(0,255,157,0.04)' : 'rgba(255,0,85,0.04)',
-      border: `1px solid ${result.can_catch ? 'rgba(0,255,157,0.15)' : 'rgba(255,0,85,0.15)'}`
-    }}>{result.verdict}</div>
-    <div className="grid grid-cols-2 gap-1.5 text-[10px]">
-      <div className="bg-white/3 rounded p-1.5"><div className="text-gray-600 font-mono">Your QD</div><div className="text-cyan-400 font-bold font-mono">{result.your_speed_kms?.toLocaleString()} km/s</div></div>
-      <div className="bg-white/3 rounded p-1.5"><div className="text-gray-600 font-mono">Target QD</div><div className="text-red-400 font-bold font-mono">{result.target_speed_kms?.toLocaleString()} km/s</div></div>
-    </div>
-    {result.can_catch && (
-      <div className="grid grid-cols-2 gap-1.5 text-[10px]">
-        <div className="bg-white/3 rounded p-1.5"><div className="text-gray-600 font-mono">Closing</div><div className="text-yellow-400 font-bold font-mono">{formatTime(result.closing_time_seconds)}</div></div>
-        <div className="bg-white/3 rounded p-1.5"><div className="text-gray-600 font-mono">Total</div><div className="text-yellow-400 font-bold font-mono">{formatTime(result.total_time_seconds)}</div></div>
+const ChaseResults = ({ result, formatTime }) => {
+  const threatColors = { low: '#00FF9D', medium: '#FFAE00', high: '#FF6B35', critical: '#FF0055' };
+  const threatColor = threatColors[result.threat_level] || '#888';
+  const threatLabels = { low: 'Low Threat', medium: 'Medium Threat', high: 'High Threat', critical: 'Critical' };
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-2.5" data-testid="chase-results">
+      {/* Summary */}
+      <div className="hud-panel p-3 space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: threatColor, boxShadow: `0 0 8px ${threatColor}` }} />
+            <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: threatColor }}>{threatLabels[result.threat_level]}</span>
+          </div>
+          <span className="text-[9px] text-gray-500 font-mono">{result.separation_mkm} Mkm apart</span>
+        </div>
+
+        <div className="grid grid-cols-3 gap-1.5">
+          <div className="bg-white/3 rounded p-1.5 text-center">
+            <div className="text-lg font-bold font-mono" style={{ color: threatColor }}>{result.intercept_pct}%</div>
+            <div className="text-[8px] text-gray-600 uppercase">Control</div>
+          </div>
+          <div className="bg-white/3 rounded p-1.5 text-center">
+            <div className="text-lg font-bold text-green-400 font-mono">{result.interceptable_count}</div>
+            <div className="text-[8px] text-gray-600 uppercase">Covered</div>
+          </div>
+          <div className="bg-white/3 rounded p-1.5 text-center">
+            <div className="text-lg font-bold text-red-400 font-mono">{result.escapable_count}</div>
+            <div className="text-[8px] text-gray-600 uppercase">Exposed</div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-1">
+          <div className="bg-white/3 rounded px-2 py-1">
+            <div className="text-[8px] text-gray-600">Your QD</div>
+            <div className="text-[10px] text-cyan-400 font-bold font-mono">{result.your_speed_kms?.toLocaleString()} km/s</div>
+          </div>
+          <div className="bg-white/3 rounded px-2 py-1">
+            <div className="text-[8px] text-gray-600">Target QD</div>
+            <div className="text-[10px] text-red-400 font-bold font-mono">{result.target_speed_kms?.toLocaleString()} km/s</div>
+          </div>
+        </div>
+
+        <div className="text-[9px] text-gray-400 leading-relaxed" data-testid="chase-recommendation">{result.recommendation}</div>
       </div>
-    )}
-  </motion.div>
-);
+
+      {/* Best Pursuit */}
+      {result.best_pursuit && (
+        <div className="hud-panel p-3" data-testid="best-pursuit">
+          <h4 className="text-[9px] font-bold text-green-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+            <Target className="w-3 h-3" /> Best Intercept Point
+          </h4>
+          <div className="flex items-center justify-between bg-green-500/5 border border-green-500/10 rounded p-2">
+            <div>
+              <div className="text-white text-xs font-bold font-mono">{result.best_pursuit.name}</div>
+              <div className="text-[9px] text-gray-500 font-mono">{result.best_pursuit.your_distance_mkm} Mkm from you</div>
+            </div>
+            <div className="text-right">
+              <div className="text-green-400 text-xs font-bold font-mono">+{formatTime(Math.abs(result.best_pursuit.time_margin_s))}</div>
+              <div className="text-[8px] text-gray-600 uppercase">Head start</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Escape Destinations */}
+      {result.escape_destinations?.length > 0 && (
+        <div className="hud-panel p-3" data-testid="escape-destinations">
+          <h4 className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-2">Escape Routes ({result.total_destinations})</h4>
+          <div className="space-y-1 max-h-[180px] overflow-y-auto custom-scrollbar">
+            {result.escape_destinations.map((dest, i) => (
+              <div key={i} data-testid={`escape-dest-${i}`}
+                className={`flex items-center gap-1.5 p-1.5 rounded text-[9px] ${dest.can_intercept ? 'bg-green-500/5 border border-green-500/10' : 'bg-red-500/5 border border-red-500/10'}`}>
+                <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[7px] font-bold shrink-0 ${dest.can_intercept ? 'bg-green-500/25 text-green-400' : 'bg-red-500/25 text-red-400'}`}>
+                  {dest.can_intercept ? '\u2713' : '\u2717'}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-white font-mono truncate">{dest.name}</div>
+                  <div className="text-gray-600 font-mono">{dest.target_distance_mkm} Mkm &middot; {formatTime(dest.target_time_s)}</div>
+                </div>
+                <div className="text-right shrink-0">
+                  <div className={`text-[8px] font-bold font-mono ${dest.can_intercept ? 'text-green-400' : 'text-red-400'}`}>
+                    {dest.time_margin_s > 0 ? `+${formatTime(dest.time_margin_s)}` : `-${formatTime(Math.abs(dest.time_margin_s))}`}
+                  </div>
+                  <div className="text-[7px] text-gray-700 capitalize">{dest.type.replace('_', ' ')}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Tactical Notes */}
+      {result.tactical_notes?.length > 0 && (
+        <div className="hud-panel p-3" data-testid="chase-tactical-notes">
+          <h4 className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+            <Eye className="w-3 h-3" /> Tactical Intel
+          </h4>
+          <div className="space-y-1.5">
+            {result.tactical_notes.map((note, i) => (
+              <div key={i} className="flex gap-2 text-[9px] text-gray-300 leading-relaxed">
+                <span className="text-yellow-400 shrink-0 mt-0.5">&bull;</span>
+                <span>{note}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </motion.div>
+  );
+};
 
 export default RoutePlanner;
