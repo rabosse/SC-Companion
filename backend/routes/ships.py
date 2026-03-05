@@ -137,13 +137,87 @@ async def get_weapons(user_id: str = Depends(get_current_user)):
 
 @router.get("/upgrades/{ship_id}")
 async def get_upgrades(ship_id: str, user_id: str = Depends(get_current_user)):
-    recommendations = {
-        "shields": [{"id": "shield_01", "name": "FR-86 Shield Generator", "reason": "25% better shield capacity"}],
-        "power": [{"id": "power_01", "name": "Regulus Power Plant", "reason": "Higher power output for better performance"}],
-        "weapons": [{"id": "weapon_03", "name": "M7A Laser Cannon", "reason": "Superior damage and accuracy"}],
-        "quantum": [{"id": "quantum_01", "name": "Atlas Quantum Drive", "reason": "Faster quantum travel speed"}]
-    }
-    return {"success": True, "data": recommendations}
+    """Generate ship-specific upgrade recommendations using live component/weapon data."""
+    # Get ship data to determine hardpoint sizes
+    ships = await fetch_live_vehicles()
+    ship = next((s for s in ships if s["id"] == ship_id), None)
+    if not ship:
+        return {"success": True, "data": {"shields": [], "power": [], "weapons": [], "quantum": [], "coolers": []}}
+
+    hp = ship.get("hardpoints", {})
+    shield_size = str(hp.get("shield", {}).get("size", 1))
+    power_size = str(hp.get("power_plant", {}).get("size", 1))
+    cooler_size = str(hp.get("cooler", {}).get("size", 1))
+    qd_size = str(hp.get("quantum_drive", {}).get("size", 1))
+    weapon_sizes = hp.get("weapons", [])
+
+    # Fetch live component + weapon data
+    components = await fetch_live_components() or []
+    weapons = await fetch_live_weapons() or []
+
+    def best_components(comp_type, size, limit=3):
+        """Find top components of the given type and size, sorted by output/performance."""
+        matches = [c for c in components if c.get("type", "").lower() == comp_type.lower() and str(c.get("size", "")) == str(size)]
+        sort_key = "output" if comp_type.lower() in ("shield", "power") else "rate" if comp_type.lower() == "cooler" else "speed"
+        matches.sort(key=lambda c: c.get(sort_key, 0) or 0, reverse=True)
+        results = []
+        for c in matches[:limit]:
+            results.append({
+                "id": c.get("id", ""), "name": c.get("name", ""),
+                "type": c.get("type", ""), "manufacturer": c.get("manufacturer", ""),
+                "size": c.get("size", ""), "grade": c.get("grade", ""),
+                "output": c.get("output", 0), "rate": c.get("rate", 0),
+                "power": c.get("power", 0), "speed": c.get("speed", 0),
+                "range": c.get("range", 0),
+                "location": c.get("location", "Unknown"),
+                "cost_auec": c.get("cost_auec", 0),
+            })
+        return results
+
+    def best_weapons(size, limit=3):
+        """Find top weapons of a given size, sorted by damage."""
+        matches = [w for w in weapons if str(w.get("size", "")) == str(size)]
+        matches.sort(key=lambda w: w.get("damage", 0) or w.get("alpha_damage", 0) or 0, reverse=True)
+        results = []
+        seen = set()
+        for w in matches:
+            if w.get("name") in seen:
+                continue
+            seen.add(w.get("name"))
+            results.append({
+                "id": w.get("id", ""), "name": w.get("name", ""),
+                "type": w.get("type", "Weapon"), "manufacturer": w.get("manufacturer", ""),
+                "size": w.get("size", ""), "damage_type": w.get("damage_type", ""),
+                "damage": w.get("damage", 0), "alpha_damage": w.get("alpha_damage", 0),
+                "fire_rate": w.get("fire_rate", 0) or w.get("rpm", 0),
+                "range": w.get("range", 0), "speed": w.get("speed", 0),
+                "location": w.get("location", "Unknown"),
+                "cost_auec": w.get("cost_auec", 0),
+            })
+            if len(results) >= limit:
+                break
+        return results
+
+    # Build recommendations per category
+    shields = best_components("Shield", shield_size)
+    power = best_components("Power", power_size)
+    coolers = best_components("Cooler", cooler_size)
+    quantum = best_components("Quantum", qd_size)
+
+    # For weapons, get recommendations for each unique weapon size on the ship
+    weapon_recs = []
+    seen_weapons = set()
+    for ws in sorted(set(weapon_sizes), reverse=True):
+        for w in best_weapons(ws, limit=2):
+            if w["name"] not in seen_weapons:
+                seen_weapons.add(w["name"])
+                weapon_recs.append(w)
+    weapon_recs = weapon_recs[:6]
+
+    return {"success": True, "data": {
+        "shields": shields, "power": power, "weapons": weapon_recs,
+        "quantum": quantum, "coolers": coolers,
+    }}
 
 
 # ---------------------------------------------------------------------------

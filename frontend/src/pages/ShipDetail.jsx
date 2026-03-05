@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
-import { Ship, ArrowLeft, Zap, Shield, Cpu, TrendingUp, Package, Users, Ruler, Weight, Gauge, DollarSign, Settings, MapPin } from 'lucide-react';
+import { Ship, ArrowLeft, Zap, Shield, Cpu, TrendingUp, Package, Users, Ruler, Weight, Gauge, DollarSign, Settings, MapPin, X, Crosshair, Rocket } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 
@@ -13,6 +13,7 @@ const ShipDetail = () => {
   const [ship, setShip] = useState(null);
   const [upgrades, setUpgrades] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [selectedItem, setSelectedItem] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -269,12 +270,19 @@ const ShipDetail = () => {
                 </div>
 
                 {categoryUpgrades.length > 0 ? (
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {categoryUpgrades.map((upgrade) => (
-                      <div key={upgrade.id} className="p-4 bg-white/5 rounded-xl border border-white/10">
-                        <div className="font-semibold text-white mb-1">{upgrade.name}</div>
-                        <div className="text-sm text-gray-400">{upgrade.reason}</div>
-                      </div>
+                      <button key={upgrade.id || upgrade.name} onClick={() => setSelectedItem({ ...upgrade, category: category.label, color: category.color })}
+                        data-testid={`upgrade-item-${upgrade.name?.replace(/\s/g, '-')}`}
+                        className="w-full text-left p-3 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all cursor-pointer group">
+                        <div className="flex items-center justify-between">
+                          <div className="font-semibold text-white text-sm group-hover:text-cyan-300 transition-colors">{upgrade.name}</div>
+                          {upgrade.cost_auec > 0 && <span className="text-[11px] text-yellow-400 font-mono">{upgrade.cost_auec.toLocaleString()} aUEC</span>}
+                        </div>
+                        {upgrade.location && upgrade.location !== 'Unknown' && (
+                          <div className="text-[11px] text-gray-500 mt-0.5 flex items-center gap-1"><MapPin className="w-3 h-3" />{upgrade.location}</div>
+                        )}
+                      </button>
                     ))}
                   </div>
                 ) : (
@@ -285,8 +293,88 @@ const ShipDetail = () => {
           })}
         </div>
       </div>
+
+      {/* Item Detail Modal */}
+      {selectedItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => setSelectedItem(null)} data-testid="upgrade-modal-overlay">
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
+            onClick={e => e.stopPropagation()}
+            className="relative w-full max-w-md rounded-2xl border border-white/10 overflow-hidden" style={{ background: '#0d1117' }}
+            data-testid="upgrade-modal">
+            {/* Header */}
+            <div className="p-5 border-b border-white/10" style={{ background: `linear-gradient(135deg, ${selectedItem.color}10, transparent)` }}>
+              <button onClick={() => setSelectedItem(null)} className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors" data-testid="upgrade-modal-close">
+                <X className="w-5 h-5" />
+              </button>
+              <div className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: selectedItem.color }}>{selectedItem.category}</div>
+              <h3 className="text-xl font-bold text-white" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{selectedItem.name}</h3>
+              {selectedItem.manufacturer && <div className="text-xs text-gray-500 mt-0.5">{selectedItem.manufacturer}</div>}
+            </div>
+
+            {/* Stats */}
+            <div className="p-5 space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                {selectedItem.size && (
+                  <StatBox label="Size" value={`S${selectedItem.size}`} icon={<Ruler className="w-3.5 h-3.5" />} />
+                )}
+                {selectedItem.grade && (
+                  <StatBox label="Grade" value={selectedItem.grade} icon={<TrendingUp className="w-3.5 h-3.5" />} />
+                )}
+                {selectedItem.output > 0 && (
+                  <StatBox label="Output" value={selectedItem.output.toLocaleString()} icon={<Zap className="w-3.5 h-3.5" />} />
+                )}
+                {selectedItem.rate > 0 && (
+                  <StatBox label="Cooling Rate" value={selectedItem.rate.toLocaleString()} icon={<Gauge className="w-3.5 h-3.5" />} />
+                )}
+                {selectedItem.speed > 0 && (
+                  <StatBox label="Speed" value={`${selectedItem.speed.toLocaleString()} km/s`} icon={<Gauge className="w-3.5 h-3.5" />} />
+                )}
+                {(selectedItem.damage > 0 || selectedItem.alpha_damage > 0) && (
+                  <StatBox label="Damage" value={(selectedItem.damage || selectedItem.alpha_damage).toLocaleString()} icon={<Crosshair className="w-3.5 h-3.5" />} />
+                )}
+                {selectedItem.fire_rate > 0 && (
+                  <StatBox label="Fire Rate" value={`${selectedItem.fire_rate} RPM`} icon={<Rocket className="w-3.5 h-3.5" />} />
+                )}
+                {selectedItem.range > 0 && (
+                  <StatBox label="Range" value={`${selectedItem.range.toLocaleString()}m`} icon={<MapPin className="w-3.5 h-3.5" />} />
+                )}
+                {selectedItem.damage_type && (
+                  <StatBox label="Damage Type" value={selectedItem.damage_type} icon={<Zap className="w-3.5 h-3.5" />} />
+                )}
+                {selectedItem.power > 0 && (
+                  <StatBox label="Power Draw" value={selectedItem.power.toLocaleString()} icon={<Cpu className="w-3.5 h-3.5" />} />
+                )}
+              </div>
+
+              {/* Acquisition Location */}
+              <div className="mt-4 p-3 rounded-xl bg-white/5 border border-white/10" data-testid="upgrade-modal-location">
+                <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1.5">Acquisition</div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-cyan-400" />
+                    <span className="text-white text-sm font-medium">{selectedItem.location && selectedItem.location !== 'Unknown' ? selectedItem.location : 'Location data unavailable'}</span>
+                  </div>
+                </div>
+                {selectedItem.cost_auec > 0 && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <DollarSign className="w-4 h-4 text-yellow-400" />
+                    <span className="text-yellow-400 font-bold font-mono">{selectedItem.cost_auec.toLocaleString()} aUEC</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 };
+
+const StatBox = ({ label, value, icon }) => (
+  <div className="bg-white/5 rounded-lg p-2.5 border border-white/5">
+    <div className="flex items-center gap-1.5 text-gray-500 mb-0.5">{icon}<span className="text-[9px] font-bold uppercase tracking-widest">{label}</span></div>
+    <div className="text-white text-sm font-bold font-mono">{value}</div>
+  </div>
+);
 
 export default ShipDetail;
