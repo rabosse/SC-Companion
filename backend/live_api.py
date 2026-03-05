@@ -28,6 +28,148 @@ def _headers():
     return h
 
 
+# Curated per-ship weapon hardpoint data (verified against in-game data)
+# Format: ship_name_lowercase -> list of weapon sizes
+_CURATED_HARDPOINTS = {
+    # Aegis Dynamics
+    "gladius": [3, 3, 3],
+    "gladius valiant": [3, 3, 3],
+    "sabre": [3, 3, 3, 3],
+    "sabre comet": [3, 3, 3, 3],
+    "sabre raven": [3, 3, 3, 3],
+    "avenger titan": [4, 3, 3],
+    "avenger titan renegade": [4, 3, 3],
+    "avenger stalker": [4, 3, 3],
+    "avenger warlock": [4, 3, 3],
+    "eclipse": [],
+    "vanguard warden": [5, 2, 2, 2, 2],
+    "vanguard sentinel": [5, 2, 2, 2, 2],
+    "vanguard harbinger": [5, 2, 2, 2, 2],
+    "vanguard hoplite": [5, 2, 2, 2, 2],
+    "retaliator bomber": [2, 2],
+    "redeemer": [4, 4, 3, 3],
+    "hammerhead": [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+    "reclaimer": [],
+    "idris-p": [5, 5, 5, 5, 5, 5],
+    "idris-m": [7, 5, 5, 5, 5, 5, 5],
+    "javelin": [6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 5, 5],
+    # Anvil Aerospace
+    "arrow": [3, 3, 3, 3],
+    "hawk": [3, 3, 2, 2],
+    "f7c hornet": [4, 3, 3, 3],
+    "f7c-m super hornet": [4, 4, 3, 3],
+    "f7c-s hornet ghost": [4, 3, 3, 3],
+    "f7a hornet": [4, 4, 3, 3, 3],
+    "f7a hornet (military)": [4, 4, 3, 3, 3],
+    "hurricane": [4, 4, 3, 3],
+    "gladiator": [3, 3],
+    "terrapin": [],
+    "valkyrie": [4, 4, 2, 2, 2, 2],
+    "carrack": [4, 4, 4, 4],
+    "liberator": [],
+    # Roberts Space Industries
+    "aurora mr": [3],
+    "aurora ln": [3, 3],
+    "aurora cl": [3],
+    "aurora lx": [3],
+    "aurora es": [3],
+    "mantis": [3, 3],
+    "scorpius": [4, 4, 3, 3],
+    "constellation andromeda": [5, 5, 4, 4],
+    "constellation aquila": [5, 5, 4, 4],
+    "constellation taurus": [5, 5, 4, 4],
+    "constellation phoenix": [5, 5, 4, 4],
+    "perseus": [7, 7, 5, 5],
+    "polaris": [4, 4, 4, 4],
+    "galaxy": [4, 4],
+    # Crusader Industries
+    "ares ion": [7],
+    "ares inferno": [7],
+    "spirit a1": [3, 3],
+    "spirit c1": [],
+    "spirit e1": [],
+    "mercury star runner": [3, 3, 2, 2],
+    "c2 hercules": [4, 4],
+    "m2 hercules": [5, 5, 4, 4],
+    "a2 hercules": [5, 5, 4, 4],
+    "odyssey": [5, 5, 4, 4],
+    # MISC
+    "prospector": [],
+    "razor": [3, 3],
+    "reliant kore": [3, 3],
+    "reliant tana": [3, 3, 3, 3],
+    "reliant sen": [3, 3],
+    "reliant mako": [3, 3],
+    "freelancer": [4, 4, 3, 3],
+    "freelancer dur": [4, 4, 3, 3],
+    "freelancer max": [4, 4, 3, 3],
+    "freelancer mis": [4, 4, 3, 3],
+    "hull a": [],
+    "hull b": [],
+    "hull c": [],
+    "starfarer": [4, 4, 3, 3],
+    "starfarer gemini": [5, 5, 4, 4, 3, 3],
+    # Drake Interplanetary
+    "buccaneer": [4, 3, 3, 2, 2],
+    "herald": [2, 2],
+    "cutlass black": [4, 4, 3, 3],
+    "cutlass red": [4, 4, 3, 3],
+    "cutlass blue": [4, 4, 3, 3],
+    "cutlass steel": [4, 4, 3, 3],
+    "corsair": [5, 5, 4, 4, 3, 3],
+    "caterpillar": [4, 4, 2, 2],
+    "vulture": [],
+    # Consolidated Outland
+    "mustang alpha": [2, 2],
+    "mustang beta": [2, 2],
+    "mustang gamma": [3, 3, 2, 2],
+    "mustang delta": [3, 3, 2, 2],
+    "mustang omega": [3, 3],
+    "nomad": [3, 3, 3],
+    # Esperia
+    "blade": [3, 3, 3, 3],
+    "glaive": [5, 5],
+    "prowler": [4, 4, 3, 3],
+    "talon": [3, 3],
+    "talon shrike": [],
+    # Aopoa
+    "nox": [],
+    "nox kue": [],
+    "khartu-al": [3, 3],
+    "san'tok.yāi": [4, 4, 3, 3],
+    # Banu
+    "defender": [3, 3, 2, 2],
+    "merchantman": [5, 5, 4, 4, 3, 3, 3, 3],
+    # Argo
+    "raft": [],
+    "mole": [],
+    # Origin
+    "85x": [2, 2],
+    "100i": [3, 3],
+    "125a": [3, 3],
+    "135c": [3, 3],
+    "300i": [3, 3],
+    "315p": [3, 3],
+    "325a": [4, 3, 3],
+    "350r": [3, 3],
+    "400i": [4, 4, 3, 3],
+    "600i explorer": [5, 5, 3, 3],
+    "600i touring": [5, 5, 3, 3],
+    "890 jump": [5, 5, 4, 4, 3, 3],
+}
+
+
+def _get_curated_weapons(ship_name_lower: str, fallback: list) -> list:
+    """Get curated weapon hardpoints for a ship, or use the fallback."""
+    if ship_name_lower in _CURATED_HARDPOINTS:
+        return _CURATED_HARDPOINTS[ship_name_lower]
+    # Try partial match
+    for key, weapons in _CURATED_HARDPOINTS.items():
+        if key in ship_name_lower or ship_name_lower in key:
+            return weapons
+    return fallback
+
+
 async def _fetch_paginated(endpoint: str, params: dict = None) -> list:
     """Fetch all pages from a paginated API endpoint."""
     if params is None:
@@ -90,32 +232,30 @@ def _normalize_vehicle(v: dict) -> dict:
     # Estimate price from size
     price_map = {"Snub": 50000, "Small": 100000, "Medium": 500000, "Large": 2000000, "Capital": 10000000}
 
-    # Extract hardpoint sizing from power_pools
-    power_pools = v.get("power_pools", {})
-    weapon_pool_size = power_pools.get("WeaponGun", {}).get("size", 0)
     raw_size_class = v.get("size_class", 0)
 
     # Derive component slot sizes from size_class
-    # size_class: 1=Snub, 2=Small, 3=Medium, 4=Large, 5=Capital
     SLOT_MAP = {
         0: {"shield_size": 1, "power_size": 1, "cooler_size": 1, "qd_size": 1, "shield_count": 1, "power_count": 1, "cooler_count": 1, "qd_count": 1, "weapon_slots": []},
         1: {"shield_size": 0, "power_size": 0, "cooler_size": 0, "qd_size": 0, "shield_count": 0, "power_count": 0, "cooler_count": 0, "qd_count": 0, "weapon_slots": [1, 1]},
-        2: {"shield_size": 1, "power_size": 1, "cooler_size": 1, "qd_size": 1, "shield_count": 1, "power_count": 1, "cooler_count": 1, "qd_count": 1, "weapon_slots": [3, 3, 3]},
+        2: {"shield_size": 1, "power_size": 1, "cooler_size": 1, "qd_size": 1, "shield_count": 1, "power_count": 1, "cooler_count": 1, "qd_count": 1, "weapon_slots": [3, 3]},
         3: {"shield_size": 2, "power_size": 2, "cooler_size": 2, "qd_size": 2, "shield_count": 1, "power_count": 1, "cooler_count": 2, "qd_count": 1, "weapon_slots": [4, 4, 3, 3]},
         4: {"shield_size": 2, "power_size": 2, "cooler_size": 2, "qd_size": 2, "shield_count": 2, "power_count": 1, "cooler_count": 2, "qd_count": 1, "weapon_slots": [5, 5, 4, 4]},
         5: {"shield_size": 3, "power_size": 3, "cooler_size": 3, "qd_size": 3, "shield_count": 2, "power_count": 1, "cooler_count": 2, "qd_count": 1, "weapon_slots": [6, 6, 5, 5, 4, 4]},
     }
     slots = SLOT_MAP.get(raw_size_class, SLOT_MAP[0])
 
-    # If weapon_pool_size is available, distribute across weapon slots more accurately
-    weapon_slots = slots["weapon_slots"]
-    if weapon_pool_size > 0 and weapon_slots:
-        # Distribute the pool budget across slots (largest first)
-        n = len(weapon_slots)
-        avg = weapon_pool_size // n
-        remainder = weapon_pool_size % n
-        weapon_slots = [min(avg + (1 if i < remainder else 0), 9) for i in range(n)]
-        weapon_slots.sort(reverse=True)
+    # Use curated per-ship hardpoint data when available, else use SLOT_MAP
+    ship_name_lower = (v.get("name", "") or "").lower().strip()
+    weapon_slots = _get_curated_weapons(ship_name_lower, slots["weapon_slots"])
+
+    # Extract quantum drive data from API
+    quantum = v.get("quantum") or {}
+    qd_speed_raw = quantum.get("quantum_speed", 0)  # m/s
+    qd_fuel_cap = quantum.get("quantum_fuel_capacity", 0)
+    qd_range_raw = quantum.get("quantum_range", 0)  # metres
+    qd_speed_kms = round(qd_speed_raw / 1000) if qd_speed_raw else 0
+    qd_range_mkm = round(qd_range_raw / 1_000_000_000, 1) if qd_range_raw else 0
 
     return {
         "id": v.get("slug", v.get("uuid", "")),
@@ -135,13 +275,20 @@ def _normalize_vehicle(v: dict) -> dict:
         "health": v.get("health", 0),
         "shield_hp": v.get("shield_hp", 0),
         "price": price_map.get(size_class, 100000),
-        "role": "Multi-role",
+        "role": v.get("role", "Multi-role") or "Multi-role",
         "armor": "Medium" if size_class in ["Medium", "Large"] else "Light",
         "description": (v.get("description", {}).get("en_EN", "") if isinstance(v.get("description"), dict) else "") or f"The {v.get('name', '')} is a versatile vessel.",
         "is_ground_vehicle": is_ground,
         "image": "",
         "msrp": v.get("msrp", 0),
         "pledge_url": v.get("pledge_url", ""),
+        # Quantum drive data from API
+        "quantum": {
+            "speed_kms": qd_speed_kms,
+            "fuel_capacity": qd_fuel_cap,
+            "range_mkm": qd_range_mkm,
+            "spool_time": quantum.get("quantum_spool_time", 4),
+        },
         # Hardpoint data for loadout builder
         "hardpoints": {
             "shield": {"size": slots["shield_size"], "count": slots["shield_count"]},

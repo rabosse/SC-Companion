@@ -1,19 +1,31 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from star_systems import get_all_locations, get_systems, calculate_route, calculate_interdiction, calculate_chase, QD_SPEEDS
+from star_systems import get_all_locations, get_systems, calculate_route, calculate_interdiction, calculate_chase, QD_SPEEDS, QD_FUEL_DEFAULTS
 
 router = APIRouter(prefix="/api/routes", tags=["starmap"])
 
 
 @router.get("/locations")
 async def get_route_locations():
-    return {"success": True, "data": get_all_locations(), "systems": get_systems(), "qd_speeds": QD_SPEEDS}
+    return {
+        "success": True,
+        "data": get_all_locations(),
+        "systems": get_systems(),
+        "qd_speeds": QD_SPEEDS,
+        "qd_fuel": QD_FUEL_DEFAULTS,
+    }
 
 
 @router.get("/calculate")
-async def calculate_travel_route(origin: str, destination: str, qd_size: int = 1):
-    result = calculate_route(origin, destination, qd_size)
+async def calculate_travel_route(
+    origin: str,
+    destination: str,
+    qd_size: int = 1,
+    qd_speed: int = 0,
+    qd_range: float = 0,
+):
+    result = calculate_route(origin, destination, qd_size, qd_speed, qd_range)
     if "error" in result:
         raise HTTPException(status_code=400, detail=result["error"])
     return {"success": True, "data": result}

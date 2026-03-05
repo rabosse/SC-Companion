@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useAuth } from '../App';
 import axios from 'axios';
-import { Navigation, Clock, Ruler, Ship, ChevronRight, Zap, RotateCcw, ArrowLeftRight, Target, Gauge, Plus, X, AlertTriangle, CheckCircle } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Navigation, Clock, Ruler, Ship, ChevronRight, Zap, RotateCcw, ArrowLeftRight, Target, Gauge, Plus, X, AlertTriangle, CheckCircle, Fuel, Anchor, ToggleLeft, ToggleRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-const TYPE_COLORS = { star: '#FFD700', planet: '#00D4FF', moon: '#8B9DAF', station: '#00FF9D', gateway: '#FF6B35', city: '#FF1493', rest_stop: '#FFAE00', outpost: '#7CB342' };
+const TYPE_COLORS = { star: '#FFD700', planet: '#00D4FF', moon: '#5A7A8F', station: '#00FF9D', gateway: '#FF6B35', city: '#FF1493', rest_stop: '#FFAE00', outpost: '#7CB342' };
 const SYSTEM_COLORS = { stanton: '#00D4FF', pyro: '#FF4500', nyx: '#A855F7' };
 const TYPE_RADIUS = { star: 8, planet: 6, moon: 3, station: 3, gateway: 5, city: 5, rest_stop: 3, outpost: 3 };
 const TABS = [
@@ -21,11 +21,12 @@ const RoutePlanner = () => {
   const [locations, setLocations] = useState([]);
   const [systems, setSystems] = useState({});
   const [qdSpeeds, setQdSpeeds] = useState({});
-  const [ships, setShips] = useState([]);
+  const [allShips, setAllShips] = useState([]);
+  const [fleetShips, setFleetShips] = useState([]);
+  const [useFleet, setUseFleet] = useState(true);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('route');
 
-  // Route state
   const [selectedShip, setSelectedShip] = useState(null);
   const [origin, setOrigin] = useState('');
   const [destination, setDestination] = useState('');
@@ -33,27 +34,29 @@ const RoutePlanner = () => {
   const [route, setRoute] = useState(null);
   const [calculating, setCalculating] = useState(false);
 
-  // Interdiction state
   const [interdictOrigins, setInterdictOrigins] = useState([]);
   const [interdictDest, setInterdictDest] = useState('');
   const [snareRange, setSnareRange] = useState(7.5);
   const [interdictResult, setInterdictResult] = useState(null);
   const [interdicting, setInterdicting] = useState(false);
 
-  // Chase state
   const [chaseYourQd, setChaseYourQd] = useState(1);
   const [chaseTargetQd, setChaseTargetQd] = useState(1);
   const [chaseDist, setChaseDist] = useState(10);
   const [chasePrep, setChasePrep] = useState(30);
   const [chaseResult, setChaseResult] = useState(null);
 
-  // Map state
   const canvasRef = useRef(null);
   const [mapOffset, setMapOffset] = useState({ x: 0, y: 0 });
   const [mapZoom, setMapZoom] = useState(1);
   const [dragging, setDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [hoveredLoc, setHoveredLoc] = useState(null);
+
+  const ships = useMemo(() => {
+    if (useFleet && fleetShips.length > 0) return fleetShips;
+    return allShips;
+  }, [useFleet, fleetShips, allShips]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -65,23 +68,33 @@ const RoutePlanner = () => {
         setLocations(locRes.data.data || []);
         setSystems(locRes.data.systems || {});
         setQdSpeeds(locRes.data.qd_speeds || {});
-        setShips((shipsRes.data.data || []).filter(s => s.hardpoints?.quantum_drive && !s.is_ground_vehicle));
+        const shipData = (shipsRes.data.data || []).filter(s => !s.is_ground_vehicle);
+        setAllShips(shipData);
+        // Fetch fleet
+        try {
+          const fleetRes = await axios.get(`${authAPI}/fleet/my`);
+          const fleetIds = (fleetRes.data.data || []).map(f => f.ship_id);
+          const matched = shipData.filter(s => fleetIds.includes(s.id));
+          setFleetShips(matched);
+        } catch { setFleetShips([]); }
       } catch { toast.error('Failed to load route data'); }
       finally { setLoading(false); }
     };
     fetchData();
   }, [authAPI]);
 
-  // --- Actions ---
   const calcRoute = useCallback(async () => {
     if (!origin || !destination) { toast.error('Select both origin and destination'); return; }
     setCalculating(true);
     try {
-      const res = await axios.get(`${API}/routes/calculate`, { params: { origin, destination, qd_size: qdSize } });
+      const params = { origin, destination, qd_size: qdSize };
+      if (selectedShip?.quantum?.speed_kms) params.qd_speed = selectedShip.quantum.speed_kms;
+      if (selectedShip?.quantum?.range_mkm) params.qd_range = selectedShip.quantum.range_mkm;
+      const res = await axios.get(`${API}/routes/calculate`, { params });
       setRoute(res.data.data);
     } catch (err) { toast.error(err.response?.data?.detail || 'Route calculation failed'); }
     finally { setCalculating(false); }
-  }, [origin, destination, qdSize]);
+  }, [origin, destination, qdSize, selectedShip]);
 
   const calcInterdiction = useCallback(async () => {
     if (interdictOrigins.length === 0 || !interdictDest) { toast.error('Add origins and select a destination'); return; }
@@ -106,19 +119,13 @@ const RoutePlanner = () => {
   }, [chaseYourQd, chaseTargetQd, chaseDist, chasePrep]);
 
   const addInterdictOrigin = (id) => {
-    if (id && !interdictOrigins.includes(id)) {
-      setInterdictOrigins(prev => [...prev, id]);
-      setInterdictResult(null);
-    }
+    if (id && !interdictOrigins.includes(id)) { setInterdictOrigins(prev => [...prev, id]); setInterdictResult(null); }
   };
-  const removeInterdictOrigin = (id) => {
-    setInterdictOrigins(prev => prev.filter(o => o !== id));
-    setInterdictResult(null);
-  };
+  const removeInterdictOrigin = (id) => { setInterdictOrigins(prev => prev.filter(o => o !== id)); setInterdictResult(null); };
 
   const onShipSelect = (shipId) => {
     const ship = ships.find(s => s.id === shipId);
-    setSelectedShip(ship);
+    setSelectedShip(ship || null);
     if (ship?.hardpoints?.quantum_drive) setQdSize(ship.hardpoints.quantum_drive.size || 1);
     setRoute(null);
   };
@@ -133,80 +140,104 @@ const RoutePlanner = () => {
     const ctx = canvas.getContext('2d');
     const w = canvas.width, h = canvas.height;
     ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = '#050508';
+
+    // Background gradient
+    const bgGrad = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w * 0.7);
+    bgGrad.addColorStop(0, '#080c14');
+    bgGrad.addColorStop(1, '#020408');
+    ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, w, h);
 
-    // Grid
-    ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+    // Subtle grid with glow
+    ctx.strokeStyle = 'rgba(0,212,255,0.03)';
     ctx.lineWidth = 1;
     const gridSize = 50 * mapZoom;
     const offX = (w / 2 + mapOffset.x) % gridSize, offY = (h / 2 + mapOffset.y) % gridSize;
     for (let x = offX; x < w; x += gridSize) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
     for (let y = offY; y < h; y += gridSize) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
 
+    // Scan-line effect
+    ctx.fillStyle = 'rgba(0,212,255,0.008)';
+    const scanY = (Date.now() / 40) % h;
+    ctx.fillRect(0, scanY - 2, w, 4);
+
     const toScreen = (mx, my) => ({ x: w / 2 + (mx * mapZoom) + mapOffset.x, y: h / 2 + (my * mapZoom) + mapOffset.y });
 
-    // System orbit rings
+    // System nebula glow
     Object.entries(systems).forEach(([, sys]) => {
       const center = toScreen(sys.star.x, sys.star.y);
-      ctx.strokeStyle = `${sys.color}10`;
+      const nebGrad = ctx.createRadialGradient(center.x, center.y, 0, center.x, center.y, 180 * mapZoom);
+      nebGrad.addColorStop(0, `${sys.color}08`);
+      nebGrad.addColorStop(0.5, `${sys.color}04`);
+      nebGrad.addColorStop(1, 'transparent');
+      ctx.fillStyle = nebGrad;
+      ctx.beginPath(); ctx.arc(center.x, center.y, 180 * mapZoom, 0, Math.PI * 2); ctx.fill();
+
+      // Orbit rings
+      ctx.strokeStyle = `${sys.color}0a`;
       ctx.lineWidth = 1;
       [40, 80, 120, 160].forEach(r => { ctx.beginPath(); ctx.arc(center.x, center.y, r * mapZoom * 0.7, 0, Math.PI * 2); ctx.stroke(); });
-      ctx.fillStyle = `${sys.color}60`;
-      ctx.font = `bold ${Math.max(10, 14 * mapZoom)}px Rajdhani, sans-serif`;
+
+      // System label
+      ctx.fillStyle = `${sys.color}50`;
+      ctx.font = `bold ${Math.max(10, 14 * mapZoom)}px 'Rajdhani', monospace`;
       ctx.textAlign = 'center';
-      ctx.fillText(sys.name.toUpperCase(), center.x, center.y - 10 * mapZoom);
+      ctx.fillText(sys.name.toUpperCase(), center.x, center.y - 12 * mapZoom);
     });
 
-    // Jump connections
+    // Jump connections (dashed glowing lines)
     [['stanton-pyro-gw', 'pyro-stanton-gw'], ['stanton-nyx-gw', 'nyx-stanton-gw'], ['pyro-nyx-gw', 'nyx-pyro-gw']].forEach(([a, b]) => {
       const la = locations.find(l => l.id === a), lb = locations.find(l => l.id === b);
       if (la && lb) {
         const sa = toScreen(la.map_x, la.map_y), sb = toScreen(lb.map_x, lb.map_y);
-        ctx.strokeStyle = '#FF6B3540'; ctx.lineWidth = 2; ctx.setLineDash([6, 4]);
+        ctx.strokeStyle = '#FF6B3530'; ctx.lineWidth = 2; ctx.setLineDash([8, 6]);
         ctx.beginPath(); ctx.moveTo(sa.x, sa.y); ctx.lineTo(sb.x, sb.y); ctx.stroke();
         ctx.setLineDash([]);
       }
     });
 
-    // Draw interdiction route lines + snare circle
+    // Draw interdiction routes + snare
     if (activeTab === 'interdiction' && interdictResult) {
-      // Route lines from origins to destination
       (interdictResult.route_lines || []).forEach(rl => {
         const sf = toScreen(rl.sx, rl.sy), st = toScreen(rl.ex, rl.ey);
-        ctx.strokeStyle = '#FF005580'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
+        ctx.strokeStyle = '#FF005550'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
         ctx.beginPath(); ctx.moveTo(sf.x, sf.y); ctx.lineTo(st.x, st.y); ctx.stroke();
         ctx.setLineDash([]);
       });
-      // Snare circle
       const sp = interdictResult.snare_position;
       if (sp) {
         const ss = toScreen(sp.x, sp.y);
         const sr = (interdictResult.snare_range_map || 25) * mapZoom;
-        // Glow
-        ctx.fillStyle = interdictResult.coverage_pct === 100 ? 'rgba(255,0,85,0.08)' : 'rgba(255,165,0,0.08)';
+        ctx.fillStyle = interdictResult.coverage_pct === 100 ? 'rgba(255,0,85,0.06)' : 'rgba(255,165,0,0.06)';
         ctx.beginPath(); ctx.arc(ss.x, ss.y, sr, 0, Math.PI * 2); ctx.fill();
         ctx.strokeStyle = interdictResult.coverage_pct === 100 ? '#FF0055' : '#FFA500';
         ctx.lineWidth = 2;
         ctx.beginPath(); ctx.arc(ss.x, ss.y, sr, 0, Math.PI * 2); ctx.stroke();
-        // Center marker
-        ctx.fillStyle = '#FF0055'; ctx.shadowColor = '#FF0055'; ctx.shadowBlur = 10;
+        ctx.fillStyle = '#FF0055'; ctx.shadowColor = '#FF0055'; ctx.shadowBlur = 12;
         ctx.beginPath(); ctx.arc(ss.x, ss.y, 5, 0, Math.PI * 2); ctx.fill();
         ctx.shadowBlur = 0;
-        ctx.fillStyle = '#fff'; ctx.font = `bold ${Math.max(9, 11 * mapZoom)}px Rajdhani, sans-serif`;
+        ctx.fillStyle = '#FF005590'; ctx.font = `bold ${Math.max(8, 10 * mapZoom)}px 'Rajdhani', monospace`;
         ctx.textAlign = 'center'; ctx.fillText('SNARE', ss.x, ss.y - 10);
       }
     }
 
-    // Draw route if exists (route tab)
+    // Draw route lines with glow
     if (activeTab === 'route' && route?.waypoints) {
       route.waypoints.forEach(wp => {
+        if (wp.type === 'refuel') return;
         const fromLoc = locations.find(l => l.id === wp.from_id), toLoc = locations.find(l => l.id === wp.to_id);
         if (fromLoc && toLoc) {
           const sf = toScreen(fromLoc.map_x, fromLoc.map_y), st = toScreen(toLoc.map_x, toLoc.map_y);
           const isJump = wp.type === 'jump';
-          ctx.strokeStyle = isJump ? '#FF6B35' : '#00D4FF'; ctx.lineWidth = isJump ? 3 : 2.5;
-          ctx.setLineDash(isJump ? [8, 4] : []); ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 8;
+          // Glow layer
+          ctx.strokeStyle = isJump ? '#FF6B3520' : '#00D4FF18';
+          ctx.lineWidth = isJump ? 8 : 6;
+          ctx.beginPath(); ctx.moveTo(sf.x, sf.y); ctx.lineTo(st.x, st.y); ctx.stroke();
+          // Main line
+          ctx.strokeStyle = isJump ? '#FF6B35' : '#00D4FF';
+          ctx.lineWidth = isJump ? 2.5 : 2;
+          ctx.setLineDash(isJump ? [8, 4] : []);
+          ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 6;
           ctx.beginPath(); ctx.moveTo(sf.x, sf.y); ctx.lineTo(st.x, st.y); ctx.stroke();
           ctx.shadowBlur = 0; ctx.setLineDash([]);
           // Arrow
@@ -214,10 +245,27 @@ const RoutePlanner = () => {
           const mx = (sf.x + st.x) / 2, my = (sf.y + st.y) / 2;
           ctx.fillStyle = isJump ? '#FF6B35' : '#00D4FF';
           ctx.beginPath();
-          ctx.moveTo(mx + 6 * Math.cos(angle), my + 6 * Math.sin(angle));
-          ctx.lineTo(mx - 6 * Math.cos(angle) - 4 * Math.sin(angle), my - 6 * Math.sin(angle) + 4 * Math.cos(angle));
-          ctx.lineTo(mx - 6 * Math.cos(angle) + 4 * Math.sin(angle), my - 6 * Math.sin(angle) - 4 * Math.cos(angle));
+          ctx.moveTo(mx + 7 * Math.cos(angle), my + 7 * Math.sin(angle));
+          ctx.lineTo(mx - 7 * Math.cos(angle) - 5 * Math.sin(angle), my - 7 * Math.sin(angle) + 5 * Math.cos(angle));
+          ctx.lineTo(mx - 7 * Math.cos(angle) + 5 * Math.sin(angle), my - 7 * Math.sin(angle) - 5 * Math.cos(angle));
           ctx.fill();
+        }
+      });
+      // Draw refuel markers
+      route.waypoints.forEach(wp => {
+        if (wp.type !== 'refuel') return;
+        const loc = locations.find(l => l.id === wp.from_id);
+        if (loc) {
+          const s = toScreen(loc.map_x, loc.map_y);
+          ctx.fillStyle = '#FFAE00'; ctx.shadowColor = '#FFAE00'; ctx.shadowBlur = 14;
+          ctx.beginPath(); ctx.arc(s.x, s.y, 7 * mapZoom, 0, Math.PI * 2); ctx.fill();
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = '#000'; ctx.font = `bold ${Math.max(8, 10 * mapZoom)}px sans-serif`;
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText('F', s.x, s.y);
+          ctx.textBaseline = 'alphabetic';
+          ctx.fillStyle = '#FFAE00'; ctx.font = `bold ${Math.max(7, 9 * mapZoom)}px 'Rajdhani', monospace`;
+          ctx.fillText('REFUEL', s.x, s.y + 14 * mapZoom);
         }
       });
     }
@@ -233,37 +281,46 @@ const RoutePlanner = () => {
       const isDestSel = isInterdict ? loc.id === interdictDest : loc.id === destination;
       const isHov = hoveredLoc === loc.id;
 
-      if (isOriginSel || isDestSel || isHov) { ctx.shadowColor = isOriginSel ? '#00FF9D' : isDestSel ? '#FF0055' : color; ctx.shadowBlur = 12; }
+      if (isOriginSel || isDestSel || isHov) { ctx.shadowColor = isOriginSel ? '#00FF9D' : isDestSel ? '#FF0055' : color; ctx.shadowBlur = 14; }
 
       ctx.fillStyle = color;
       if (loc.type === 'gateway') {
         ctx.beginPath(); ctx.moveTo(s.x, s.y - r); ctx.lineTo(s.x + r, s.y); ctx.lineTo(s.x, s.y + r); ctx.lineTo(s.x - r, s.y); ctx.closePath(); ctx.fill();
       } else if (loc.type === 'star') {
-        const gradient = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, r * 2);
-        gradient.addColorStop(0, color); gradient.addColorStop(1, 'transparent');
-        ctx.fillStyle = gradient; ctx.beginPath(); ctx.arc(s.x, s.y, r * 2, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = color; ctx.beginPath(); ctx.arc(s.x, s.y, r * 0.6, 0, Math.PI * 2); ctx.fill();
+        const gradient = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, r * 2.5);
+        gradient.addColorStop(0, '#ffffff'); gradient.addColorStop(0.3, color); gradient.addColorStop(1, 'transparent');
+        ctx.fillStyle = gradient; ctx.beginPath(); ctx.arc(s.x, s.y, r * 2.5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(s.x, s.y, r * 0.4, 0, Math.PI * 2); ctx.fill();
       } else {
         ctx.beginPath(); ctx.arc(s.x, s.y, r, 0, Math.PI * 2); ctx.fill();
       }
 
       if (isOriginSel || isDestSel) {
-        ctx.strokeStyle = isOriginSel ? '#00FF9D' : '#FF0055'; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.arc(s.x, s.y, r + 4, 0, Math.PI * 2); ctx.stroke();
+        ctx.strokeStyle = isOriginSel ? '#00FF9D' : '#FF0055'; ctx.lineWidth = 1.5;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath(); ctx.arc(s.x, s.y, r + 5, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
       }
       ctx.shadowBlur = 0;
 
       if (mapZoom > 0.6 || loc.type === 'planet' || loc.type === 'star' || isOriginSel || isDestSel || isHov) {
-        ctx.fillStyle = isOriginSel ? '#00FF9D' : isDestSel ? '#FF0055' : 'rgba(255,255,255,0.7)';
-        ctx.font = `${loc.type === 'planet' ? 'bold ' : ''}${Math.max(8, (loc.type === 'moon' || loc.type === 'station' ? 9 : 11) * mapZoom)}px Rajdhani, sans-serif`;
+        ctx.fillStyle = isOriginSel ? '#00FF9D' : isDestSel ? '#FF0055' : 'rgba(255,255,255,0.55)';
+        ctx.font = `${loc.type === 'planet' ? 'bold ' : ''}${Math.max(7, (loc.type === 'moon' || loc.type === 'station' ? 8 : 10) * mapZoom)}px 'Rajdhani', monospace`;
         ctx.textAlign = 'center';
-        ctx.fillText(loc.name, s.x, s.y + r + 12 * mapZoom);
+        ctx.fillText(loc.name, s.x, s.y + r + 11 * mapZoom);
       }
+    });
+
+    // HUD overlay corners
+    ctx.strokeStyle = '#00D4FF20';
+    ctx.lineWidth = 1;
+    const cs = 15;
+    [[0, 0, cs, 0, 0, cs], [w, 0, -cs, 0, 0, cs], [0, h, cs, 0, 0, -cs], [w, h, -cs, 0, 0, -cs]].forEach(([x, y, dx1, dy1, dx2, dy2]) => {
+      ctx.beginPath(); ctx.moveTo(x + dx1, y + dy1); ctx.lineTo(x, y); ctx.lineTo(x + dx2, y + dy2); ctx.stroke();
     });
   }, [locations, systems, origin, destination, route, interdictOrigins, interdictDest, interdictResult, mapOffset, mapZoom, hoveredLoc, activeTab]);
 
   useEffect(() => { drawMap(); }, [drawMap]);
-
   useEffect(() => {
     const resize = () => {
       const canvas = canvasRef.current;
@@ -297,8 +354,7 @@ const RoutePlanner = () => {
   const handleCanvasClick = () => {
     if (!hoveredLoc) return;
     if (activeTab === 'interdiction') {
-      // In interdiction mode, clicking adds origins, shift+click or if origins exist sets dest
-      if (!interdictDest) { setInterdictDest(hoveredLoc); } else { addInterdictOrigin(hoveredLoc); }
+      if (!interdictDest) setInterdictDest(hoveredLoc); else addInterdictOrigin(hoveredLoc);
     } else {
       if (!origin) setOrigin(hoveredLoc);
       else if (!destination) setDestination(hoveredLoc);
@@ -316,15 +372,15 @@ const RoutePlanner = () => {
 
   const LocationSelect = ({ value, onChange, label, color, testId, exclude = [] }) => (
     <div>
-      <label className="text-xs font-semibold uppercase block mb-1" style={{ color }}>{label}</label>
+      <label className="text-[10px] font-bold uppercase tracking-widest block mb-1" style={{ color }}>{label}</label>
       <select value={value} onChange={e => onChange(e.target.value)} data-testid={testId}
-        className="w-full px-3 py-2 bg-[#0a0a10] border rounded-lg text-white text-sm focus:outline-none transition-all"
-        style={{ borderColor: `${color}40`, colorScheme: 'dark' }}>
-        <option value="" className="bg-[#0a0a10] text-gray-400">Select...</option>
+        className="w-full px-3 py-2 bg-[#060a12] border rounded text-white text-xs focus:outline-none transition-all"
+        style={{ borderColor: `${color}30`, colorScheme: 'dark' }}>
+        <option value="" className="bg-[#060a12] text-gray-500">Select location...</option>
         {Object.entries(systems).map(([sysId, sys]) => (
-          <optgroup key={sysId} label={sys.name} className="bg-[#0a0a10] text-gray-300">
+          <optgroup key={sysId} label={sys.name} className="bg-[#060a12] text-gray-300">
             {locations.filter(l => l.system === sysId && l.type !== 'star' && !exclude.includes(l.id)).map(l => (
-              <option key={l.id} value={l.id} className="bg-[#0a0a10] text-white">{l.name}</option>
+              <option key={l.id} value={l.id} className="bg-[#060a12] text-white">{l.name}</option>
             ))}
           </optgroup>
         ))}
@@ -332,57 +388,100 @@ const RoutePlanner = () => {
     </div>
   );
 
-  if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin"></div></div>;
+  if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><div className="w-16 h-16 border-2 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin"></div></div>;
 
   return (
-    <div className="h-[calc(100vh-80px)] flex gap-4" data-testid="route-planner-page">
-      {/* Left Panel */}
-      <div className="w-80 shrink-0 flex flex-col overflow-hidden">
-        <div className="mb-3">
-          <h1 className="text-2xl font-bold uppercase" style={{ fontFamily: 'Rajdhani, sans-serif', color: '#00D4FF' }}>Route Planner</h1>
-          <p className="text-xs text-gray-500 mt-0.5">Stanton / Pyro / Nyx</p>
+    <div className="h-[calc(100vh-80px)] flex gap-3" data-testid="route-planner-page">
+      {/* Left Panel - HUD Style */}
+      <div className="w-[310px] shrink-0 flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="mb-3 relative">
+          <div className="flex items-center gap-2">
+            <div className="w-1 h-8 bg-cyan-500 rounded-full" />
+            <div>
+              <h1 className="text-xl font-bold uppercase tracking-wider" style={{ fontFamily: 'Rajdhani, monospace', color: '#00D4FF' }}>
+                ROUTE PLANNER
+              </h1>
+              <p className="text-[10px] text-gray-600 uppercase tracking-widest font-mono">Stanton // Pyro // Nyx</p>
+            </div>
+          </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-1 mb-3 bg-white/5 rounded-lg p-1" data-testid="planner-tabs">
+        {/* Tabs - HUD Buttons */}
+        <div className="flex gap-1 mb-3" data-testid="planner-tabs">
           {TABS.map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)} data-testid={`tab-${tab.id}`}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-bold uppercase transition-all ${activeTab === tab.id ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300'}`}>
-              <tab.icon className="w-3.5 h-3.5" /> {tab.label}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-[10px] font-bold uppercase tracking-wider transition-all border-b-2 ${activeTab === tab.id ? 'text-white border-cyan-500 bg-cyan-500/5' : 'text-gray-600 border-transparent hover:text-gray-400 hover:border-gray-700'}`}>
+              <tab.icon className="w-3 h-3" /> {tab.label}
             </button>
           ))}
         </div>
 
-        <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+        <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 custom-scrollbar">
           {/* === ROUTE TAB === */}
           {activeTab === 'route' && (<>
-            <div className="glass-panel rounded-xl p-3" data-testid="ship-selector">
-              <label className="text-xs font-semibold text-gray-400 uppercase block mb-1.5">Ship</label>
+            {/* Ship Selector with Fleet Toggle */}
+            <div className="hud-panel p-3" data-testid="ship-selector">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Ship</label>
+                <button onClick={() => setUseFleet(f => !f)} data-testid="fleet-toggle"
+                  className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider transition-all hover:opacity-80"
+                  style={{ color: useFleet ? '#00FF9D' : '#888' }}>
+                  {useFleet ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
+                  {useFleet ? 'Fleet' : 'All Ships'}
+                </button>
+              </div>
               <select value={selectedShip?.id || ''} onChange={e => onShipSelect(e.target.value)} data-testid="ship-select"
-                className="w-full px-3 py-2 bg-[#0a0a10] border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-cyan-500" style={{ colorScheme: 'dark' }}>
-                <option value="" className="bg-[#0a0a10] text-gray-400">Select a ship...</option>
-                {ships.map(s => <option key={s.id} value={s.id} className="bg-[#0a0a10] text-white">{s.name} (QD S{s.hardpoints?.quantum_drive?.size || '?'})</option>)}
+                className="w-full px-3 py-2 bg-[#060a12] border border-white/8 rounded text-white text-xs focus:outline-none focus:border-cyan-500/50" style={{ colorScheme: 'dark' }}>
+                <option value="" className="bg-[#060a12] text-gray-500">
+                  {useFleet && fleetShips.length === 0 ? 'No ships in fleet' : 'Select a ship...'}
+                </option>
+                {ships.map(s => (
+                  <option key={s.id} value={s.id} className="bg-[#060a12] text-white">
+                    {s.name} ({s.quantum?.speed_kms ? `${Math.round(s.quantum.speed_kms / 1000)}k km/s` : `QD S${s.hardpoints?.quantum_drive?.size || '?'}`})
+                  </option>
+                ))}
               </select>
-              {selectedShip && <div className="mt-1.5 text-xs text-gray-400">QD S{qdSize} | {(qdSpeeds[qdSize] || 165000).toLocaleString()} km/s</div>}
+              {selectedShip && (
+                <div className="mt-2 grid grid-cols-3 gap-1">
+                  <div className="bg-white/3 rounded px-2 py-1 text-center">
+                    <div className="text-[9px] text-gray-600 uppercase">Speed</div>
+                    <div className="text-xs font-bold text-cyan-400 font-mono">{selectedShip.quantum?.speed_kms ? `${Math.round(selectedShip.quantum.speed_kms / 1000)}k` : `S${qdSize}`}</div>
+                  </div>
+                  <div className="bg-white/3 rounded px-2 py-1 text-center">
+                    <div className="text-[9px] text-gray-600 uppercase">Range</div>
+                    <div className="text-xs font-bold text-yellow-400 font-mono">{selectedShip.quantum?.range_mkm ? `${Math.round(selectedShip.quantum.range_mkm)}` : '--'}<span className="text-[8px] text-gray-600"> Mkm</span></div>
+                  </div>
+                  <div className="bg-white/3 rounded px-2 py-1 text-center">
+                    <div className="text-[9px] text-gray-600 uppercase">Fuel</div>
+                    <div className="text-xs font-bold text-orange-400 font-mono">{selectedShip.quantum?.fuel_capacity || '--'}</div>
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="glass-panel rounded-xl p-3 space-y-2.5" data-testid="route-selectors">
+
+            {/* Route Config */}
+            <div className="hud-panel p-3 space-y-2.5" data-testid="route-selectors">
               <LocationSelect value={origin} onChange={v => { setOrigin(v); setRoute(null); }} label="Origin" color="#00FF9D" testId="origin-select" />
-              <button onClick={swapOriginDest} data-testid="swap-btn" className="w-full flex items-center justify-center gap-2 py-1 rounded-lg bg-white/5 text-gray-400 hover:text-white text-xs"><ArrowLeftRight className="w-3 h-3" /> Swap</button>
+              <button onClick={swapOriginDest} data-testid="swap-btn" className="w-full flex items-center justify-center gap-2 py-1 rounded text-gray-600 hover:text-gray-300 text-[10px] uppercase tracking-wider transition-all">
+                <ArrowLeftRight className="w-3 h-3" /> Swap
+              </button>
               <LocationSelect value={destination} onChange={v => { setDestination(v); setRoute(null); }} label="Destination" color="#FF0055" testId="destination-select" />
               {!selectedShip && (
                 <div>
-                  <label className="text-xs font-semibold text-gray-400 uppercase block mb-1">QD Size</label>
-                  <div className="flex gap-2">
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">QD Size</label>
+                  <div className="flex gap-1.5">
                     {[1, 2, 3].map(s => (
                       <button key={s} onClick={() => { setQdSize(s); setRoute(null); }} data-testid={`qd-size-${s}`}
-                        className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${qdSize === s ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'bg-white/5 text-gray-400 border border-white/10'}`}>S{s}</button>
+                        className={`flex-1 py-1.5 rounded text-xs font-bold font-mono transition-all ${qdSize === s ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30' : 'bg-white/3 text-gray-600 border border-white/5'}`}>S{s}</button>
                     ))}
                   </div>
                 </div>
               )}
               <button onClick={calcRoute} disabled={!origin || !destination || calculating} data-testid="calculate-route-btn"
-                className="w-full py-2.5 rounded-xl font-bold text-sm text-black disabled:opacity-40 transition-all" style={{ background: 'linear-gradient(135deg, #00D4FF, #00A8CC)' }}>
-                {calculating ? 'Calculating...' : 'Calculate Route'}
+                className="w-full py-2.5 rounded font-bold text-xs uppercase tracking-widest text-black disabled:opacity-30 transition-all hover:shadow-lg hover:shadow-cyan-500/20"
+                style={{ background: 'linear-gradient(135deg, #00D4FF, #0088AA)' }}>
+                {calculating ? 'CALCULATING...' : 'CALCULATE ROUTE'}
               </button>
             </div>
             {route && <RouteResults route={route} formatTime={formatTime} />}
@@ -390,128 +489,92 @@ const RoutePlanner = () => {
 
           {/* === INTERDICTION TAB === */}
           {activeTab === 'interdiction' && (<>
-            <div className="glass-panel rounded-xl p-3 space-y-3" data-testid="interdiction-panel">
-              <div className="flex items-center gap-2 text-xs text-red-400">
-                <Target className="w-4 h-4" /> <span className="font-bold uppercase">QED Snare Planning</span>
+            <div className="hud-panel p-3 space-y-3" data-testid="interdiction-panel">
+              <div className="flex items-center gap-2 text-[10px] text-red-400 font-bold uppercase tracking-widest">
+                <Target className="w-3.5 h-3.5" /> QED Snare Planning
               </div>
-
-              {/* Destination */}
               <LocationSelect value={interdictDest} onChange={v => { setInterdictDest(v); setInterdictResult(null); }} label="Target Destination" color="#FF0055" testId="interdict-dest" />
-
-              {/* Origins */}
               <div>
-                <label className="text-xs font-semibold text-green-400 uppercase block mb-1">Possible Origins ({interdictOrigins.length})</label>
+                <label className="text-[10px] font-bold text-green-400 uppercase tracking-widest block mb-1">Possible Origins ({interdictOrigins.length})</label>
                 <div className="space-y-1 mb-2">
                   {interdictOrigins.map(oid => (
-                    <div key={oid} className="flex items-center justify-between px-2 py-1 bg-green-500/10 border border-green-500/20 rounded-lg text-xs">
-                      <span className="text-green-400">{locName(oid)}</span>
-                      <button onClick={() => removeInterdictOrigin(oid)} className="text-gray-500 hover:text-red-400"><X className="w-3 h-3" /></button>
+                    <div key={oid} className="flex items-center justify-between px-2 py-1 bg-green-500/8 border border-green-500/15 rounded text-[10px]">
+                      <span className="text-green-400 font-mono">{locName(oid)}</span>
+                      <button onClick={() => removeInterdictOrigin(oid)} className="text-gray-600 hover:text-red-400"><X className="w-3 h-3" /></button>
                     </div>
                   ))}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-1.5">
                   <select id="add-origin-select" data-testid="add-origin-select"
-                    className="flex-1 px-2 py-1.5 bg-[#0a0a10] border border-white/10 rounded-lg text-white text-xs focus:outline-none" style={{ colorScheme: 'dark' }}>
-                    <option value="" className="bg-[#0a0a10] text-gray-400">Add origin...</option>
+                    className="flex-1 px-2 py-1.5 bg-[#060a12] border border-white/8 rounded text-white text-[10px] focus:outline-none" style={{ colorScheme: 'dark' }}>
+                    <option value="" className="bg-[#060a12] text-gray-500">Add origin...</option>
                     {Object.entries(systems).map(([sysId, sys]) => (
-                      <optgroup key={sysId} label={sys.name} className="bg-[#0a0a10] text-gray-300">
+                      <optgroup key={sysId} label={sys.name} className="bg-[#060a12] text-gray-300">
                         {locations.filter(l => l.system === sysId && l.type !== 'star' && !interdictOrigins.includes(l.id)).map(l => (
-                          <option key={l.id} value={l.id} className="bg-[#0a0a10] text-white">{l.name}</option>
+                          <option key={l.id} value={l.id} className="bg-[#060a12] text-white">{l.name}</option>
                         ))}
                       </optgroup>
                     ))}
                   </select>
                   <button onClick={() => { const sel = document.getElementById('add-origin-select'); addInterdictOrigin(sel.value); sel.value = ''; }}
-                    data-testid="add-origin-btn" className="p-1.5 bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30 transition-colors">
-                    <Plus className="w-4 h-4" />
+                    data-testid="add-origin-btn" className="p-1.5 bg-green-500/15 text-green-400 rounded hover:bg-green-500/25 transition-colors">
+                    <Plus className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
-
-              {/* Snare Range */}
               <div>
-                <label className="text-xs font-semibold text-gray-400 uppercase block mb-1">Snare Range: {snareRange} Mkm</label>
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Snare Range: {snareRange} Mkm</label>
                 <input type="range" min="2" max="20" step="0.5" value={snareRange}
                   onChange={e => { setSnareRange(parseFloat(e.target.value)); setInterdictResult(null); }}
-                  data-testid="snare-range-slider"
-                  className="w-full accent-red-500" />
-                <div className="flex justify-between text-[10px] text-gray-600"><span>2 Mkm</span><span>20 Mkm</span></div>
+                  data-testid="snare-range-slider" className="w-full accent-red-500" />
               </div>
-
               <button onClick={calcInterdiction} disabled={interdictOrigins.length === 0 || !interdictDest || interdicting}
                 data-testid="calc-interdiction-btn"
-                className="w-full py-2.5 rounded-xl font-bold text-sm text-white disabled:opacity-40 transition-all"
-                style={{ background: 'linear-gradient(135deg, #FF0055, #CC0044)' }}>
-                {interdicting ? 'Calculating...' : 'Find Optimal Snare Position'}
+                className="w-full py-2.5 rounded font-bold text-xs uppercase tracking-widest text-white disabled:opacity-30 transition-all hover:shadow-lg hover:shadow-red-500/20"
+                style={{ background: 'linear-gradient(135deg, #FF0055, #AA0033)' }}>
+                {interdicting ? 'CALCULATING...' : 'FIND OPTIMAL SNARE'}
               </button>
             </div>
-
             {interdictResult && <InterdictionResults result={interdictResult} />}
           </>)}
 
           {/* === CHASE TAB === */}
           {activeTab === 'chase' && (<>
-            <div className="glass-panel rounded-xl p-3 space-y-3" data-testid="chase-panel">
-              <div className="flex items-center gap-2 text-xs text-yellow-400">
-                <Gauge className="w-4 h-4" /> <span className="font-bold uppercase">Chase Calculator</span>
+            <div className="hud-panel p-3 space-y-3" data-testid="chase-panel">
+              <div className="flex items-center gap-2 text-[10px] text-yellow-400 font-bold uppercase tracking-widest">
+                <Gauge className="w-3.5 h-3.5" /> Chase Calculator
               </div>
-
+              <QdSizeSelector value={chaseYourQd} onChange={v => { setChaseYourQd(v); setChaseResult(null); }} label="Your QD" color="cyan" testPrefix="chase-your-qd" qdSpeeds={qdSpeeds} />
+              <QdSizeSelector value={chaseTargetQd} onChange={v => { setChaseTargetQd(v); setChaseResult(null); }} label="Target QD" color="red" testPrefix="chase-target-qd" qdSpeeds={qdSpeeds} />
               <div>
-                <label className="text-xs font-semibold text-cyan-400 uppercase block mb-1">Your QD Size</label>
-                <div className="flex gap-2">
-                  {[1, 2, 3].map(s => (
-                    <button key={s} onClick={() => { setChaseYourQd(s); setChaseResult(null); }} data-testid={`chase-your-qd-${s}`}
-                      className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${chaseYourQd === s ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'bg-white/5 text-gray-400 border border-white/10'}`}>S{s}</button>
-                  ))}
-                </div>
-                <div className="text-[10px] text-gray-600 mt-1">{(qdSpeeds[chaseYourQd] || 165000).toLocaleString()} km/s</div>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-red-400 uppercase block mb-1">Target QD Size</label>
-                <div className="flex gap-2">
-                  {[1, 2, 3].map(s => (
-                    <button key={s} onClick={() => { setChaseTargetQd(s); setChaseResult(null); }} data-testid={`chase-target-qd-${s}`}
-                      className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${chaseTargetQd === s ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-white/5 text-gray-400 border border-white/10'}`}>S{s}</button>
-                  ))}
-                </div>
-                <div className="text-[10px] text-gray-600 mt-1">{(qdSpeeds[chaseTargetQd] || 165000).toLocaleString()} km/s</div>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-gray-400 uppercase block mb-1">Distance to Target: {chaseDist} Mkm</label>
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Distance: {chaseDist} Mkm</label>
                 <input type="range" min="1" max="60" step="1" value={chaseDist}
                   onChange={e => { setChaseDist(parseFloat(e.target.value)); setChaseResult(null); }}
                   data-testid="chase-dist-slider" className="w-full accent-yellow-500" />
-                <div className="flex justify-between text-[10px] text-gray-600"><span>1 Mkm</span><span>60 Mkm</span></div>
               </div>
-
               <div>
-                <label className="text-xs font-semibold text-gray-400 uppercase block mb-1">Prep Time: {chasePrep}s</label>
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Prep Time: {chasePrep}s</label>
                 <input type="range" min="5" max="120" step="5" value={chasePrep}
                   onChange={e => { setChasePrep(parseInt(e.target.value)); setChaseResult(null); }}
                   data-testid="chase-prep-slider" className="w-full accent-yellow-500" />
-                <div className="flex justify-between text-[10px] text-gray-600"><span>5s</span><span>120s</span></div>
               </div>
-
               <button onClick={calcChase} data-testid="calc-chase-btn"
-                className="w-full py-2.5 rounded-xl font-bold text-sm text-black disabled:opacity-40 transition-all"
-                style={{ background: 'linear-gradient(135deg, #FFAE00, #FF8C00)' }}>
-                Calculate Chase
+                className="w-full py-2.5 rounded font-bold text-xs uppercase tracking-widest text-black disabled:opacity-30 transition-all hover:shadow-lg hover:shadow-yellow-500/20"
+                style={{ background: 'linear-gradient(135deg, #FFAE00, #CC8A00)' }}>
+                CALCULATE CHASE
               </button>
             </div>
-
             {chaseResult && <ChaseResults result={chaseResult} qdSpeeds={qdSpeeds} formatTime={formatTime} />}
           </>)}
 
           {/* Legend */}
-          <div className="glass-panel rounded-xl p-3" data-testid="map-legend">
-            <h4 className="text-xs font-semibold text-gray-400 uppercase mb-1.5">Legend</h4>
-            <div className="grid grid-cols-2 gap-1 text-[10px]">
+          <div className="hud-panel p-2.5" data-testid="map-legend">
+            <h4 className="text-[9px] font-bold text-gray-600 uppercase tracking-widest mb-1.5">Legend</h4>
+            <div className="grid grid-cols-2 gap-0.5 text-[9px]">
               {Object.entries(TYPE_COLORS).map(([type, color]) => (
-                <div key={type} className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
-                  <span className="text-gray-400 capitalize">{type.replace('_', ' ')}</span>
+                <div key={type} className="flex items-center gap-1.5 py-0.5">
+                  <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: color }} />
+                  <span className="text-gray-500 capitalize font-mono">{type.replace('_', ' ')}</span>
                 </div>
               ))}
             </div>
@@ -519,23 +582,27 @@ const RoutePlanner = () => {
         </div>
       </div>
 
-      {/* Map Canvas */}
-      <div className="flex-1 glass-panel rounded-xl overflow-hidden relative" data-testid="star-map">
+      {/* Map Canvas - HUD Frame */}
+      <div className="flex-1 rounded overflow-hidden relative border border-white/5 bg-[#040810]" data-testid="star-map">
         <canvas ref={canvasRef} onWheel={handleWheel} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp} onClick={handleCanvasClick} className="w-full h-full" />
+        {/* HUD overlays */}
+        <div className="absolute top-3 left-3 text-[9px] text-cyan-500/40 font-mono uppercase tracking-widest">
+          mobi-glass // nav-sys v4.6
+        </div>
         <div className="absolute top-3 right-3 flex items-center gap-2">
           <button onClick={() => { setMapOffset({ x: 0, y: 0 }); setMapZoom(1); }} data-testid="reset-map"
-            className="p-2 bg-black/60 backdrop-blur rounded-lg text-gray-400 hover:text-white transition-colors">
-            <RotateCcw className="w-4 h-4" />
+            className="p-1.5 bg-black/40 backdrop-blur-sm border border-white/5 rounded text-gray-500 hover:text-white transition-colors">
+            <RotateCcw className="w-3.5 h-3.5" />
           </button>
         </div>
         {hoveredLoc && (
-          <div className="absolute bottom-3 left-3 bg-black/80 backdrop-blur rounded-lg px-3 py-2 text-xs pointer-events-none">
-            <div className="font-bold text-white">{locName(hoveredLoc)}</div>
-            <div className="text-gray-400 capitalize">{locations.find(l => l.id === hoveredLoc)?.type} - {locations.find(l => l.id === hoveredLoc)?.system}</div>
+          <div className="absolute bottom-3 left-3 bg-black/80 backdrop-blur-sm border border-cyan-500/20 rounded px-3 py-2 pointer-events-none">
+            <div className="text-xs font-bold text-white font-mono">{locName(hoveredLoc)}</div>
+            <div className="text-[9px] text-gray-500 capitalize font-mono">{locations.find(l => l.id === hoveredLoc)?.type?.replace('_', ' ')} // {locations.find(l => l.id === hoveredLoc)?.system}</div>
           </div>
         )}
-        <div className="absolute bottom-3 right-3 text-[10px] text-gray-600 bg-black/40 px-2 py-1 rounded">{Math.round(mapZoom * 100)}%</div>
+        <div className="absolute bottom-3 right-3 text-[9px] text-gray-600 font-mono bg-black/40 px-2 py-0.5 rounded">{Math.round(mapZoom * 100)}%</div>
       </div>
     </div>
   );
@@ -543,37 +610,84 @@ const RoutePlanner = () => {
 
 // --- Sub-components ---
 
+const QdSizeSelector = ({ value, onChange, label, color, testPrefix, qdSpeeds }) => (
+  <div>
+    <label className={`text-[10px] font-bold uppercase tracking-widest block mb-1 text-${color}-400`}>{label}</label>
+    <div className="flex gap-1.5">
+      {[1, 2, 3].map(s => (
+        <button key={s} onClick={() => onChange(s)} data-testid={`${testPrefix}-${s}`}
+          className={`flex-1 py-1.5 rounded text-xs font-bold font-mono transition-all ${value === s ? `bg-${color}-500/15 text-${color}-400 border border-${color}-500/30` : 'bg-white/3 text-gray-600 border border-white/5'}`}>S{s}</button>
+      ))}
+    </div>
+    <div className="text-[9px] text-gray-600 mt-0.5 font-mono">{(qdSpeeds[value] || 165000).toLocaleString()} km/s</div>
+  </div>
+);
+
 const RouteResults = ({ route, formatTime }) => (
-  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-    className="glass-panel rounded-xl p-3 space-y-3" data-testid="route-results">
-    <h3 className="text-xs font-bold uppercase text-gray-400">Route Details</h3>
-    <div className="grid grid-cols-2 gap-2">
-      <div className="bg-white/5 rounded-lg p-2.5 text-center">
-        <Ruler className="w-4 h-4 mx-auto mb-1 text-cyan-400" />
-        <div className="text-lg font-bold text-white" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{route.total_distance_mkm.toLocaleString()}</div>
-        <div className="text-[10px] text-gray-500">Mkm</div>
+  <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="hud-panel p-3 space-y-2.5" data-testid="route-results">
+    <h3 className="text-[9px] font-bold uppercase tracking-widest text-gray-500">Route Summary</h3>
+    <div className="grid grid-cols-2 gap-1.5">
+      <div className="bg-white/3 rounded p-2 text-center">
+        <Ruler className="w-3.5 h-3.5 mx-auto mb-0.5 text-cyan-400" />
+        <div className="text-sm font-bold text-white font-mono">{route.total_distance_mkm.toLocaleString()}</div>
+        <div className="text-[8px] text-gray-600 uppercase">Mkm</div>
       </div>
-      <div className="bg-white/5 rounded-lg p-2.5 text-center">
-        <Clock className="w-4 h-4 mx-auto mb-1 text-yellow-400" />
-        <div className="text-lg font-bold text-white" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{formatTime(route.travel_time_seconds)}</div>
-        <div className="text-[10px] text-gray-500">Travel Time</div>
+      <div className="bg-white/3 rounded p-2 text-center">
+        <Clock className="w-3.5 h-3.5 mx-auto mb-0.5 text-yellow-400" />
+        <div className="text-sm font-bold text-white font-mono">{formatTime(route.travel_time_seconds)}</div>
+        <div className="text-[8px] text-gray-600 uppercase">Travel Time</div>
       </div>
     </div>
-    <div className="text-xs text-gray-500 flex items-center gap-2">
-      <Zap className="w-3 h-3 text-cyan-400" /> QD S{route.qd_size} at {route.qd_speed_kms.toLocaleString()} km/s
-      {route.cross_system && <span className="px-1.5 py-0.5 bg-orange-500/20 text-orange-400 rounded text-[10px]">Cross-System</span>}
+
+    {/* Fuel & QD Info */}
+    <div className="flex items-center gap-2 text-[10px] text-gray-400 font-mono flex-wrap">
+      <div className="flex items-center gap-1"><Zap className="w-3 h-3 text-cyan-400" /> S{route.qd_size} @ {route.qd_speed_kms?.toLocaleString()} km/s</div>
+      {route.cross_system && <span className="px-1.5 py-0.5 bg-orange-500/15 text-orange-400 rounded text-[9px] font-bold">CROSS-SYS</span>}
     </div>
+    {route.fuel_stops > 0 && (
+      <div className="flex items-center gap-1.5 text-[10px] bg-yellow-500/8 border border-yellow-500/15 rounded px-2 py-1.5">
+        <Fuel className="w-3 h-3 text-yellow-400" />
+        <span className="text-yellow-400 font-bold">{route.fuel_stops} fuel stop{route.fuel_stops > 1 ? 's' : ''}</span>
+        <span className="text-gray-500 ml-auto font-mono">+{route.refuel_time_seconds}s</span>
+      </div>
+    )}
+    <div className="flex items-center gap-1.5 text-[10px]">
+      <span className="text-gray-600">Fuel remaining:</span>
+      <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
+        <div className="h-full rounded-full transition-all" style={{
+          width: `${route.fuel_remaining_pct}%`,
+          background: route.fuel_remaining_pct > 40 ? '#00FF9D' : route.fuel_remaining_pct > 15 ? '#FFAE00' : '#FF0055'
+        }} />
+      </div>
+      <span className="text-gray-500 font-mono text-[9px]">{route.fuel_remaining_pct}%</span>
+    </div>
+
+    {/* Waypoints */}
     <div className="space-y-1">
-      <h4 className="text-xs font-semibold text-gray-400 uppercase">Waypoints</h4>
+      <h4 className="text-[9px] font-bold text-gray-600 uppercase tracking-widest">Waypoints</h4>
       {route.waypoints.map((wp, i) => (
-        <div key={i} className={`flex items-center gap-2 p-2 rounded-lg text-xs ${wp.type === 'jump' ? 'bg-orange-500/10 border border-orange-500/20' : 'bg-white/[0.03]'}`} data-testid={`waypoint-${i}`}>
-          <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${wp.type === 'jump' ? 'bg-orange-500/30 text-orange-400' : 'bg-cyan-500/20 text-cyan-400'}`}>{i + 1}</div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1 text-gray-300">
-              <span className="truncate">{wp.from}</span><ChevronRight className="w-3 h-3 text-gray-600 shrink-0" /><span className="truncate">{wp.to}</span>
-            </div>
-            <div className="text-gray-600">{wp.distance_mkm} Mkm{wp.type === 'jump' ? ' (Jump Tunnel)' : ''}</div>
+        <div key={i} data-testid={`waypoint-${i}`}
+          className={`flex items-center gap-1.5 p-1.5 rounded text-[10px] ${wp.type === 'jump' ? 'bg-orange-500/8 border border-orange-500/15' : wp.type === 'refuel' ? 'bg-yellow-500/8 border border-yellow-500/15' : 'bg-white/[0.02]'}`}>
+          <div className={`w-4 h-4 rounded flex items-center justify-center text-[8px] font-bold shrink-0 ${wp.type === 'jump' ? 'bg-orange-500/25 text-orange-400' : wp.type === 'refuel' ? 'bg-yellow-500/25 text-yellow-400' : 'bg-cyan-500/15 text-cyan-400'}`}>
+            {wp.type === 'refuel' ? 'F' : i + 1}
           </div>
+          <div className="min-w-0 flex-1">
+            {wp.type === 'refuel' ? (
+              <div className="text-yellow-400 font-bold font-mono">REFUELING @ {wp.from}</div>
+            ) : (
+              <div className="flex items-center gap-1 text-gray-300 font-mono">
+                <span className="truncate">{wp.from}</span>
+                <ChevronRight className="w-2.5 h-2.5 text-gray-700 shrink-0" />
+                <span className="truncate">{wp.to}</span>
+              </div>
+            )}
+            {wp.type !== 'refuel' && (
+              <div className="text-gray-600 font-mono">{wp.distance_mkm} Mkm {wp.type === 'jump' ? '// JUMP' : ''}</div>
+            )}
+          </div>
+          {wp.type !== 'refuel' && wp.fuel_remaining_pct !== undefined && (
+            <div className="text-[8px] text-gray-600 shrink-0 font-mono">{wp.fuel_remaining_pct}%</div>
+          )}
         </div>
       ))}
     </div>
@@ -581,87 +695,59 @@ const RouteResults = ({ route, formatTime }) => (
 );
 
 const InterdictionResults = ({ result }) => (
-  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-    className="glass-panel rounded-xl p-3 space-y-3" data-testid="interdiction-results">
+  <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="hud-panel p-3 space-y-2.5" data-testid="interdiction-results">
     <div className="flex items-center gap-2">
-      {result.coverage_pct === 100
-        ? <CheckCircle className="w-4 h-4 text-green-400" />
-        : <AlertTriangle className="w-4 h-4 text-yellow-400" />}
-      <span className={`text-xs font-bold ${result.coverage_pct === 100 ? 'text-green-400' : 'text-yellow-400'}`}>
-        {result.message}
-      </span>
+      {result.coverage_pct === 100 ? <CheckCircle className="w-3.5 h-3.5 text-green-400" /> : <AlertTriangle className="w-3.5 h-3.5 text-yellow-400" />}
+      <span className={`text-[10px] font-bold uppercase tracking-wider ${result.coverage_pct === 100 ? 'text-green-400' : 'text-yellow-400'}`}>{result.message}</span>
     </div>
-    <div className="grid grid-cols-2 gap-2">
-      <div className="bg-white/5 rounded-lg p-2.5 text-center">
-        <div className={`text-2xl font-bold ${result.coverage_pct === 100 ? 'text-green-400' : 'text-yellow-400'}`} style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-          {result.coverage_pct}%
-        </div>
-        <div className="text-[10px] text-gray-500">Coverage</div>
+    <div className="grid grid-cols-2 gap-1.5">
+      <div className="bg-white/3 rounded p-2 text-center">
+        <div className={`text-lg font-bold font-mono ${result.coverage_pct === 100 ? 'text-green-400' : 'text-yellow-400'}`}>{result.coverage_pct}%</div>
+        <div className="text-[8px] text-gray-600 uppercase">Coverage</div>
       </div>
-      <div className="bg-white/5 rounded-lg p-2.5 text-center">
-        <div className="text-2xl font-bold text-red-400" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-          {result.routes_covered}/{result.routes_total}
-        </div>
-        <div className="text-[10px] text-gray-500">Routes Covered</div>
+      <div className="bg-white/3 rounded p-2 text-center">
+        <div className="text-lg font-bold text-red-400 font-mono">{result.routes_covered}/{result.routes_total}</div>
+        <div className="text-[8px] text-gray-600 uppercase">Routes</div>
       </div>
     </div>
     {result.distance_to_dest_mkm && (
-      <div className="text-xs text-gray-400">
-        Snare position: <span className="text-red-400 font-semibold">{result.distance_to_dest_mkm} Mkm</span> from destination
-      </div>
+      <div className="text-[10px] text-gray-500 font-mono">Snare: <span className="text-red-400 font-bold">{result.distance_to_dest_mkm} Mkm</span> from dest</div>
     )}
-    <div className="text-xs text-gray-500">
-      Snare range: {result.snare_range_mkm} Mkm | Covers {result.routes_covered} route{result.routes_covered > 1 ? 's' : ''}
-    </div>
-    <div>
-      <h4 className="text-xs font-semibold text-gray-400 uppercase mb-1">Target Routes</h4>
-      {(result.route_lines || []).map((rl, i) => (
-        <div key={i} className="text-xs text-gray-300 py-0.5">{rl.from} → {result.destination.name}</div>
-      ))}
-    </div>
   </motion.div>
 );
 
 const ChaseResults = ({ result, qdSpeeds, formatTime }) => (
-  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-    className="glass-panel rounded-xl p-3 space-y-3" data-testid="chase-results">
+  <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="hud-panel p-3 space-y-2.5" data-testid="chase-results">
     <div className="flex items-center gap-2">
-      {result.can_catch
-        ? <CheckCircle className="w-4 h-4 text-green-400" />
-        : <AlertTriangle className="w-4 h-4 text-red-400" />}
-      <span className={`text-xs font-bold ${result.can_catch ? 'text-green-400' : 'text-red-400'}`}>
-        {result.can_catch ? 'Target Catchable' : 'Cannot Catch'}
-      </span>
+      {result.can_catch ? <CheckCircle className="w-3.5 h-3.5 text-green-400" /> : <AlertTriangle className="w-3.5 h-3.5 text-red-400" />}
+      <span className={`text-[10px] font-bold uppercase tracking-wider ${result.can_catch ? 'text-green-400' : 'text-red-400'}`}>{result.can_catch ? 'Target Catchable' : 'Cannot Catch'}</span>
     </div>
-    <div className="p-3 rounded-lg text-xs leading-relaxed"
-      style={{ background: result.can_catch ? 'rgba(0,255,157,0.05)' : 'rgba(255,0,85,0.05)', border: `1px solid ${result.can_catch ? 'rgba(0,255,157,0.2)' : 'rgba(255,0,85,0.2)'}` }}>
-      {result.verdict}
-    </div>
-    <div className="grid grid-cols-2 gap-2 text-xs">
-      <div className="bg-white/5 rounded-lg p-2">
-        <div className="text-gray-500">Your QD</div>
-        <div className="text-cyan-400 font-bold">{result.your_speed_kms?.toLocaleString()} km/s</div>
+    <div className="p-2 rounded text-[10px] leading-relaxed font-mono" style={{
+      background: result.can_catch ? 'rgba(0,255,157,0.04)' : 'rgba(255,0,85,0.04)',
+      border: `1px solid ${result.can_catch ? 'rgba(0,255,157,0.15)' : 'rgba(255,0,85,0.15)'}`
+    }}>{result.verdict}</div>
+    <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+      <div className="bg-white/3 rounded p-1.5">
+        <div className="text-gray-600 font-mono">Your QD</div>
+        <div className="text-cyan-400 font-bold font-mono">{result.your_speed_kms?.toLocaleString()} km/s</div>
       </div>
-      <div className="bg-white/5 rounded-lg p-2">
-        <div className="text-gray-500">Target QD</div>
-        <div className="text-red-400 font-bold">{result.target_speed_kms?.toLocaleString()} km/s</div>
+      <div className="bg-white/3 rounded p-1.5">
+        <div className="text-gray-600 font-mono">Target QD</div>
+        <div className="text-red-400 font-bold font-mono">{result.target_speed_kms?.toLocaleString()} km/s</div>
       </div>
     </div>
     {result.can_catch && (
-      <div className="grid grid-cols-2 gap-2 text-xs">
-        <div className="bg-white/5 rounded-lg p-2">
-          <div className="text-gray-500">Closing Time</div>
-          <div className="text-yellow-400 font-bold">{formatTime(result.closing_time_seconds)}</div>
+      <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+        <div className="bg-white/3 rounded p-1.5">
+          <div className="text-gray-600 font-mono">Closing</div>
+          <div className="text-yellow-400 font-bold font-mono">{formatTime(result.closing_time_seconds)}</div>
         </div>
-        <div className="bg-white/5 rounded-lg p-2">
-          <div className="text-gray-500">Total (+ prep)</div>
-          <div className="text-yellow-400 font-bold">{formatTime(result.total_time_seconds)}</div>
+        <div className="bg-white/3 rounded p-1.5">
+          <div className="text-gray-600 font-mono">Total</div>
+          <div className="text-yellow-400 font-bold font-mono">{formatTime(result.total_time_seconds)}</div>
         </div>
       </div>
     )}
-    <div className="text-[10px] text-gray-600">
-      Speed {result.speed_advantage_kms > 0 ? 'advantage' : 'disadvantage'}: {Math.abs(result.speed_advantage_kms || 0).toLocaleString()} km/s
-    </div>
   </motion.div>
 );
 

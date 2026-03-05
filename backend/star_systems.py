@@ -8,6 +8,21 @@ QD_SPEEDS = {
     1: 165_000,   # Small
     2: 190_000,   # Medium  
     3: 240_000,   # Large
+    4: 280_000,   # Large+
+    5: 319_000,   # Capital
+    6: 718_000,   # Super-Capital
+}
+
+# Quantum fuel model per QD size class
+# range_mkm = max quantum travel distance before empty
+QD_FUEL_DEFAULTS = {
+    0: {"range_mkm": 0},
+    1: {"range_mkm": 120},     # Snub/Small ~120 Mkm
+    2: {"range_mkm": 180},     # Small ~180 Mkm
+    3: {"range_mkm": 100},     # Medium ~100 Mkm (faster but less efficient)
+    4: {"range_mkm": 130},     # Large ~130 Mkm
+    5: {"range_mkm": 250},     # Capital ~250 Mkm
+    6: {"range_mkm": 2000},    # Super-Capital
 }
 
 # 2D map coordinates: (x, y) in arbitrary units for visual layout
@@ -211,8 +226,36 @@ def _find_jump_route(origin_sys, dest_sys):
     return []
 
 
-def calculate_route(origin_id, destination_id, qd_size=1):
-    """Calculate a quantum travel route between two locations."""
+def _get_rest_stops(system_id):
+    """Get all rest stops in a given system, sorted by distance from star."""
+    stops = [loc for loc in LOCATIONS if loc["system"] == system_id and loc["type"] == "rest_stop"]
+    return sorted(stops, key=lambda l: l.get("distance_from_star", 0))
+
+
+def _find_nearest_rest_stop(current_loc, target_loc, system_id):
+    """Find the rest stop closest to the path between current and target within the same system."""
+    stops = _get_rest_stops(system_id)
+    if not stops:
+        return None
+    best = None
+    best_score = float("inf")
+    cx, cy = current_loc["map_x"], current_loc["map_y"]
+    tx, ty = target_loc["map_x"], target_loc["map_y"]
+    for stop in stops:
+        if stop["id"] == current_loc.get("id"):
+            continue
+        sx, sy = stop["map_x"], stop["map_y"]
+        dist_from_cur = math.sqrt((sx - cx) ** 2 + (sy - cy) ** 2) * 0.3
+        dist_to_target = math.sqrt((sx - tx) ** 2 + (sy - ty) ** 2) * 0.3
+        score = dist_from_cur + dist_to_target
+        if dist_from_cur > 0.5 and score < best_score:
+            best_score = score
+            best = stop
+    return best
+
+
+def calculate_route(origin_id, destination_id, qd_size=1, qd_speed_override=0, qd_range_mkm=0):
+    """Calculate a quantum travel route between two locations with fuel tracking."""
     origin = _loc_by_id.get(origin_id)
     dest = _loc_by_id.get(destination_id)
     if not origin or not dest:
@@ -220,83 +263,131 @@ def calculate_route(origin_id, destination_id, qd_size=1):
     if origin_id == destination_id:
         return {"error": "Origin and destination are the same"}
 
-    speed_kms = QD_SPEEDS.get(qd_size, QD_SPEEDS[1])
-    waypoints = []
-    total_distance_mkm = 0
+    speed_kms = qd_speed_override if qd_speed_override > 0 else QD_SPEEDS.get(qd_size, QD_SPEEDS.get(1, 165000))
+    max_range = qd_range_mkm if qd_range_mkm > 0 else QD_FUEL_DEFAULTS.get(qd_size, {}).get("range_mkm", 180)
+
+    raw_waypoints = []
 
     if origin["system"] == dest["system"]:
-        # Same system: direct route
         dist = _distance_mkm(origin, dest)
-        total_distance_mkm = dist
-        waypoints.append({
-            "from": origin["name"],
-            "from_id": origin_id,
-            "to": dest["name"],
-            "to_id": destination_id,
-            "distance_mkm": round(dist, 2),
-            "type": "quantum",
+        raw_waypoints.append({
+            "from_loc": origin, "to_loc": dest,
+            "distance_mkm": dist, "type": "quantum",
         })
     else:
-        # Cross-system route
         jumps = _find_jump_route(origin["system"], dest["system"])
         if not jumps:
             return {"error": f"No jump route from {origin['system']} to {dest['system']}"}
-
         prev_loc = origin
         for gw_origin_id, gw_dest_id, jump_dist in jumps:
             gw_origin = _loc_by_id[gw_origin_id]
             gw_dest = _loc_by_id[gw_dest_id]
-
-            # Quantum to gateway
             leg_dist = _distance_mkm(prev_loc, gw_origin) or 20.0
-            total_distance_mkm += leg_dist
-            waypoints.append({
-                "from": prev_loc["name"],
-                "from_id": prev_loc["id"],
-                "to": gw_origin["name"],
-                "to_id": gw_origin_id,
-                "distance_mkm": round(leg_dist, 2),
-                "type": "quantum",
+            raw_waypoints.append({
+                "from_loc": prev_loc, "to_loc": gw_origin,
+                "distance_mkm": leg_dist, "type": "quantum",
             })
-            # Jump tunnel
-            total_distance_mkm += jump_dist
-            waypoints.append({
-                "from": gw_origin["name"],
-                "from_id": gw_origin_id,
-                "to": gw_dest["name"],
-                "to_id": gw_dest_id,
-                "distance_mkm": round(jump_dist, 2),
-                "type": "jump",
+            raw_waypoints.append({
+                "from_loc": gw_origin, "to_loc": gw_dest,
+                "distance_mkm": jump_dist, "type": "jump",
             })
             prev_loc = gw_dest
-
-        # Final leg: gateway exit to destination
         final_dist = _distance_mkm(prev_loc, dest) or 20.0
-        total_distance_mkm += final_dist
-        waypoints.append({
-            "from": prev_loc["name"],
-            "from_id": prev_loc["id"],
-            "to": dest["name"],
-            "to_id": destination_id,
-            "distance_mkm": round(final_dist, 2),
-            "type": "quantum",
+        raw_waypoints.append({
+            "from_loc": prev_loc, "to_loc": dest,
+            "distance_mkm": final_dist, "type": "quantum",
         })
 
-    # Calculate travel time
-    total_distance_km = total_distance_mkm * 1_000_000
-    travel_time_s = total_distance_km / speed_kms
-    # Add spool/calibration overhead per leg
-    spool_time = len(waypoints) * 8  # ~8s per quantum spool
+    # Process fuel stops
+    waypoints = []
+    fuel_remaining = max_range
+    fuel_stops = 0
+    total_distance_mkm = 0
+
+    for wp in raw_waypoints:
+        dist = wp["distance_mkm"]
+        if wp["type"] == "jump":
+            # Jumps don't consume quantum fuel
+            waypoints.append({
+                "from": wp["from_loc"]["name"], "from_id": wp["from_loc"]["id"],
+                "to": wp["to_loc"]["name"], "to_id": wp["to_loc"]["id"],
+                "distance_mkm": round(dist, 2), "type": "jump",
+                "fuel_used_pct": 0, "fuel_remaining_pct": round((fuel_remaining / max_range) * 100) if max_range > 0 else 100,
+            })
+            total_distance_mkm += dist
+            continue
+
+        # Quantum leg — check if we need a fuel stop
+        if max_range > 0 and dist > fuel_remaining:
+            # Need a fuel stop before this leg
+            rest_stop = _find_nearest_rest_stop(wp["from_loc"], wp["to_loc"], wp["from_loc"]["system"])
+            if rest_stop and rest_stop["id"] != wp["from_loc"]["id"] and rest_stop["id"] != wp["to_loc"]["id"]:
+                # Leg to rest stop
+                d_to_stop = _distance_mkm(wp["from_loc"], rest_stop) or 5.0
+                fuel_used_pct_1 = round((d_to_stop / max_range) * 100) if max_range > 0 else 0
+                fuel_remaining = max(0, fuel_remaining - d_to_stop)
+                waypoints.append({
+                    "from": wp["from_loc"]["name"], "from_id": wp["from_loc"]["id"],
+                    "to": rest_stop["name"], "to_id": rest_stop["id"],
+                    "distance_mkm": round(d_to_stop, 2), "type": "quantum",
+                    "fuel_used_pct": fuel_used_pct_1,
+                    "fuel_remaining_pct": round((fuel_remaining / max_range) * 100) if max_range > 0 else 100,
+                })
+                total_distance_mkm += d_to_stop
+                # Refuel
+                waypoints.append({
+                    "from": rest_stop["name"], "from_id": rest_stop["id"],
+                    "to": rest_stop["name"], "to_id": rest_stop["id"],
+                    "distance_mkm": 0, "type": "refuel",
+                    "fuel_used_pct": 0, "fuel_remaining_pct": 100,
+                })
+                fuel_remaining = max_range
+                fuel_stops += 1
+                # Continue from rest stop to original destination
+                d_from_stop = _distance_mkm(rest_stop, wp["to_loc"]) or 5.0
+                fuel_used_pct_2 = round((d_from_stop / max_range) * 100) if max_range > 0 else 0
+                fuel_remaining = max(0, fuel_remaining - d_from_stop)
+                waypoints.append({
+                    "from": rest_stop["name"], "from_id": rest_stop["id"],
+                    "to": wp["to_loc"]["name"], "to_id": wp["to_loc"]["id"],
+                    "distance_mkm": round(d_from_stop, 2), "type": "quantum",
+                    "fuel_used_pct": fuel_used_pct_2,
+                    "fuel_remaining_pct": round((fuel_remaining / max_range) * 100) if max_range > 0 else 100,
+                })
+                total_distance_mkm += d_from_stop
+                continue
+
+        # Normal quantum leg
+        fuel_used_pct = round((dist / max_range) * 100) if max_range > 0 else 0
+        fuel_remaining = max(0, fuel_remaining - dist)
+        waypoints.append({
+            "from": wp["from_loc"]["name"], "from_id": wp["from_loc"]["id"],
+            "to": wp["to_loc"]["name"], "to_id": wp["to_loc"]["id"],
+            "distance_mkm": round(dist, 2), "type": wp["type"],
+            "fuel_used_pct": fuel_used_pct,
+            "fuel_remaining_pct": round((fuel_remaining / max_range) * 100) if max_range > 0 else 100,
+        })
+        total_distance_mkm += dist
+
+    # Calculate travel time (only for quantum legs)
+    quantum_distance_km = sum(w["distance_mkm"] for w in waypoints if w["type"] == "quantum") * 1_000_000
+    travel_time_s = quantum_distance_km / speed_kms if speed_kms > 0 else 0
+    spool_time = sum(1 for w in waypoints if w["type"] in ("quantum", "jump")) * 8
+    refuel_time = fuel_stops * 45  # ~45s per refuel stop
 
     return {
         "origin": {"id": origin_id, "name": origin["name"], "system": origin["system"]},
         "destination": {"id": destination_id, "name": dest["name"], "system": dest["system"]},
         "qd_size": qd_size,
         "qd_speed_kms": speed_kms,
+        "qd_range_mkm": round(max_range, 1),
         "total_distance_mkm": round(total_distance_mkm, 2),
-        "total_distance_km": int(total_distance_km),
-        "travel_time_seconds": round(travel_time_s + spool_time),
+        "total_distance_km": int(total_distance_mkm * 1_000_000),
+        "travel_time_seconds": round(travel_time_s + spool_time + refuel_time),
         "spool_time_seconds": spool_time,
+        "refuel_time_seconds": refuel_time,
+        "fuel_stops": fuel_stops,
+        "fuel_remaining_pct": round((fuel_remaining / max_range) * 100) if max_range > 0 else 100,
         "waypoints": waypoints,
         "cross_system": origin["system"] != dest["system"],
     }
