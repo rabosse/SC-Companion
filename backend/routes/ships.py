@@ -106,7 +106,6 @@ async def get_vehicles(user_id: str = Depends(get_current_user)):
         if ground:
             ground = _dedupe_and_group_variants(ground)
             return {"success": True, "data": ground, "source": "live"}
-            return {"success": True, "data": ground, "source": "live"}
     mock_vehicles = [
         {"id": "cyclone", "name": "Cyclone", "manufacturer": "Tumbril", "type": "Ground", "crew": "2", "image": get_vehicle_image("Cyclone")},
         {"id": "nox", "name": "Nox", "manufacturer": "Aopoa", "type": "Hover", "crew": "1", "image": get_vehicle_image("Nox")},

@@ -1,0 +1,104 @@
+{
+  "summary": "Iteration 21: Ship/Vehicle deduplication and variant grouping tests. 14/14 backend tests passed (100%). Frontend UI tests passed. Ships page shows 203 unique ship cards (down from 276 due to dedup). Vehicles page shows 12 vehicles with 1 showing variant dropdown (Ursa Medivac). Variant dropdowns work correctly for ships with cosmetic variants. Gear tab regression passed (50 weapons, 81 armor, 26 equipment).",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Ships page - Console",
+        "issues": [
+          "React key warnings in console for variant names (Gladius Pirate, Hammerhead 2949 Best In Show Edition, etc.) - visual editor wrapper artifacts, not actual React bugs"
+        ]
+      }
+    ]
+  },
+
+  "passed_tests": [
+    "Backend: /api/health returns ok - PASSED",
+    "Backend: Login with e1agent/test123 - PASSED",
+    "Backend: /api/ships returns 0 duplicate ship names - PASSED",
+    "Backend: /api/ships returns ~203 ships (reduced from 276) - PASSED",
+    "Backend: Ships with variants have 'variants' array - PASSED",
+    "Backend: Variant structure has name/id/image fields - PASSED",
+    "Backend: F8C Lightning or similar ship has variants - PASSED",
+    "Backend: Variant names are searchable (PYAM, Executive, etc.) - PASSED",
+    "Backend: /api/vehicles returns no duplicate names - PASSED",
+    "Backend: Vehicles with variants have 'variants' array - PASSED",
+    "Backend: Ballista variants (Dunestalker, Snowblind) if present - PASSED",
+    "Backend: /api/gear/armor returns 81 items (regression) - PASSED",
+    "Backend: /api/gear/weapons returns 50 items (regression) - PASSED",
+    "Backend: /api/gear/equipment returns 26 items (regression) - PASSED",
+    "Frontend: Ships page loads with 203 ship cards - PASSED",
+    "Frontend: No duplicate ship names visible in UI - PASSED",
+    "Frontend: Ship cards have variant dropdowns where applicable - PASSED",
+    "Frontend: Variant selection changes displayed name - PASSED",
+    "Frontend: Add to Fleet button works - PASSED",
+    "Frontend: Vehicles page loads with 12 vehicles - PASSED",
+    "Frontend: No duplicate vehicle names visible - PASSED",
+    "Frontend: Ursa Medivac shows variant dropdown - PASSED",
+    "Frontend: Gear tab shows correct counts (50/81/26) - PASSED"
+  ],
+
+  "test_report_links": [
+    "/app/backend/tests/test_iteration21_ship_dedup_variants.py",
+    "/app/test_reports/pytest/pytest_iteration21.xml"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "Fixed duplicate return statement in ships.py line 108-109",
+    "_dedupe_and_group_variants() correctly groups cosmetic variants under base ship",
+    "Variant suffixes properly matched: PYAM Exec, Executive Edition, Emerald, Pirate, Star Kitten, Wikelo*, etc.",
+    "ShipCard component correctly implements variant dropdown with state management",
+    "Ships.jsx search includes variant names in filter",
+    "VehicleCard component mirrors ShipCard variant functionality"
+  ],
+
+  "updated_files": [
+    "/app/backend/routes/ships.py (removed duplicate return)",
+    "/app/backend/tests/test_iteration21_ship_dedup_variants.py"
+  ],
+
+  "success_rate": {
+    "backend": "100% (14/14 pytest tests passed)",
+    "frontend": "100% (All UI tests passed)"
+  },
+
+  "test_credentials": {
+    "username": "e1agent",
+    "password": "test123"
+  },
+
+  "seed_data_creation": "No new seed data - CStone API provides ship/vehicle data dynamically",
+
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "Iteration 21 fixed duplicate ships (was 17 duplicates) and added variant grouping. Ships page now shows ~203 unique ships with variant dropdowns for cosmetic editions (PYAM Exec, Executive Edition, Emerald, Pirate, Star Kitten, Wikelo, CitizenCon, etc.). Vehicles page shows 12 vehicles with Ursa Medivac having variant dropdown. All gear tabs working correctly. Test user: e1agent/test123.",
+
+  "feature_verification_summary": {
+    "no_duplicate_ships": "PASS - 0 duplicate ship names in /api/ships response",
+    "ship_count_reduced": "PASS - ~203 ships (reduced from 276)",
+    "ships_have_variants_array": "PASS - Ships with variants have 'variants' array",
+    "variant_structure_correct": "PASS - Variants have name/id/image fields",
+    "no_duplicate_vehicles": "PASS - 0 duplicate vehicle names in /api/vehicles",
+    "vehicles_have_variants_array": "PASS - Vehicles with variants have 'variants' array",
+    "frontend_no_dup_ship_cards": "PASS - 203 unique ship cards visible",
+    "frontend_variant_dropdown": "PASS - Variant dropdowns visible on ships with variants",
+    "frontend_variant_selection": "PASS - Selecting variant updates displayed name",
+    "frontend_add_to_fleet": "PASS - Add to Fleet works for base and variant",
+    "frontend_vehicle_cards": "PASS - 12 vehicle cards with 1 variant dropdown",
+    "gear_regression": "PASS - FPS Weapons (50), Armor (81), Equipment (26)"
+  },
+
+  "bugs_fixed_this_iteration": [
+    "Removed duplicate return statement in ships.py vehicles endpoint (line 108-109)"
+  ]
+}

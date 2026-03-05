@@ -5,6 +5,99 @@ import { Package, Search, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 
+const VehicleCard = ({ vehicle, index, onAddToFleet }) => {
+  const [selectedVariant, setSelectedVariant] = useState(null);
+  const displayName = selectedVariant ? selectedVariant.name : vehicle.name;
+  const displayImage = selectedVariant?.image || vehicle.image;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.05 }}
+      className="glass-panel rounded-2xl overflow-hidden hover:scale-105 transition-transform duration-300"
+      data-testid={`vehicle-card-${vehicle.id}`}
+    >
+      <div className="h-48 relative overflow-hidden bg-gradient-to-br from-yellow-500/20 to-orange-600/20">
+        {displayImage && (
+          <img src={displayImage} alt={displayName} data-testid={`vehicle-image-${vehicle.id}`}
+            className="w-full h-full object-cover"
+            onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; }} />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+        {!displayImage && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Package className="w-16 h-16 text-yellow-500/30" />
+          </div>
+        )}
+      </div>
+
+      <div className="p-6">
+        <div className="flex items-center justify-between mb-2 gap-2">
+          <h3 className="text-xl font-bold text-white truncate" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
+            {displayName}
+          </h3>
+          <span className="text-xs px-2 py-1 bg-yellow-500/20 text-yellow-500 rounded-full border border-yellow-500/30 shrink-0">
+            {vehicle.type}
+          </span>
+        </div>
+        <p className="text-sm text-gray-400 mb-3">{vehicle.manufacturer}</p>
+
+        {/* Variant Dropdown */}
+        {vehicle.variants?.length > 0 && (
+          <div className="mb-3">
+            <select
+              value={selectedVariant?.name || ''}
+              onChange={(e) => {
+                if (!e.target.value) { setSelectedVariant(null); return; }
+                const v = vehicle.variants.find(v => v.name === e.target.value);
+                setSelectedVariant(v || null);
+              }}
+              data-testid={`variant-select-${vehicle.id}`}
+              className="w-full px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-white focus:outline-none focus:border-cyan-500 transition-all"
+              style={{ colorScheme: 'dark' }}
+            >
+              <option value="" className="bg-gray-900">{vehicle.name} (Base)</option>
+              {vehicle.variants.map(v => (
+                <option key={v.name} value={v.name} className="bg-gray-900">{v.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        <div className="text-sm mb-4 space-y-1">
+          <div>
+            <span className="text-gray-500 block">Crew Capacity</span>
+            <span className="text-white font-semibold">{vehicle.crew_max ? `${vehicle.crew_min}-${vehicle.crew_max}` : (vehicle.crew || 'N/A')}</span>
+          </div>
+          {vehicle.price_auec > 0 && (
+            <div>
+              <span className="text-gray-500 block">Price</span>
+              <span className="text-yellow-400 font-semibold">{vehicle.price_auec.toLocaleString()} aUEC</span>
+            </div>
+          )}
+          {vehicle.purchase_locations?.length > 0 && (
+            <div>
+              <span className="text-gray-500 block">Available at</span>
+              <span className="text-cyan-400 text-xs">{vehicle.purchase_locations.join(', ')}</span>
+            </div>
+          )}
+        </div>
+
+        <button
+          onClick={() => onAddToFleet(selectedVariant || vehicle)}
+          data-testid={`add-to-fleet-${vehicle.id}`}
+          className="w-full flex items-center justify-center space-x-2 px-4 py-2 rounded-full border border-cyan-500/30 text-cyan-500 hover:bg-cyan-500 hover:text-black transition-all duration-300"
+          style={{ fontFamily: 'Rajdhani, sans-serif', fontWeight: 600 }}
+        >
+          <Plus className="w-4 h-4" />
+          <span>Add to Fleet</span>
+        </button>
+      </div>
+    </motion.div>
+  );
+};
+
 const Vehicles = () => {
   const { API } = useAuth();
   const [vehicles, setVehicles] = useState([]);
@@ -61,7 +154,7 @@ const Vehicles = () => {
         </div>
       </div>
     );
-  };
+  }
 
   return (
     <div className="space-y-8" data-testid="vehicles-page">
@@ -93,76 +186,7 @@ const Vehicles = () => {
       {/* Vehicles Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredVehicles.map((vehicle, index) => (
-          <motion.div
-            key={vehicle.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.05 }}
-            className="glass-panel rounded-2xl overflow-hidden hover:scale-105 transition-transform duration-300"
-            data-testid={`vehicle-card-${vehicle.id}`}
-          >
-            <div className="h-48 relative overflow-hidden bg-gradient-to-br from-yellow-500/20 to-orange-600/20">
-              {vehicle.image && (
-                <img 
-                  src={vehicle.image} 
-                  alt={vehicle.name}
-                  data-testid={`vehicle-image-${vehicle.id}`}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.style.display = 'none';
-                  }}
-                />
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-              {!vehicle.image && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Package className="w-16 h-16 text-yellow-500/30" />
-                </div>
-              )}
-            </div>
-
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-xl font-bold text-white" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                  {vehicle.name}
-                </h3>
-                <span className="text-xs px-2 py-1 bg-yellow-500/20 text-yellow-500 rounded-full border border-yellow-500/30">
-                  {vehicle.type}
-                </span>
-              </div>
-              <p className="text-sm text-gray-400 mb-4">{vehicle.manufacturer}</p>
-
-              <div className="text-sm mb-4 space-y-1">
-                <div>
-                  <span className="text-gray-500 block">Crew Capacity</span>
-                  <span className="text-white font-semibold">{vehicle.crew_max ? `${vehicle.crew_min}-${vehicle.crew_max}` : (vehicle.crew || 'N/A')}</span>
-                </div>
-                {vehicle.price_auec > 0 && (
-                  <div>
-                    <span className="text-gray-500 block">Price</span>
-                    <span className="text-yellow-400 font-semibold">{vehicle.price_auec.toLocaleString()} aUEC</span>
-                  </div>
-                )}
-                {vehicle.purchase_locations?.length > 0 && (
-                  <div>
-                    <span className="text-gray-500 block">Available at</span>
-                    <span className="text-cyan-400 text-xs">{vehicle.purchase_locations.join(', ')}</span>
-                  </div>
-                )}
-              </div>
-
-              <button
-                onClick={() => addToFleet(vehicle)}
-                data-testid={`add-to-fleet-${vehicle.id}`}
-                className="w-full flex items-center justify-center space-x-2 px-4 py-2 rounded-full border border-cyan-500/30 text-cyan-500 hover:bg-cyan-500 hover:text-black transition-all duration-300"
-                style={{ fontFamily: 'Rajdhani, sans-serif', fontWeight: 600 }}
-              >
-                <Plus className="w-4 h-4" />
-                <span>Add to Fleet</span>
-              </button>
-            </div>
-          </motion.div>
+          <VehicleCard key={vehicle.id} vehicle={vehicle} index={index} onAddToFleet={addToFleet} />
         ))}
       </div>
 
