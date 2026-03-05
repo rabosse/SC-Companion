@@ -2,77 +2,74 @@
 The user wants to build a full-stack application called Star Citizen Fleet Manager. The core purpose is to allow players to track their ships and ground vehicles from the game Star Citizen.
 
 **PRODUCT REQUIREMENTS:**
-- Use the Star Citizen API for data.
-- User authentication (Username/Password) and the ability to manage a personal Fleet.
-- Display ships, ground vehicles, components, and weapons.
-- Show detailed information for each item, including stock vs. best upgrades for components/weapons.
-- Ship and vehicle pages must display correct, official images.
-- Implement a ship comparison tool.
-- Implement a loadout builder with savable and shareable loadouts.
-- Display fleet statistics on a dashboard.
-- Users must be able to add and remove an unlimited number of vehicles from their fleet.
-- Components and Weapons pages should have filtering by size, and show in-game acquisition location and aUEC price.
-- The main logo should be the official Star Citizen logo (later updated to Star Citizen Companion).
-- Display ship/vehicle purchase locations (in-game and RSI store), including costs.
-- Provide a way to easily import a user's fleet.
-- Data should auto-update to reflect game patches.
-- Add a route planner for the Stanton, Pyro, and Nyx systems, including all major cities and stations.
-- Add an interdiction planner for pirating.
-- Add a section for rare armor and FPS weapon locations with visual cards and item details.
-- Implement real-time price tracking for in-game items.
+-   Use the Star Citizen API for data.
+-   User authentication (Username/Password) and the ability to manage a personal Fleet.
+-   Display ships, ground vehicles, components, and weapons with detailed information.
+-   Ship and vehicle pages must display correct, official images and handle variants properly.
+-   Implement a ship comparison tool.
+-   Implement a loadout builder with savable and shareable loadouts and accurate hardpoint data.
+-   Display fleet statistics on a dashboard.
+-   Users must be able to add and remove an unlimited number of vehicles from their fleet.
+-   Components and Weapons pages should have filtering and show in-game acquisition data.
+-   The Gear section (Armor, Weapons, Equipment) must be detailed, accurate, and visually consistent.
+-   Display ship/vehicle purchase locations (in-game and RSI store), including costs.
+-   Implement a route planner for all star systems, including fuel stops and jump calculations based on the selected ship's capabilities. The visual design should be inspired by the in-game Mobi-Glass.
+-   The route planner should integrate with the user's fleet.
+-   Add an interdiction planner for pirating with enhanced tactical data.
+-   Add a section for rare armor and FPS weapon locations.
+-   Implement real-time price tracking for in-game items.
 
 **User's preferred language**: English
 
 **what currently exists?**
 A comprehensive full-stack application (Star Citizen Companion) using React, FastAPI, and MongoDB. The application integrates with  and  for live game data.
 
-The application features secure user authentication, fleet management, detailed data pages (Ships, Vehicles, etc.), and advanced tools like a ship comparison and route planner. A Gear section provides detailed information on Armor, FPS Weapons, and Equipment. The Armor tab was recently overhauled to provide variant-specific images, pricing, and detailed loot locations sourced directly from the  API, making it highly interactive and accurate. The UI has been refined with a left-aligned, scrolling header for better usability.
+The app features secure user authentication and fleet management. The core features have been significantly overhauled:
+-   **Starmap/Route Planner**: A completely redesigned, animated, and interactive starmap using the HTML5 Canvas API, inspired by the in-game Mobi-Glass. It calculates fuel-aware routes based on the selected ship's stats.
+-   **Interdiction Planner**: An enhanced tactical planner that provides detailed analysis, including arrival timelines, escape analysis, and smart intel. The UI and starmap visualizations have been upgraded to match.
+-   **Gear Section**: The Armor, FPS Weapons, and Equipment pages now have a consistent, modern UI, providing variant-specific images, pricing, and loot locations.
+-   **Data Accuracy**: Weapon hardpoint data has been corrected using a curated backend mapping.
 
 **Last working item**:
-- **Last item agent was working:** The user requested that the Weapons and Equipment tabs be updated to function identically to the newly overhauled Armor tab. This involves a deep integration with the  API to fetch and display variant-specific data (images, prices, loot locations) for FPS weapons. The agent had begun the backend work for this integration.
-- **Status:** IN PROGRESS
-- **Agent Testing Done:** N
-- **Which testing method agent to use?** both
-- **User Testing Done:** N
+-   **Last item agent was working:** The agent finished implementing the backend and frontend for the Interdiction Planner enhancements. This involved a significant backend rewrite to provide rich tactical data and a complete frontend UI overhaul to display this information effectively on the planner and the starmap.
+-   **Status:** TESTING PENDING
+-   **Agent Testing Done:** N
+-   **Which testing method agent to use?** both
+-   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
-- **Issue 1: Unify Gear Page Functionality (P0)**
-  - **Description:** The Weapons and Equipment tabs are functionally inconsistent with the Armor tab. The user wants all three tabs to share the same feature set: variant-specific images, dynamic pricing, buy locations, and specific loot drop information, all powered by the  API.
-  - **Attempted fixes:** The agent started the backend integration for FPS weapons. This included adding CStone data fetching/caching to , modifying the  route, and beginning the process of aligning weapon variant names in  with the CStone data. The agent also fixed an image inconsistency bug by prioritizing CStone as the primary image source for all base images.
-  - **Next debug checklist:**
-    1.  **Backend - Finalize Weapon Data:** Complete the bulk update of weapon variants in  to precisely match the naming and structure from CStone.
-    2.  **Backend - Finalize Weapon API:** Ensure the  endpoint in  correctly returns the  and  dictionaries, mirroring the structure of the  endpoint.
-    3.  **Frontend - Implement WeaponCard:** In , adapt the  logic to a new  component (or make the existing card generic). This card must handle state for the selected weapon variant and dynamically display the correct image, price/LOOT ONLY status, and acquisition locations.
-    4.  **Frontend - Update :** Ensure the modal correctly displays and allows interaction with weapon variant data.
-    5.  **Task - Implement Equipment Tab:** After completing the Weapons tab, repeat the entire integration process (backend CStone fetching, API updates, frontend component updates) for the Equipment tab.
-  - **Why fix this issue and what will be achieved with the fix?** This will create a consistent, high-quality user experience across the entire Gear section, fulfilling a direct user request and significantly improving the application's polish.
-  - **Status:** IN PROGRESS
-  - **Is recurring issue?** N
-  - **Should Test frontend/backend/both after fix?** Both
-  - **Blocked on other issue:** None
+-   None. All user-reported issues from this session have been resolved.
 
 **In progress Task List**:
-- **Task 1: Complete CStone Integration for FPS Weapons (P0)**
-  - **Where to resume:** The agent was mid-way through updating weapon variant names in . The next immediate step is to complete the data alignment, then implement the corresponding frontend changes in .
-  - **What will be achieved with this?** The FPS Weapons tab will have full feature parity with the highly-detailed Armor tab.
-  - **Status:** IN PROGRESS
-  - **Should Test frontend/backend/both after fix?** Both
-  - **Blocked on something:** None
+-   **Task 1: Test the Interdiction Planner Enhancements (P0)**
+    -   **Where to resume:** The implementation is complete. The immediate next step is to call the  to perform a full-stack test of the new interdiction functionality.
+    -   **What will be achieved with this?** This will verify the correctness of the new tactical calculations on the backend, the new UI components on the frontend, and ensure the enhancements have not introduced any regressions.
+    -   **Status:** NOT STARTED
+    -   **Should Test frontend/backend/both after fix?** Both
+    -   **Blocked on something:** None
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   **(P0) CStone Integration for Equipment:** Once the Weapons tab is complete, apply the same integration pattern to the Equipment tab to finalize the Gear page overhaul.
+    -   **(P0) Enhance the Chase Planner Tab**: The agent's original plan for the interdiction feature included enhancing the Chase Planner tab as well. This should be the next task after verifying the interdiction planner. It involves adding tactical data like pursuit time, target's potential destinations, and escape routes.
+
 -   **Future Tasks:**
-    -   **(P2) Refactor :** This file has grown large and handles logic for ships, armor, and weapons. It should be split into smaller, more focused modules (e.g., , ) to improve code organization and maintainability.
+    -   **(P1)** Add real-time price tracking for in-game items.
+    -   **(P2)** Implement a tool to easily import a user's fleet from their RSI account.
 
 **Completed work in this session**
--   **Armor Page Overhaul:**
-    -   **CStone API Integration:** Integrated  as the primary data source for armor, providing variant-specific images, stats, and acquisition data.
-    -   **Dynamic Variant Data:** Implemented logic to display unique images, prices, buy locations, or a LOOT ONLY status with specific drop locations for every armor variant.
-    -   **Frontend Implementation:** Updated the Armor tab UI () to be fully dynamic, allowing users to select variants and see all corresponding information update in real-time on the card and in the detail modal.
-    -   **Missing Armor Sets Added:** Added 7 previously missing armor sets to the application.
--   **Header UI Fix:**
-    -   Corrected a UI bug where the header navigation would overflow on some screen sizes. The header is now left-aligned and the navigation bar is horizontally scrollable, ensuring the logout button is always accessible.
+-   **Starmap & Route Planner Visual Overhaul:**
+    -   Completely rewrote the starmap rendering in  using the HTML5 Canvas API to create a dynamic, animated, and visually immersive experience with a starfield, nebulas, glowing nodes, and animated route lines.
+-   **Route Planner Functional Overhaul:**
+    -   Enhanced the backend logic in  to calculate multi-jump routes that account for a ship's quantum drive speed, fuel capacity, and refueling stops.
+    -   Corrected inaccurate weapon hardpoint data by creating a curated mapping in .
+-   **Interdiction Planner Enhancement:**
+    -   Rewrote the backend logic in  to provide rich tactical data: arrival timelines, escape analysis, tactical intel, and nearby locations.
+    -   Redesigned the frontend UI in  with new controls and a detailed tactical results panel.
+-   **Gear Page Unification:**
+    -   Refactored  to make the Equipment tab visually and functionally consistent with the Armor and Weapons tabs, including a unified card layout and details modal.
+    -   Updated  to include .
+-   **Bug Fix: Route Planner Ship Dropdown:**
+    -   Resolved an issue in  where the All Ships dropdown appeared empty for the user. The fix involved making API calls more robust and improving the fleet detection logic.
 
 **Earlier issues found/mentioned but not fixed**
 -   None.
@@ -84,7 +81,7 @@ The application features secure user authentication, fleet management, detailed 
 
 
 **Key Technical Concepts**
--   **Frontend**: React, Tailwind CSS, Shadcn UI, , , 
+-   **Frontend**: React, Tailwind CSS, Shadcn UI, , , , **HTML5 Canvas API** for dynamic visualizations.
 -   **Backend**: FastAPI, Pydantic, JWT for authentication, , modular routing with .
 -   **Database**: MongoDB
 -   **Architecture**: SPA with a modular RESTful API backend, using live data from third-party APIs (, ) with local data caching.
@@ -98,53 +95,52 @@ The application features secure user authentication, fleet management, detailed 
 -   None.
 
 **All files of reference**
--   : Massively updated. Contains all logic for fetching, caching, and processing data from CStone for armor and (in-progress) weapons.
--   : Extensively modified to align armor and weapon variant names with CStone's data and to include detailed loot location information.
--   : The  endpoint was updated to return rich variant data. The  endpoint is being modified to match.
--   : Updated to pre-cache all required CStone data on application startup.
--   : Heavily refactored to manage the complex state of variant selection and dynamically render variant-specific data for the armor tab.
--   : Modified to implement the left-aligned, scrolling header fix.
--   : Added a  utility class for the header navigation.
+-   : Heavily modified for the new Canvas-based starmap, route planner UI, and interdiction planner UI.
+-   : Major rewrite of  and  functions.
+-   : Updated to include curated weapon hardpoint data and expose ship quantum stats.
+-   : Refactored to unify the layout and functionality of the Equipment tab.
+-   : Updated to add  to equipment data.
+-   : Modified to support enhanced equipment data.
 
 **Areas that need refactoring**:
--    is becoming a monolithic file. It should be broken down into smaller, feature-specific enhancers (e.g., , ) for better maintainability.
+-   The original  file still acts as a re-exporting wrapper and could eventually be removed by updating all imports to point to the new modular enhancers (, etc.). This is a low-priority cleanup task.
 
 **key api endpoints**
--   : Returns a  dictionary for each item, containing per-variant image URLs,  status, derived prices, and acquisition locations.
--   : In the process of being updated to match the new  response structure.
--   Other endpoints remain as previously defined: , , , etc.
+-   : Now accepts ship quantum parameters and returns fuel-aware routes.
+-   : Now accepts QD sizes and returns enhanced tactical data.
+-   : Now returns curated weapon hardpoints and quantum stats.
+-   : Now returns .
 
 **Critical Info for New Agent**
--   Your immediate and highest priority task is to complete the CStone integration for the **FPS Weapons** tab, bringing it to feature parity with the Armor tab as requested by the user.
--   The implementation pattern for this is already established and working in the Armor section. You must replicate it for Weapons, and then for Equipment.
--   Focus your efforts on  (finishing variant name updates),  (finalizing API response), and  (implementing the frontend logic for weapons).
--   The user is highly detail-oriented. Ensure the final functionality and UI for the Weapons and Equipment tabs are identical to the Armor tab.
+-   Your first action should be to run the testing agent to validate the recently completed Interdiction Planner enhancements.
+-   The user is highly receptive to high-quality visual upgrades. Any new feature should adhere to the modern, animated Mobi-Glass aesthetic established by the new starmap.
+-   The next logical feature to implement is the Chase Planner enhancement, which was part of the original proposal for the piracy tools.
 
 **documents and test reports created in this job**
--    (Updated)
+-   /app/memory/PRD.md (Updated by agent)
+-   /app/test_reports/iteration_6.json
+-   /app/test_reports/iteration_7.json
+-   /app/test_reports/iteration_8.json
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **The picture of the Lynx Base is not correct, verify it all with Cstone** - COMPLETED. User reported a base image bug, which the agent fixed by prioritizing CStone as the image source.
-2.  **Come on... Why are the weapons not done the same way as the Armor. Make the Gear all function like the Armor tab. with the same kind of info on them in regards to acquiring them** - PENDING. This is the current P0 task defining the work to be done.
-3.  **I can not scroll the banner to be able to Log out, Justify the banner to the Left most point,** - COMPLETED. User reported a header UI bug, which was fixed.
-4.  **when an item is LOOT ONLY, can locations to loot them be provided.** - COMPLETED. User requested more specific loot locations for armor, which the agent researched and implemented.
-5.  **when a Variant is chosen it should also update its Acquisition location and cost.** - COMPLETED. User requested dynamic pricing/location data for armor variants, which the agent implemented.
-6.  **run the testing agent for comprehensive validation:** - SUPERSEDED. The user made subsequent requests before the agent could run the test.
-7.  **search https://finder.cstone.space/ for images that can be used.** - COMPLETED. User provided the  data source, which proved critical and was fully integrated for armor.
-8.  **The variant selection is working — I can see ADP Aqua...** - PARTIALLY COMPLETED. Agent's initial work on variant images was successful but later replaced by the superior CStone integration.
-9.  **Proceed with P0** - COMPLETED. User approved the initial plan to fix the armor page.
-10. **The agent was in the process of rewriting weapon variants in bulk when the last session ended.**
+1.  : PENDING (Implementation complete, testing pending).
+2.  : COMPLETED (User approved the interdiction plan).
+3.  : COMPLETED (The starmap was completely redesigned).
+4.  : COMPLETED (User approved the starmap redesign plan).
+5.  : COMPLETED.
+6.  : COMPLETED (Bug was fixed).
+7.  : COMPLETED (Implemented in the initial P0 task).
 
 **Project Health Check:**
--   **Broken**: Nothing is broken.
--   **Mocked**: The system has a robust fallback mechanism. If an image isn't found in the primary source (CStone), it attempts to use a secondary source (wiki) or a placeholder. This is intended behavior.
+-   **Broken**: None. All known broken features have been addressed.
+-   **Mocked**: No mocked components. The system uses live data.
 
 **3rd Party Integrations**
--   **starcitizen.tools API**: Used for foundational game data and as a fallback image source.
--   **cstone.space API**: The primary data source for all detailed variant information for armor and weapons, including images, stats, and acquisition data. Does not require an API key.
+-   **starcitizen.tools API**: Used for foundational game data (ships, vehicles, systems).
+-   **cstone.space API**: Primary source for detailed gear data (armor, weapons, equipment), including images and acquisition info.
 
 **Testing status**
--   **Testing agent used after significant changes**: NO. The agent completed the massive armor overhaul and was in the middle of the weapon overhaul. Manual screenshot verification was performed, but a full testing agent run is pending completion of the entire Gear page update.
+-   **Testing agent used after significant changes**: YES. It was used after the gear page unification and the starmap redesign.
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: []
 -   **Known regressions**: None.
@@ -153,4 +149,5 @@ The application features secure user authentication, fleet management, detailed 
 -   Create a new user via the registration page. Use any username and password (e.g., , ).
 
 **What agent forgot to execute**
--   The agent was actively working on the user's primary request when the session ended. It did not forget any tasks. The next logical step, updating the Equipment tab, is documented in the upcoming tasks.</analysis>
+-   The agent was about to run the testing agent for the interdiction planner enhancements right as the session ended. This is the immediate next step.
+-   The agent planned to enhance the Chase Planner tab alongside the Interdiction Planner but has not started it. This should be added to the upcoming tasks.</analysis>
