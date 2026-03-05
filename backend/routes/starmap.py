@@ -35,11 +35,13 @@ class InterdictionRequest(BaseModel):
     origins: list
     destination: str
     snare_range_mkm: float = 7.5
+    your_qd_size: int = 1
+    target_qd_size: int = 1
 
 
 @router.post("/interdiction")
 async def calculate_interdiction_route(data: InterdictionRequest):
-    result = calculate_interdiction(data.origins, data.destination, data.snare_range_mkm)
+    result = calculate_interdiction(data.origins, data.destination, data.snare_range_mkm, data.your_qd_size, data.target_qd_size)
     if "error" in result:
         raise HTTPException(status_code=400, detail=result["error"])
     return {"success": True, "data": result}

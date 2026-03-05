@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useAuth } from '../App';
 import axios from 'axios';
-import { Navigation, Clock, Ruler, ChevronRight, Zap, RotateCcw, ArrowLeftRight, Target, Gauge, Plus, X, AlertTriangle, CheckCircle, Fuel, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Navigation, Clock, Ruler, ChevronRight, Zap, RotateCcw, ArrowLeftRight, Target, Gauge, Plus, X, AlertTriangle, CheckCircle, Fuel, ToggleLeft, ToggleRight, Shield, Eye, Trash2, Radio, MapPin } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 
@@ -49,6 +49,8 @@ const RoutePlanner = () => {
   const [snareRange, setSnareRange] = useState(7.5);
   const [interdictResult, setInterdictResult] = useState(null);
   const [interdicting, setInterdicting] = useState(false);
+  const [interdictYourQd, setInterdictYourQd] = useState(2);
+  const [interdictTargetQd, setInterdictTargetQd] = useState(1);
 
   const [chaseYourQd, setChaseYourQd] = useState(1);
   const [chaseTargetQd, setChaseTargetQd] = useState(1);
@@ -67,7 +69,7 @@ const RoutePlanner = () => {
 
   // Keep refs in sync for animation loop
   const stateRef = useRef({});
-  stateRef.current = { locations, systems, origin, destination, route, interdictOrigins, interdictDest, interdictResult, hoveredLoc, activeTab, mapOffset, mapZoom };
+  stateRef.current = { locations, systems, origin, destination, route, interdictOrigins, interdictDest, interdictResult, hoveredLoc, activeTab, mapOffset, mapZoom, interdictYourQd, interdictTargetQd };
 
   const ships = useMemo(() => useFleet ? fleetShips : allShips, [useFleet, fleetShips, allShips]);
 
@@ -114,11 +116,11 @@ const RoutePlanner = () => {
     if (interdictOrigins.length === 0 || !interdictDest) { toast.error('Add origins and select a destination'); return; }
     setInterdicting(true);
     try {
-      const res = await axios.post(`${API}/routes/interdiction`, { origins: interdictOrigins, destination: interdictDest, snare_range_mkm: snareRange });
+      const res = await axios.post(`${API}/routes/interdiction`, { origins: interdictOrigins, destination: interdictDest, snare_range_mkm: snareRange, your_qd_size: interdictYourQd, target_qd_size: interdictTargetQd });
       setInterdictResult(res.data.data);
     } catch (err) { toast.error(err.response?.data?.detail || 'Interdiction calculation failed'); }
     finally { setInterdicting(false); }
-  }, [interdictOrigins, interdictDest, snareRange]);
+  }, [interdictOrigins, interdictDest, snareRange, interdictYourQd, interdictTargetQd]);
 
   const calcChase = useCallback(async () => {
     try {
@@ -129,6 +131,12 @@ const RoutePlanner = () => {
 
   const addInterdictOrigin = (id) => { if (id && !interdictOrigins.includes(id)) { setInterdictOrigins(prev => [...prev, id]); setInterdictResult(null); } };
   const removeInterdictOrigin = (id) => { setInterdictOrigins(prev => prev.filter(o => o !== id)); setInterdictResult(null); };
+  const clearInterdiction = () => { setInterdictOrigins([]); setInterdictDest(''); setInterdictResult(null); };
+  const addOriginsByType = (type) => {
+    const ids = locations.filter(l => l.type === type && l.id !== interdictDest).map(l => l.id);
+    setInterdictOrigins(prev => [...new Set([...prev, ...ids])]);
+    setInterdictResult(null);
+  };
   const onShipSelect = (shipId) => { const ship = ships.find(s => s.id === shipId); setSelectedShip(ship || null); if (ship?.hardpoints?.quantum_drive) setQdSize(ship.hardpoints.quantum_drive.size || 1); setRoute(null); };
   const swapOriginDest = () => { setOrigin(destination); setDestination(origin); setRoute(null); };
   const locName = (id) => locations.find(l => l.id === id)?.name || id;
@@ -246,36 +254,101 @@ const RoutePlanner = () => {
 
       // === INTERDICTION OVERLAY ===
       if (tab === 'interdiction' && iResult) {
-        (iResult.route_lines || []).forEach(rl => {
+        // Route lines — green for covered, red for uncovered
+        const routeDetails = iResult.route_details || [];
+        (iResult.route_lines || []).forEach((rl, idx) => {
           const sf = toScreen(rl.sx, rl.sy, w, h, offset, zoom), st = toScreen(rl.ex, rl.ey, w, h, offset, zoom);
-          ctx.strokeStyle = 'rgba(255,0,85,0.25)';
+          const isCovered = routeDetails[idx]?.covered !== false;
+          const routeColor = isCovered ? 'rgba(0,255,157,0.3)' : 'rgba(255,0,85,0.4)';
+          const routeGlow = isCovered ? 'rgba(0,255,157,0.06)' : 'rgba(255,0,85,0.06)';
+
+          // Glow
+          ctx.strokeStyle = routeGlow;
+          ctx.lineWidth = 6 * zoom;
+          ctx.beginPath(); ctx.moveTo(sf.x, sf.y); ctx.lineTo(st.x, st.y); ctx.stroke();
+          // Dashed line
+          ctx.strokeStyle = routeColor;
           ctx.lineWidth = 1.5;
           ctx.setLineDash([5, 4]);
           ctx.lineDashOffset = -t * 15;
           ctx.beginPath(); ctx.moveTo(sf.x, sf.y); ctx.lineTo(st.x, st.y); ctx.stroke();
           ctx.setLineDash([]);
+
+          // Origin marker
+          ctx.fillStyle = isCovered ? '#00FF9D' : '#FF0055';
+          ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 6;
+          ctx.beginPath(); ctx.arc(sf.x, sf.y, 3 * zoom, 0, Math.PI * 2); ctx.fill();
+          ctx.shadowBlur = 0;
         });
+
+        // Primary snare
         const sp = iResult.snare_position;
         if (sp) {
           const ss = toScreen(sp.x, sp.y, w, h, offset, zoom);
           const sr = (iResult.snare_range_map || 25) * zoom;
           const pulse = Math.sin(t * 3) * 0.3 + 0.7;
+
+          // Outer glow ring
+          ctx.strokeStyle = `rgba(255,0,85,${0.08 * pulse})`;
+          ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.arc(ss.x, ss.y, sr + 4, 0, Math.PI * 2); ctx.stroke();
+
           // Snare radius fill
-          ctx.fillStyle = iResult.coverage_pct === 100 ? `rgba(255,0,85,${0.03 * pulse})` : `rgba(255,165,0,${0.03 * pulse})`;
+          ctx.fillStyle = iResult.coverage_pct === 100 ? `rgba(255,0,85,${0.025 * pulse})` : `rgba(255,165,0,${0.025 * pulse})`;
           ctx.beginPath(); ctx.arc(ss.x, ss.y, sr, 0, Math.PI * 2); ctx.fill();
-          // Snare ring
+
+          // Animated scanning ring
           ctx.strokeStyle = iResult.coverage_pct === 100 ? `rgba(255,0,85,${0.5 * pulse})` : `rgba(255,165,0,${0.5 * pulse})`;
           ctx.lineWidth = 1.5;
+          ctx.setLineDash([8, 4]);
+          ctx.lineDashOffset = -t * 25;
           ctx.beginPath(); ctx.arc(ss.x, ss.y, sr, 0, Math.PI * 2); ctx.stroke();
-          // Snare center
+          ctx.setLineDash([]);
+
+          // Snare center crosshair
           ctx.fillStyle = '#FF0055';
-          ctx.shadowColor = '#FF0055'; ctx.shadowBlur = 15;
-          ctx.beginPath(); ctx.arc(ss.x, ss.y, 4, 0, Math.PI * 2); ctx.fill();
+          ctx.shadowColor = '#FF0055'; ctx.shadowBlur = 18;
+          ctx.beginPath(); ctx.arc(ss.x, ss.y, 4 * zoom, 0, Math.PI * 2); ctx.fill();
           ctx.shadowBlur = 0;
-          ctx.fillStyle = `rgba(255,0,85,${0.6 * pulse})`;
+
+          // Crosshair lines
+          ctx.strokeStyle = 'rgba(255,0,85,0.3)';
+          ctx.lineWidth = 0.8;
+          const chSize = 12 * zoom;
+          ctx.beginPath(); ctx.moveTo(ss.x - chSize, ss.y); ctx.lineTo(ss.x - 6 * zoom, ss.y); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(ss.x + 6 * zoom, ss.y); ctx.lineTo(ss.x + chSize, ss.y); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(ss.x, ss.y - chSize); ctx.lineTo(ss.x, ss.y - 6 * zoom); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(ss.x, ss.y + 6 * zoom); ctx.lineTo(ss.x, ss.y + chSize); ctx.stroke();
+
+          // Label
+          ctx.fillStyle = `rgba(255,0,85,${0.7 * pulse})`;
           ctx.font = `700 ${Math.max(8, 9 * zoom)}px Rajdhani, sans-serif`;
           ctx.textAlign = 'center';
-          ctx.fillText('QED SNARE', ss.x, ss.y - 10 * zoom);
+          ctx.fillText('PRIMARY SNARE', ss.x, ss.y - 14 * zoom);
+        }
+
+        // Second snare suggestion
+        const ss2 = iResult.second_snare;
+        if (ss2?.position) {
+          const s2s = toScreen(ss2.position.x, ss2.position.y, w, h, offset, zoom);
+          const sr = (iResult.snare_range_map || 25) * zoom;
+          const pulse2 = Math.sin(t * 2.5 + 1) * 0.3 + 0.7;
+          ctx.fillStyle = `rgba(255,174,0,${0.02 * pulse2})`;
+          ctx.beginPath(); ctx.arc(s2s.x, s2s.y, sr, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = `rgba(255,174,0,${0.4 * pulse2})`;
+          ctx.lineWidth = 1;
+          ctx.setLineDash([4, 6]);
+          ctx.lineDashOffset = -t * 15;
+          ctx.beginPath(); ctx.arc(s2s.x, s2s.y, sr, 0, Math.PI * 2); ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.fillStyle = '#FFAE00';
+          ctx.shadowColor = '#FFAE00'; ctx.shadowBlur = 10;
+          ctx.beginPath(); ctx.arc(s2s.x, s2s.y, 3 * zoom, 0, Math.PI * 2); ctx.fill();
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = `rgba(255,174,0,${0.6 * pulse2})`;
+          ctx.font = `700 ${Math.max(7, 8 * zoom)}px Rajdhani, sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.fillText('2ND SNARE', s2s.x, s2s.y - 10 * zoom);
         }
       }
 
@@ -678,20 +751,69 @@ const RoutePlanner = () => {
 
           {activeTab === 'interdiction' && (<>
             <div className="hud-panel p-3 space-y-3" data-testid="interdiction-panel">
-              <div className="flex items-center gap-2 text-[10px] text-red-400 font-bold uppercase tracking-widest">
-                <Target className="w-3.5 h-3.5" /> QED Snare Planning
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-[10px] text-red-400 font-bold uppercase tracking-widest">
+                  <Target className="w-3.5 h-3.5" /> QED Snare Planning
+                </div>
+                {(interdictOrigins.length > 0 || interdictDest) && (
+                  <button onClick={clearInterdiction} data-testid="clear-interdiction" className="flex items-center gap-1 text-[9px] text-gray-600 hover:text-red-400 transition-colors uppercase tracking-wider">
+                    <Trash2 className="w-3 h-3" /> Clear
+                  </button>
+                )}
               </div>
+
               <LocationSelect value={interdictDest} onChange={v => { setInterdictDest(v); setInterdictResult(null); }} label="Target Destination" color="#FF0055" testId="interdict-dest" />
+
+              {/* QD Size selectors */}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[9px] font-bold text-cyan-400 uppercase tracking-widest block mb-1">Your QD</label>
+                  <div className="flex gap-1">
+                    {[1, 2, 3].map(s => (
+                      <button key={s} onClick={() => { setInterdictYourQd(s); setInterdictResult(null); }} data-testid={`interdict-your-qd-${s}`}
+                        className={`flex-1 py-1 rounded text-[10px] font-bold font-mono transition-all ${interdictYourQd === s ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30' : 'bg-white/3 text-gray-600 border border-white/5'}`}>S{s}</button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[9px] font-bold text-red-400 uppercase tracking-widest block mb-1">Target QD</label>
+                  <div className="flex gap-1">
+                    {[1, 2, 3].map(s => (
+                      <button key={s} onClick={() => { setInterdictTargetQd(s); setInterdictResult(null); }} data-testid={`interdict-target-qd-${s}`}
+                        className={`flex-1 py-1 rounded text-[10px] font-bold font-mono transition-all ${interdictTargetQd === s ? 'bg-red-500/15 text-red-400 border border-red-500/30' : 'bg-white/3 text-gray-600 border border-white/5'}`}>S{s}</button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Origins with presets */}
               <div>
-                <label className="text-[10px] font-bold text-green-400 uppercase tracking-widest block mb-1">Possible Origins ({interdictOrigins.length})</label>
-                <div className="space-y-1 mb-2">
-                  {interdictOrigins.map(oid => (
-                    <div key={oid} className="flex items-center justify-between px-2 py-1 bg-green-500/8 border border-green-500/15 rounded text-[10px]">
-                      <span className="text-green-400 font-mono">{locName(oid)}</span>
-                      <button onClick={() => removeInterdictOrigin(oid)} className="text-gray-600 hover:text-red-400"><X className="w-3 h-3" /></button>
-                    </div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[10px] font-bold text-green-400 uppercase tracking-widest">Origins ({interdictOrigins.length})</label>
+                </div>
+                {/* Quick-add presets */}
+                <div className="flex flex-wrap gap-1 mb-2" data-testid="origin-presets">
+                  {[
+                    { label: 'Cities', type: 'city', icon: MapPin },
+                    { label: 'Stations', type: 'station', icon: Radio },
+                    { label: 'R&R Stops', type: 'rest_stop', icon: Shield },
+                  ].map(preset => (
+                    <button key={preset.type} onClick={() => addOriginsByType(preset.type)} data-testid={`preset-${preset.type}`}
+                      className="flex items-center gap-1 px-2 py-1 bg-green-500/8 border border-green-500/15 rounded text-[9px] text-green-400 hover:bg-green-500/15 transition-colors font-bold uppercase">
+                      <preset.icon className="w-2.5 h-2.5" /> +{preset.label}
+                    </button>
                   ))}
                 </div>
+                {interdictOrigins.length > 0 && (
+                  <div className="space-y-0.5 mb-2 max-h-[100px] overflow-y-auto custom-scrollbar">
+                    {interdictOrigins.map(oid => (
+                      <div key={oid} className="flex items-center justify-between px-2 py-0.5 bg-green-500/5 border border-green-500/10 rounded text-[9px]">
+                        <span className="text-green-400 font-mono truncate">{locName(oid)}</span>
+                        <button onClick={() => removeInterdictOrigin(oid)} className="text-gray-700 hover:text-red-400 shrink-0 ml-1"><X className="w-2.5 h-2.5" /></button>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <div className="flex gap-1.5">
                   <select id="add-origin-select" data-testid="add-origin-select"
                     className="flex-1 px-2 py-1.5 bg-[#060a12] border border-white/8 rounded text-white text-[10px] focus:outline-none" style={{ colorScheme: 'dark' }}>
@@ -710,20 +832,22 @@ const RoutePlanner = () => {
                   </button>
                 </div>
               </div>
+
               <div>
                 <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Snare Range: {snareRange} Mkm</label>
                 <input type="range" min="2" max="20" step="0.5" value={snareRange}
                   onChange={e => { setSnareRange(parseFloat(e.target.value)); setInterdictResult(null); }}
                   data-testid="snare-range-slider" className="w-full accent-red-500" />
               </div>
+
               <button onClick={calcInterdiction} disabled={interdictOrigins.length === 0 || !interdictDest || interdicting}
                 data-testid="calc-interdiction-btn"
                 className="w-full py-2.5 rounded font-bold text-xs uppercase tracking-widest text-white disabled:opacity-30 transition-all hover:shadow-lg hover:shadow-red-500/20"
                 style={{ background: 'linear-gradient(135deg, #FF0055, #AA0033)' }}>
-                {interdicting ? 'CALCULATING...' : 'FIND OPTIMAL SNARE'}
+                {interdicting ? 'ANALYZING...' : 'ANALYZE INTERDICTION'}
               </button>
             </div>
-            {interdictResult && <InterdictionResults result={interdictResult} />}
+            {interdictResult && <InterdictionResults result={interdictResult} formatTime={formatTime} qdSpeeds={qdSpeeds} />}
           </>)}
 
           {activeTab === 'chase' && (<>
@@ -880,24 +1004,145 @@ const RouteResults = ({ route, formatTime }) => (
   </motion.div>
 );
 
-const InterdictionResults = ({ result }) => (
-  <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="hud-panel p-3 space-y-2.5" data-testid="interdiction-results">
-    <div className="flex items-center gap-2">
-      {result.coverage_pct === 100 ? <CheckCircle className="w-3.5 h-3.5 text-green-400" /> : <AlertTriangle className="w-3.5 h-3.5 text-yellow-400" />}
-      <span className={`text-[10px] font-bold uppercase tracking-wider ${result.coverage_pct === 100 ? 'text-green-400' : 'text-yellow-400'}`}>{result.message}</span>
-    </div>
-    <div className="grid grid-cols-2 gap-1.5">
-      <div className="bg-white/3 rounded p-2 text-center">
-        <div className={`text-lg font-bold font-mono ${result.coverage_pct === 100 ? 'text-green-400' : 'text-yellow-400'}`}>{result.coverage_pct}%</div>
-        <div className="text-[8px] text-gray-600 uppercase">Coverage</div>
+const InterdictionResults = ({ result, formatTime, qdSpeeds }) => (
+  <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-2.5" data-testid="interdiction-results">
+    {/* Coverage Summary */}
+    <div className="hud-panel p-3 space-y-2">
+      <div className="flex items-center gap-2">
+        {result.coverage_pct === 100 ? <CheckCircle className="w-4 h-4 text-green-400" /> : <AlertTriangle className="w-4 h-4 text-yellow-400" />}
+        <span className={`text-[10px] font-bold uppercase tracking-wider ${result.coverage_pct === 100 ? 'text-green-400' : 'text-yellow-400'}`}>{result.message}</span>
       </div>
-      <div className="bg-white/3 rounded p-2 text-center">
-        <div className="text-lg font-bold text-red-400 font-mono">{result.routes_covered}/{result.routes_total}</div>
-        <div className="text-[8px] text-gray-600 uppercase">Routes</div>
+      <div className="grid grid-cols-3 gap-1.5">
+        <div className="bg-white/3 rounded p-1.5 text-center">
+          <div className={`text-lg font-bold font-mono ${result.coverage_pct === 100 ? 'text-green-400' : 'text-yellow-400'}`}>{result.coverage_pct}%</div>
+          <div className="text-[8px] text-gray-600 uppercase">Coverage</div>
+        </div>
+        <div className="bg-white/3 rounded p-1.5 text-center">
+          <div className="text-lg font-bold text-red-400 font-mono">{result.routes_covered}/{result.routes_total}</div>
+          <div className="text-[8px] text-gray-600 uppercase">Routes</div>
+        </div>
+        <div className="bg-white/3 rounded p-1.5 text-center">
+          <div className="text-lg font-bold text-cyan-400 font-mono">{result.distance_to_dest_mkm}</div>
+          <div className="text-[8px] text-gray-600 uppercase">Mkm to dest</div>
+        </div>
       </div>
     </div>
-    {result.distance_to_dest_mkm && (
-      <div className="text-[10px] text-gray-500 font-mono">Snare: <span className="text-red-400 font-bold">{result.distance_to_dest_mkm} Mkm</span> from dest</div>
+
+    {/* Per-route breakdown */}
+    {result.route_details?.length > 0 && (
+      <div className="hud-panel p-3" data-testid="route-breakdown">
+        <h4 className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-2">Route Breakdown</h4>
+        <div className="space-y-1 max-h-[140px] overflow-y-auto custom-scrollbar">
+          {result.route_details.map((rd, i) => (
+            <div key={i} data-testid={`interdict-route-${i}`}
+              className={`flex items-center gap-1.5 p-1.5 rounded text-[9px] ${rd.covered ? 'bg-green-500/5 border border-green-500/10' : 'bg-red-500/5 border border-red-500/10'}`}>
+              <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[7px] font-bold shrink-0 ${rd.covered ? 'bg-green-500/25 text-green-400' : 'bg-red-500/25 text-red-400'}`}>
+                {rd.covered ? '\u2713' : '\u2717'}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-white font-mono truncate">{rd.origin_name}</div>
+                <div className="text-gray-600 font-mono">{rd.distance_mkm} Mkm &middot; {formatTime(rd.target_travel_time_s)}</div>
+              </div>
+              <div className="text-[8px] text-gray-500 font-mono shrink-0">
+                {rd.covered ? `~${formatTime(rd.time_to_snare_s)}` : `${rd.deviation_mkm}Mkm off`}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+
+    {/* Arrival Timeline */}
+    {result.timing && result.timing.arrival_times?.length > 0 && (
+      <div className="hud-panel p-3" data-testid="arrival-timeline">
+        <h4 className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Arrival Timeline</h4>
+        <div className="text-[9px] text-gray-400 mb-2 font-mono">{result.timing.note}</div>
+        {/* Mini timeline bar */}
+        <div className="relative h-3 bg-white/3 rounded-full overflow-hidden mb-1">
+          {result.timing.arrival_times.map((at, i) => {
+            const maxT = Math.max(...result.timing.arrival_times, 1);
+            const pct = (at / maxT) * 100;
+            return <div key={i} className="absolute top-0 bottom-0 w-1 rounded-full bg-red-400" style={{ left: `${Math.min(pct, 98)}%` }} title={`${formatTime(at)}`} />;
+          })}
+        </div>
+        <div className="flex justify-between text-[8px] text-gray-600 font-mono">
+          <span>0s</span>
+          <span>{formatTime(Math.max(...result.timing.arrival_times))}</span>
+        </div>
+      </div>
+    )}
+
+    {/* Escape Analysis */}
+    {result.escape_analysis && (
+      <div className="hud-panel p-3" data-testid="escape-analysis">
+        <h4 className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Escape Analysis</h4>
+        <div className="flex items-center gap-2 mb-1.5">
+          {result.escape_analysis.can_escape
+            ? <AlertTriangle className="w-3 h-3 text-yellow-400 shrink-0" />
+            : <Shield className="w-3 h-3 text-green-400 shrink-0" />}
+          <span className={`text-[9px] font-bold ${result.escape_analysis.can_escape ? 'text-yellow-400' : 'text-green-400'}`}>
+            {result.escape_analysis.can_escape ? 'Target may escape' : 'You have speed advantage'}
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-1 mb-1.5">
+          <div className="bg-white/3 rounded px-2 py-1">
+            <div className="text-[8px] text-gray-600">Your QD</div>
+            <div className="text-[10px] text-cyan-400 font-bold font-mono">{result.escape_analysis.your_speed_kms?.toLocaleString()} km/s</div>
+          </div>
+          <div className="bg-white/3 rounded px-2 py-1">
+            <div className="text-[8px] text-gray-600">Target QD</div>
+            <div className="text-[10px] text-red-400 font-bold font-mono">{result.escape_analysis.target_speed_kms?.toLocaleString()} km/s</div>
+          </div>
+        </div>
+        <div className="text-[9px] text-gray-500">{result.escape_analysis.note}</div>
+      </div>
+    )}
+
+    {/* Tactical Notes */}
+    {result.tactical_notes?.length > 0 && (
+      <div className="hud-panel p-3" data-testid="tactical-notes">
+        <h4 className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+          <Eye className="w-3 h-3" /> Tactical Intel
+        </h4>
+        <div className="space-y-1.5">
+          {result.tactical_notes.map((note, i) => (
+            <div key={i} className="flex gap-2 text-[9px] text-gray-300 leading-relaxed">
+              <span className="text-red-400 shrink-0 mt-0.5">&bull;</span>
+              <span>{note}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+
+    {/* Nearby POIs */}
+    {result.nearby_pois?.length > 0 && (
+      <div className="hud-panel p-3" data-testid="nearby-pois">
+        <h4 className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Nearby Locations</h4>
+        <div className="space-y-0.5">
+          {result.nearby_pois.slice(0, 4).map((poi, i) => (
+            <div key={i} className="flex items-center justify-between text-[9px]">
+              <div className="flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: TYPE_COLORS[poi.type] || '#888' }} />
+                <span className="text-gray-400 font-mono">{poi.name}</span>
+              </div>
+              <span className="text-gray-600 font-mono">{poi.distance_mkm} Mkm</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+
+    {/* Second Snare Suggestion */}
+    {result.second_snare && (
+      <div className="hud-panel p-3 border-yellow-500/20" data-testid="second-snare">
+        <div className="flex items-center gap-2 text-[9px] text-yellow-400 font-bold uppercase tracking-widest mb-1.5">
+          <Plus className="w-3 h-3" /> Second Snare Suggested
+        </div>
+        <div className="text-[9px] text-gray-400">
+          Deploy a second QED snare to cover {result.second_snare.covers} uncovered route{result.second_snare.covers > 1 ? 's' : ''} out of {result.second_snare.total_uncovered}.
+        </div>
+      </div>
     )}
   </motion.div>
 );

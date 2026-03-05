@@ -408,11 +408,67 @@ def _point_to_line_distance(px, py, ax, ay, bx, by):
     return math.sqrt((px - proj_x) ** 2 + (py - proj_y) ** 2)
 
 
-def calculate_interdiction(origin_ids, destination_id, snare_range_mkm=7.5):
-    """Calculate optimal QED snare position to interdict all routes from origins to destination.
-    
-    Returns the best position on the map, coverage %, and route info.
-    """
+def _nearby_pois(px, py, radius_map, exclude_ids=None):
+    """Find notable locations near a map point."""
+    pois = []
+    exclude = set(exclude_ids or [])
+    for loc in LOCATIONS:
+        if loc["id"] in exclude:
+            continue
+        dist = math.sqrt((loc["map_x"] - px) ** 2 + (loc["map_y"] - py) ** 2)
+        if dist <= radius_map:
+            pois.append({
+                "id": loc["id"],
+                "name": loc["name"],
+                "type": loc["type"],
+                "system": loc["system"],
+                "distance_map": round(dist, 2),
+                "distance_mkm": round(dist * 0.3, 2),
+            })
+    pois.sort(key=lambda p: p["distance_map"])
+    return pois
+
+
+def _find_second_snare(route_lines, first_pos, first_range, snare_range_map, dest):
+    """Find optimal position for a second snare to cover routes missed by the first."""
+    uncovered = []
+    for rl in route_lines:
+        d = _point_to_line_distance(first_pos["x"], first_pos["y"],
+                                    rl["start_x"], rl["start_y"], rl["end_x"], rl["end_y"])
+        if d > first_range:
+            uncovered.append(rl)
+    if not uncovered:
+        return None
+
+    # Find best position for second snare along uncovered routes
+    avg_sx = sum(r["start_x"] for r in uncovered) / len(uncovered)
+    avg_sy = sum(r["start_y"] for r in uncovered) / len(uncovered)
+    dx = dest["map_x"] - avg_sx
+    dy = dest["map_y"] - avg_sy
+    total_len = math.sqrt(dx * dx + dy * dy)
+    if total_len == 0:
+        return None
+
+    best_pos = None
+    best_cov = 0
+    for i in range(200):
+        t = i / 200.0
+        px = avg_sx + dx * t
+        py = avg_sy + dy * t
+        covered = sum(1 for rl in uncovered
+                      if _point_to_line_distance(px, py, rl["start_x"], rl["start_y"],
+                                                 rl["end_x"], rl["end_y"]) <= snare_range_map)
+        if covered > best_cov:
+            best_cov = covered
+            best_pos = {"x": round(px, 2), "y": round(py, 2)}
+
+    if best_pos and best_cov > 0:
+        return {"position": best_pos, "covers": best_cov, "total_uncovered": len(uncovered)}
+    return None
+
+
+def calculate_interdiction(origin_ids, destination_id, snare_range_mkm=7.5, your_qd_size=1, target_qd_size=1):
+    """Calculate optimal QED snare position with full tactical analysis."""
     dest = _loc_by_id.get(destination_id)
     if not dest:
         return {"error": "Destination not found"}
@@ -425,8 +481,10 @@ def calculate_interdiction(origin_ids, destination_id, snare_range_mkm=7.5):
     if not origins:
         return {"error": "No valid origins"}
 
-    # Build route lines (map coordinates) from each origin to destination
-    # For cross-system, we use the gateway entry point in the destination system
+    your_speed = QD_SPEEDS.get(your_qd_size, QD_SPEEDS[1])
+    target_speed = QD_SPEEDS.get(target_qd_size, QD_SPEEDS[1])
+
+    # Build route lines from each origin to destination
     route_lines = []
     for orig in origins:
         if orig["system"] == dest["system"]:
@@ -436,10 +494,9 @@ def calculate_interdiction(origin_ids, destination_id, snare_range_mkm=7.5):
                 "end_x": dest["map_x"], "end_y": dest["map_y"],
             })
         else:
-            # Find the gateway entering the destination system
             jumps = _find_jump_route(orig["system"], dest["system"])
             if jumps:
-                last_gw_id = jumps[-1][1]  # gateway exit in dest system
+                last_gw_id = jumps[-1][1]
                 gw = _loc_by_id[last_gw_id]
                 route_lines.append({
                     "origin": orig,
@@ -450,16 +507,11 @@ def calculate_interdiction(origin_ids, destination_id, snare_range_mkm=7.5):
     if not route_lines:
         return {"error": "No valid routes to destination"}
 
-    # Convert snare range from Mkm to map units (roughly 1 map unit ≈ 0.3 Mkm)
     snare_range_map = snare_range_mkm / 0.3
 
-    # Search for optimal snare position along the approach to destination
-    # Sample points along each route and find the position closest to destination
-    # where all routes are within snare range
+    # --- Find optimal primary snare ---
     best_pos = None
     best_dist_to_dest = float('inf')
-
-    # Sample along the average approach vector
     avg_sx = sum(r["start_x"] for r in route_lines) / len(route_lines)
     avg_sy = sum(r["start_y"] for r in route_lines) / len(route_lines)
     dx = dest["map_x"] - avg_sx
@@ -468,70 +520,150 @@ def calculate_interdiction(origin_ids, destination_id, snare_range_mkm=7.5):
     if total_len == 0:
         return {"error": "Origins and destination overlap"}
 
-    # Sample 200 points along the approach corridor
     for i in range(200):
         t = i / 200.0
         px = avg_sx + dx * t
         py = avg_sy + dy * t
-
-        # Check if all routes are within snare range of this point
         max_dist = 0
         for rl in route_lines:
             d = _point_to_line_distance(px, py, rl["start_x"], rl["start_y"], rl["end_x"], rl["end_y"])
             max_dist = max(max_dist, d)
-
         if max_dist <= snare_range_map:
-            # This position covers all routes - check if it's closer to destination
             dist_to_dest = math.sqrt((px - dest["map_x"]) ** 2 + (py - dest["map_y"]) ** 2)
             if dist_to_dest < best_dist_to_dest:
                 best_dist_to_dest = dist_to_dest
                 best_pos = {"x": round(px, 2), "y": round(py, 2), "max_route_dist": round(max_dist, 2)}
 
+    # Fallback if no full coverage
     if not best_pos:
-        # Can't cover all routes - find best partial coverage
-        # Position at 70% along the average approach
         px = avg_sx + dx * 0.7
         py = avg_sy + dy * 0.7
-        covered = 0
-        total = len(route_lines)
-        for rl in route_lines:
-            d = _point_to_line_distance(px, py, rl["start_x"], rl["start_y"], rl["end_x"], rl["end_y"])
-            if d <= snare_range_map:
-                covered += 1
-        coverage_pct = round((covered / total) * 100)
-        return {
-            "success": False,
-            "message": f"Cannot cover all {total} routes. Best position covers {covered}/{total} ({coverage_pct}%)",
-            "snare_position": {"x": round(px, 2), "y": round(py, 2)},
-            "snare_range_map": round(snare_range_map, 2),
-            "snare_range_mkm": snare_range_mkm,
-            "coverage_pct": coverage_pct,
-            "routes_covered": covered,
-            "routes_total": total,
-            "route_lines": [{"from": r["origin"]["name"], "from_id": r["origin"]["id"],
-                             "sx": r["start_x"], "sy": r["start_y"],
-                             "ex": r["end_x"], "ey": r["end_y"]} for r in route_lines],
-            "destination": {"id": destination_id, "name": dest["name"]},
-        }
+        best_pos = {"x": round(px, 2), "y": round(py, 2), "max_route_dist": 0}
+        best_dist_to_dest = math.sqrt((px - dest["map_x"]) ** 2 + (py - dest["map_y"]) ** 2)
 
-    # Full coverage achieved
-    # Calculate distance from snare to destination in Mkm
+    # --- Per-route analysis ---
+    route_details = []
+    covered_count = 0
+    for rl in route_lines:
+        orig = rl["origin"]
+        d_to_snare = _point_to_line_distance(best_pos["x"], best_pos["y"],
+                                             rl["start_x"], rl["start_y"], rl["end_x"], rl["end_y"])
+        is_covered = d_to_snare <= snare_range_map
+        if is_covered:
+            covered_count += 1
+
+        # Route distance (map units -> Mkm)
+        route_dist_map = math.sqrt((rl["end_x"] - rl["start_x"]) ** 2 + (rl["end_y"] - rl["start_y"]) ** 2)
+        route_dist_mkm = round(route_dist_map * 0.3, 2)
+
+        # Time for target to travel this route
+        route_dist_km = route_dist_mkm * 1_000_000
+        target_travel_time = round(route_dist_km / target_speed) if target_speed > 0 else 0
+
+        # Time for target to reach snare zone (fraction along route * total time)
+        # Find the closest point on the route to the snare
+        sdx, sdy = rl["end_x"] - rl["start_x"], rl["end_y"] - rl["start_y"]
+        seg_len_sq = sdx * sdx + sdy * sdy
+        if seg_len_sq > 0:
+            t_proj = max(0, min(1, ((best_pos["x"] - rl["start_x"]) * sdx + (best_pos["y"] - rl["start_y"]) * sdy) / seg_len_sq))
+        else:
+            t_proj = 0
+        time_to_snare = round(target_travel_time * t_proj)
+
+        route_details.append({
+            "origin_id": orig["id"],
+            "origin_name": orig["name"],
+            "origin_system": orig["system"],
+            "distance_mkm": route_dist_mkm,
+            "target_travel_time_s": target_travel_time,
+            "time_to_snare_s": time_to_snare,
+            "covered": is_covered,
+            "deviation_mkm": round(d_to_snare * 0.3, 2),
+        })
+
+    coverage_pct = round((covered_count / len(route_lines)) * 100) if route_lines else 0
+
+    # --- Timing windows ---
+    arrival_times = sorted([r["time_to_snare_s"] for r in route_details if r["covered"]])
+    if len(arrival_times) >= 2:
+        timing_window = arrival_times[-1] - arrival_times[0]
+        timing_note = f"Targets arrive over a {round(timing_window)}s window ({round(timing_window/60,1)} min)"
+    elif len(arrival_times) == 1:
+        timing_note = f"Single route — target reaches snare zone in ~{arrival_times[0]}s"
+    else:
+        timing_note = "No covered routes"
+        timing_window = 0
+
+    # --- Escape analysis ---
+    can_escape = target_speed >= your_speed
+    speed_diff = your_speed - target_speed
+    if can_escape:
+        escape_note = "Target QD is equal or faster — they may escape if interdiction fails. Consider EMP or disabling their QD."
+    else:
+        escape_note = f"Your QD is {speed_diff:,} km/s faster. You can pursue if they run."
+
+    # --- Nearby POI warnings ---
+    pois = _nearby_pois(best_pos["x"], best_pos["y"], snare_range_map * 1.5,
+                        exclude_ids=[destination_id] + origin_ids)
+    comm_arrays = [p for p in pois if 'comm' in p["name"].lower() or 'relay' in p["name"].lower()]
+    stations_nearby = [p for p in pois if p["type"] in ("station", "rest_stop")]
+
+    # --- Tactical notes ---
+    tactics = []
+    if comm_arrays:
+        tactics.append(f"COMM ARRAY nearby ({comm_arrays[0]['name']}, {comm_arrays[0]['distance_mkm']} Mkm) — disable it first to avoid crime stat.")
+    if stations_nearby:
+        tactics.append(f"Station nearby ({stations_nearby[0]['name']}, {stations_nearby[0]['distance_mkm']} Mkm) — target may attempt to dock for safety.")
+    if coverage_pct < 100:
+        uncov = [r for r in route_details if not r["covered"]]
+        tactics.append(f"{len(uncov)} route(s) not covered. Consider adding a second snare or repositioning.")
+    if len(route_details) == 1:
+        tactics.append("Single approach vector — guaranteed intercept if snare is active.")
+    elif len(route_details) >= 4:
+        tactics.append("Many approach vectors — a wing of snare ships improves coverage.")
     snare_dist_mkm = round(best_dist_to_dest * 0.3, 2)
+    if snare_dist_mkm < 3:
+        tactics.append("Snare very close to destination — target may reach safety quickly after interdiction.")
+    if not tactics:
+        tactics.append("Clean intercept zone with good coverage. Deploy snare and wait.")
+
+    # --- Multi-snare suggestion ---
+    second_snare = None
+    if coverage_pct < 100:
+        second_snare = _find_second_snare(route_lines, best_pos, snare_range_map, snare_range_map, dest)
+
+    msg = f"Optimal interdiction position found! {covered_count}/{len(route_lines)} routes covered." if coverage_pct == 100 else f"Best position covers {covered_count}/{len(route_lines)} routes ({coverage_pct}%)."
 
     return {
-        "success": True,
-        "message": f"Optimal interdiction position found! All {len(route_lines)} routes covered.",
+        "success": coverage_pct == 100,
+        "message": msg,
         "snare_position": best_pos,
         "snare_range_map": round(snare_range_map, 2),
         "snare_range_mkm": snare_range_mkm,
         "distance_to_dest_mkm": snare_dist_mkm,
-        "coverage_pct": 100,
-        "routes_covered": len(route_lines),
+        "coverage_pct": coverage_pct,
+        "routes_covered": covered_count,
         "routes_total": len(route_lines),
         "route_lines": [{"from": r["origin"]["name"], "from_id": r["origin"]["id"],
                          "sx": r["start_x"], "sy": r["start_y"],
                          "ex": r["end_x"], "ey": r["end_y"]} for r in route_lines],
+        "route_details": route_details,
         "destination": {"id": destination_id, "name": dest["name"]},
+        "timing": {
+            "arrival_times": arrival_times,
+            "window_seconds": round(timing_window) if len(arrival_times) >= 2 else 0,
+            "note": timing_note,
+        },
+        "escape_analysis": {
+            "can_escape": can_escape,
+            "your_speed_kms": your_speed,
+            "target_speed_kms": target_speed,
+            "speed_diff_kms": speed_diff,
+            "note": escape_note,
+        },
+        "nearby_pois": pois[:6],
+        "tactical_notes": tactics,
+        "second_snare": second_snare,
     }
 
 
