@@ -31,11 +31,14 @@ def _headers():
 # Curated per-ship weapon hardpoint data (verified against in-game data)
 # Format: ship_name_lowercase -> list of weapon sizes
 _CURATED_HARDPOINTS = {
-    # Aegis Dynamics
+    # === Aegis Dynamics ===
     "gladius": [3, 3, 3],
     "gladius valiant": [3, 3, 3],
+    "gladius dunlevy": [3, 3, 3],
     "sabre": [3, 3, 3, 3],
     "sabre comet": [3, 3, 3, 3],
+    "sabre firebird": [3, 3, 3, 3],
+    "sabre peregrine": [3, 3, 3, 3],
     "sabre raven": [3, 3, 3, 3],
     "avenger titan": [4, 3, 3],
     "avenger titan renegade": [4, 3, 3],
@@ -46,6 +49,7 @@ _CURATED_HARDPOINTS = {
     "vanguard sentinel": [5, 2, 2, 2, 2],
     "vanguard harbinger": [5, 2, 2, 2, 2],
     "vanguard hoplite": [5, 2, 2, 2, 2],
+    "retaliator": [2, 2],
     "retaliator bomber": [2, 2],
     "redeemer": [4, 4, 3, 3],
     "hammerhead": [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
@@ -53,26 +57,45 @@ _CURATED_HARDPOINTS = {
     "idris-p": [5, 5, 5, 5, 5, 5],
     "idris-m": [7, 5, 5, 5, 5, 5, 5],
     "javelin": [6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 5, 5],
-    # Anvil Aerospace
+    # === Anvil Aerospace ===
     "arrow": [3, 3, 3, 3],
     "hawk": [3, 3, 2, 2],
     "f7c hornet": [4, 3, 3, 3],
+    "f7c hornet mk i": [4, 3, 3, 3],
+    "f7c hornet mk ii": [4, 3, 3, 3],
+    "f7c hornet wildfire mk i": [4, 3, 3, 3],
     "f7c-m super hornet": [4, 4, 3, 3],
+    "f7c-m super hornet mk i": [4, 4, 3, 3],
+    "f7c-m super hornet mk ii": [4, 4, 3, 3],
+    "f7c-m hornet heartseeker mk i": [4, 4, 3, 3],
+    "f7c-m hornet heartseeker mk ii": [4, 4, 3, 3],
     "f7c-s hornet ghost": [4, 3, 3, 3],
+    "f7c-s hornet ghost mk i": [4, 3, 3, 3],
+    "f7c-s hornet ghost mk ii": [4, 3, 3, 3],
+    "f7c-r hornet tracker mk i": [4, 3, 3, 3],
+    "f7c-r hornet tracker mk ii": [4, 3, 3, 3],
     "f7a hornet": [4, 4, 3, 3, 3],
+    "f7a hornet mk i": [4, 4, 3, 3, 3],
+    "f7a hornet mk ii": [4, 4, 3, 3, 3],
     "f7a hornet (military)": [4, 4, 3, 3, 3],
+    "hornet f7a mk ii pyam exec": [4, 4, 3, 3, 3],
+    "f7 hornet mk wikelo": [4, 3, 3, 3],
     "hurricane": [4, 4, 3, 3],
-    # F8 Lightning series (verified via starcitizen.tools 4.6.0)
     "f8 lightning": [4, 4, 3, 3, 3, 3, 3, 3],
     "f8a lightning": [4, 4, 3, 3, 3, 3, 3, 3],
     "f8c lightning": [3, 3, 3, 3, 2, 2, 2, 2],
     "f8c lightning executive edition": [3, 3, 3, 3, 2, 2, 2, 2],
-    "gladiator": [3, 3],
+    "gladiator": [3, 3, 3, 3],
     "terrapin": [],
+    "terrapin medic": [],
     "valkyrie": [4, 4, 2, 2, 2, 2],
     "carrack": [4, 4, 4, 4],
+    "carrack expedition": [4, 4, 4, 4],
     "liberator": [],
-    # Roberts Space Industries
+    "ballista": [4, 4, 4, 4, 2, 2],
+    "centurion": [4, 4, 4, 4, 3],
+    "spartan": [2, 2],
+    # === Roberts Space Industries ===
     "aurora mr": [3],
     "aurora ln": [3, 3],
     "aurora cl": [3],
@@ -80,6 +103,7 @@ _CURATED_HARDPOINTS = {
     "aurora es": [3],
     "mantis": [3, 3],
     "scorpius": [4, 4, 3, 3],
+    "scorpius antares": [4, 4, 3, 3],
     "constellation andromeda": [5, 5, 4, 4],
     "constellation aquila": [5, 5, 4, 4],
     "constellation taurus": [5, 5, 4, 4],
@@ -87,20 +111,38 @@ _CURATED_HARDPOINTS = {
     "perseus": [7, 7, 5, 5],
     "polaris": [4, 4, 4, 4],
     "galaxy": [4, 4],
-    # Crusader Industries
+    "meteor": [5, 5, 3, 3, 3, 3],
+    "paladin": [5, 5, 4, 4],
+    "lynx": [1, 1],
+    "zeus mk ii cl": [4, 4, 3, 3],
+    "zeus mk ii es": [4, 4, 3, 3],
+    # === Crusader Industries ===
     "ares ion": [7],
     "ares inferno": [7],
+    "ares star fighter ion": [7],
+    "ares star fighter inferno": [7],
     "spirit a1": [3, 3],
+    "a1 spirit": [3, 3],
     "spirit c1": [],
+    "c1 spirit": [],
     "spirit e1": [],
     "mercury star runner": [3, 3, 2, 2],
     "c2 hercules": [4, 4],
+    "c2 hercules starlifter": [4, 4],
     "m2 hercules": [5, 5, 4, 4],
+    "m2 hercules starlifter": [5, 5, 4, 4],
     "a2 hercules": [5, 5, 4, 4],
+    "a2 hercules starlifter": [5, 5, 4, 4],
     "odyssey": [5, 5, 4, 4],
-    # MISC
+    "intrepid": [4],
+    "starlancer max": [4, 4, 4, 4, 4, 4, 4, 4],
+    "starlancer tac": [5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4],
+    "hermes": [4, 4],
+    # === MISC ===
     "prospector": [],
     "razor": [3, 3],
+    "razor ex": [3, 3],
+    "razor lx": [3, 3],
     "reliant kore": [3, 3],
     "reliant tana": [3, 3, 3, 3],
     "reliant sen": [3, 3],
@@ -114,42 +156,62 @@ _CURATED_HARDPOINTS = {
     "hull c": [],
     "starfarer": [4, 4, 3, 3],
     "starfarer gemini": [5, 5, 4, 4, 3, 3],
-    # Drake Interplanetary
+    "fortune": [],
+    # === Drake Interplanetary ===
     "buccaneer": [4, 3, 3, 2, 2],
     "herald": [2, 2],
     "cutlass black": [4, 4, 3, 3],
+    "cutlass black pyam exec": [4, 4, 3, 3],
     "cutlass red": [4, 4, 3, 3],
     "cutlass blue": [4, 4, 3, 3],
     "cutlass steel": [4, 4, 3, 3],
     "corsair": [5, 5, 4, 4, 3, 3],
+    "corsair pyam exec": [5, 5, 4, 4, 3, 3],
     "caterpillar": [4, 4, 2, 2],
     "vulture": [],
-    # Consolidated Outland
+    "clipper": [3, 3, 3, 3],
+    "cutter": [2, 2],
+    "cutter rambler": [2, 2],
+    "cutter scout": [2, 2],
+    "shiv": [4, 4, 3, 3, 3, 3],
+    # === Consolidated Outland ===
     "mustang alpha": [2, 2],
     "mustang beta": [2, 2],
     "mustang gamma": [3, 3, 2, 2],
     "mustang delta": [3, 3, 2, 2],
     "mustang omega": [3, 3],
+    "mustang citizencon 2948 edition": [3, 3],
     "nomad": [3, 3, 3],
-    # Esperia
+    # === Esperia ===
     "blade": [3, 3, 3, 3],
     "glaive": [5, 5],
     "prowler": [4, 4, 3, 3],
+    "prowler utility": [4, 4, 3, 3],
     "talon": [3, 3],
     "talon shrike": [],
-    # Aopoa
+    "esperia stinger": [5],
+    # === Aopoa / Alien ===
     "nox": [],
     "nox kue": [],
     "khartu-al": [3, 3],
     "san'tok.yāi": [4, 4, 3, 3],
-    # Banu
+    "vanduul scythe": [5, 5],
+    "syulen": [3, 3],
+    # === Banu ===
     "defender": [3, 3, 2, 2],
     "merchantman": [5, 5, 4, 4, 3, 3, 3, 3],
-    # Argo
+    # === Argo ===
     "raft": [],
     "mole": [],
-    # Origin
+    "csv-sm": [],
+    "moth": [],
+    "srv": [],
+    "mpuv cargo": [],
+    "mpuv personnel": [],
+    "mpuv tractor": [],
+    # === Origin ===
     "85x": [2, 2],
+    "85x limited": [2, 2],
     "100i": [3, 3],
     "125a": [3, 3],
     "135c": [3, 3],
@@ -160,7 +222,63 @@ _CURATED_HARDPOINTS = {
     "400i": [4, 4, 3, 3],
     "600i explorer": [5, 5, 3, 3],
     "600i touring": [5, 5, 3, 3],
+    "600i 2951 bis": [5, 5, 3, 3],
     "890 jump": [5, 5, 4, 4, 3, 3],
+    "m50 interceptor": [2, 2],
+    # === Kruger ===
+    "p-52 merlin": [2, 1, 1],
+    "p-72 archimedes": [1, 1, 1, 1],
+    "l-21 wolf": [4, 4],
+    "l-22 alpha wolf": [4, 4],
+    # === Anvil (Pisces) ===
+    "c8 pisces": [1, 1],
+    "c8r pisces rescue": [1, 1],
+    "c8x pisces expedition": [1, 1, 1, 1],
+    # === Mirai ===
+    "guardian": [5, 5],
+    "guardian mx": [4, 4, 4, 4],
+    "guardian qi": [5, 5],
+    "fury": [2, 2, 2, 2],
+    "fury lx": [2, 2, 2, 2],
+    "fury mx": [2, 2, 2, 2],
+    "pulse": [1, 1],
+    "pulse lx": [1, 1],
+    # === Drake / Ground ===
+    "dragonfly": [2],
+    "dragonfly yellowjacket": [2],
+    # === Greycat ===
+    "mule": [],
+    "ptv": [],
+    "stv": [],
+    "mtc": [2, 2],
+    "mdc": [],
+    # === RSI / Ground ===
+    "roc": [],
+    "roc-ds": [],
+    "hoverquad": [],
+    # === Origin / Ground ===
+    "x1": [],
+    "x1 force": [],
+    "x1 velocity": [],
+    # === Misc / Starter ===
+    "golem": [],
+    "golem ox": [],
+    "salvation": [1, 1],
+    # === ATLS ===
+    "atls": [],
+    "atls cool metal color": [],
+    "atls geo": [],
+    "atls geo ikti": [],
+    "atls ikti": [],
+    "atls ikti rad": [],
+    "atls orange line": [],
+    "atls snowland color": [],
+    # === Power Suit ===
+    "power suit": [],
+    # === Anvil / Other ===
+    "apollo medivac": [4, 4, 3, 3],
+    "apollo triage": [4, 4, 3, 3],
+    "asgard": [4, 4],
 }
 
 
@@ -254,12 +372,39 @@ def _normalize_vehicle(v: dict) -> dict:
     ship_name_lower = (v.get("name", "") or "").lower().strip()
     weapon_slots = _get_curated_weapons(ship_name_lower, slots["weapon_slots"])
 
-    # Per-ship component overrides (verified via starcitizen.tools)
+    # Per-ship component overrides (verified via starcitizen.tools / RSI)
     _COMPONENT_OVERRIDES = {
+        # F8 Lightning series
         "f8c lightning": {"shield_size": 2, "shield_count": 2, "power_size": 2, "power_count": 1, "cooler_size": 1, "cooler_count": 2, "qd_size": 1, "qd_count": 1},
         "f8c lightning executive edition": {"shield_size": 2, "shield_count": 2, "power_size": 2, "power_count": 1, "cooler_size": 1, "cooler_count": 2, "qd_size": 1, "qd_count": 1},
         "f8a lightning": {"shield_size": 2, "shield_count": 2, "power_size": 2, "power_count": 1, "cooler_size": 1, "cooler_count": 2, "qd_size": 1, "qd_count": 1},
         "f8 lightning": {"shield_size": 2, "shield_count": 2, "power_size": 2, "power_count": 1, "cooler_size": 1, "cooler_count": 2, "qd_size": 1, "qd_count": 1},
+        # 890 Jump (Capital luxury — size_class wrong in API)
+        "890 jump": {"shield_size": 3, "shield_count": 2, "power_size": 3, "power_count": 1, "cooler_size": 3, "cooler_count": 2, "qd_size": 3, "qd_count": 1},
+        # Capital ships
+        "idris-p": {"shield_size": 3, "shield_count": 2, "power_size": 3, "power_count": 1, "cooler_size": 3, "cooler_count": 2, "qd_size": 3, "qd_count": 1},
+        "idris-m": {"shield_size": 3, "shield_count": 2, "power_size": 3, "power_count": 1, "cooler_size": 3, "cooler_count": 2, "qd_size": 3, "qd_count": 1},
+        "javelin": {"shield_size": 3, "shield_count": 2, "power_size": 3, "power_count": 1, "cooler_size": 3, "cooler_count": 2, "qd_size": 3, "qd_count": 1},
+        "polaris": {"shield_size": 3, "shield_count": 2, "power_size": 3, "power_count": 1, "cooler_size": 3, "cooler_count": 2, "qd_size": 3, "qd_count": 1},
+        # Ares (heavy fighters with medium components)
+        "ares star fighter ion": {"shield_size": 2, "shield_count": 3, "power_size": 2, "power_count": 2, "cooler_size": 2, "cooler_count": 3, "qd_size": 2, "qd_count": 1},
+        "ares star fighter inferno": {"shield_size": 2, "shield_count": 2, "power_size": 2, "power_count": 1, "cooler_size": 2, "cooler_count": 2, "qd_size": 2, "qd_count": 1},
+        # Apollo (large hull, medium systems)
+        "apollo medivac": {"shield_size": 2, "shield_count": 2, "power_size": 2, "power_count": 1, "cooler_size": 2, "cooler_count": 2, "qd_size": 2, "qd_count": 1},
+        "apollo triage": {"shield_size": 2, "shield_count": 2, "power_size": 2, "power_count": 1, "cooler_size": 2, "cooler_count": 2, "qd_size": 2, "qd_count": 1},
+        # Starlancer (large multi-crew)
+        "starlancer max": {"shield_size": 2, "shield_count": 2, "power_size": 2, "power_count": 1, "cooler_size": 2, "cooler_count": 2, "qd_size": 2, "qd_count": 1},
+        "starlancer tac": {"shield_size": 2, "shield_count": 3, "power_size": 2, "power_count": 1, "cooler_size": 2, "cooler_count": 2, "qd_size": 2, "qd_count": 1},
+        # Hermes (large cargo)
+        "hermes": {"shield_size": 2, "shield_count": 2, "power_size": 2, "power_count": 1, "cooler_size": 2, "cooler_count": 2, "qd_size": 2, "qd_count": 1},
+        # Meteor (medium fighter)
+        "meteor": {"shield_size": 1, "shield_count": 2, "power_size": 1, "power_count": 1, "cooler_size": 1, "cooler_count": 2, "qd_size": 1, "qd_count": 1},
+        # Guardian (medium fighter)
+        "guardian": {"shield_size": 1, "shield_count": 2, "power_size": 1, "power_count": 1, "cooler_size": 1, "cooler_count": 1, "qd_size": 1, "qd_count": 1},
+        "guardian mx": {"shield_size": 1, "shield_count": 2, "power_size": 1, "power_count": 1, "cooler_size": 1, "cooler_count": 1, "qd_size": 1, "qd_count": 1},
+        "guardian qi": {"shield_size": 1, "shield_count": 2, "power_size": 1, "power_count": 1, "cooler_size": 1, "cooler_count": 1, "qd_size": 1, "qd_count": 1},
+        # 600i BIS (large ship, not capital)
+        "600i 2951 bis": {"shield_size": 3, "shield_count": 2, "power_size": 3, "power_count": 1, "cooler_size": 3, "cooler_count": 2, "qd_size": 3, "qd_count": 1},
     }
     comp_override = _COMPONENT_OVERRIDES.get(ship_name_lower, {})
 

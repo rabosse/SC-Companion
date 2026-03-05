@@ -1,0 +1,72 @@
+{
+  "summary": "Iteration 28: Verified massive hardpoint data audit for all 203 ships/vehicles. All 25 backend tests passed (100%) verifying curated weapon hardpoints and component overrides. Frontend UI working correctly with no regressions.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Ships list", "issues": ["React duplicate key warnings for ships with same name (Gladius Pirate, Hammerhead 2949 BIS, etc.) - cosmetic, does not affect functionality"]}
+    ]
+  },
+  "passed_tests": [
+    "Backend: Total ship count ~203 verified",
+    "Backend: Ares Star Fighter Ion has weapons=[7] (single S7), shield size=2 - PASSED",
+    "Backend: Ares Star Fighter Inferno has weapons=[7] (single S7) - PASSED",
+    "Backend: Gladiator has weapons=[3,3,3,3] (4 guns) - PASSED",
+    "Backend: Meteor has weapons=[5,5,3,3,3,3] (6 guns) - PASSED",
+    "Backend: Guardian MX has weapons=[4,4,4,4] (4 guns) - PASSED",
+    "Backend: Fury has weapons=[2,2,2,2] (4 guns) - PASSED",
+    "Backend: Shiv has weapons=[4,4,3,3,3,3] (6 guns) - PASSED",
+    "Backend: Starlancer TAC has 12 weapons [5,5,5,5,4,4,4,4,4,4,4,4] - PASSED",
+    "Backend: Starlancer MAX has 8 weapons [4,4,4,4,4,4,4,4] - PASSED",
+    "Backend: 600i 2951 BIS has weapons=[5,5,3,3] (4 guns) - PASSED",
+    "Backend: Apollo Medivac has weapons=[4,4,3,3], shield size=2 - PASSED",
+    "Backend: C1 Spirit has weapons=[] (cargo, no guns) - PASSED",
+    "Backend: A1 Spirit has weapons=[3,3] (2 guns) - PASSED",
+    "Backend: 890 Jump has shield size=3, count=2 (capital components) - PASSED",
+    "Backend: F7C-M Hornet Heartseeker Mk I has 4 weapons - PASSED",
+    "Backend: Cutter has weapons=[2,2] - PASSED",
+    "Backend: P-52 Merlin has weapons=[2,1,1] (3 guns) - PASSED",
+    "Backend: Vanduul Scythe has weapons=[5,5] - PASSED",
+    "Backend: F8C Lightning has 8 weapons, shield size=2 - PASSED",
+    "Backend: Guardian base has 2 weapons - PASSED",
+    "Backend: Hammerhead has 24 weapons - PASSED",
+    "Backend: Idris-M has S7 railgun in weapons - PASSED",
+    "Backend: Sabre has 4 S3 weapons - PASSED",
+    "Backend: Arrow has 4 S3 weapons - PASSED",
+    "Frontend: Login works correctly",
+    "Frontend: Ships page loads with 203+ ship cards displayed",
+    "Frontend: Search filtering works (searched Ares)",
+    "Frontend: Ares Star Fighter Ion and Inferno display correctly",
+    "Frontend: Loadout Builder page loads and displays ships with weapon counts",
+    "Frontend: Ship weapon counts displayed correctly (24x wpn for Hammerhead, 7x wpn for Idris-M, etc.)"
+  ],
+  "test_report_links": [
+    "/app/backend/tests/test_iteration28_hardpoint_audit.py",
+    "/app/test_reports/pytest/pytest_iteration28.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "React duplicate key warning: Some ships have identical names causing duplicate keys in list rendering (Gladius Pirate, Hammerhead 2949 BIS, Meteor Wikelo Sneak Special, Scorpius Wikelo Sneak Special, Zeus Mk II ES Wikelo Work Special). Consider using unique ship ID instead of name for React keys.",
+    "All curated hardpoint data in _CURATED_HARDPOINTS dict is correctly applied",
+    "_COMPONENT_OVERRIDES properly overrides shield/power sizes for capital ships"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration28_hardpoint_audit.py"
+  ],
+  "success_rate": {
+    "backend": "100% (25/25 tests passed)",
+    "frontend": "100% (All UI flows verified)"
+  },
+  "test_credentials": {
+    "username": "hardpointtest28",
+    "password": "password123"
+  },
+  "seed_data_creation": "Created test users hardpoint_audit28 and hardpoint_extra28 for backend tests",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 28 verified the massive hardpoint data audit for all 203 ships. Key ships tested: Ares Ion/Inferno (S7), Gladiator (4 guns), Meteor (6 guns), Guardian MX (4 guns), Fury (4 guns), Shiv (6 guns), Starlancer TAC (12 guns), Starlancer MAX (8 guns), 600i BIS (4 guns), Apollo Medivac (4 guns, S2 shield), Spirit C1 (no guns), Spirit A1 (2 guns), 890 Jump (S3 capital shields), Hornet Heartseeker (4 guns), Cutter (S2 weapons), P-52 Merlin (3 guns), Vanduul Scythe (S5x2), and F8C Lightning (8 guns). All backend APIs return correct curated hardpoint data. Frontend displays correct weapon counts on ship cards."
+}
