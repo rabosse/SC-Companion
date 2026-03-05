@@ -62,6 +62,11 @@ _CURATED_HARDPOINTS = {
     "f7a hornet": [4, 4, 3, 3, 3],
     "f7a hornet (military)": [4, 4, 3, 3, 3],
     "hurricane": [4, 4, 3, 3],
+    # F8 Lightning series (verified via starcitizen.tools 4.6.0)
+    "f8 lightning": [4, 4, 3, 3, 3, 3, 3, 3],
+    "f8a lightning": [4, 4, 3, 3, 3, 3, 3, 3],
+    "f8c lightning": [3, 3, 3, 3, 2, 2, 2, 2],
+    "f8c lightning executive edition": [3, 3, 3, 3, 2, 2, 2, 2],
     "gladiator": [3, 3],
     "terrapin": [],
     "valkyrie": [4, 4, 2, 2, 2, 2],
@@ -249,6 +254,15 @@ def _normalize_vehicle(v: dict) -> dict:
     ship_name_lower = (v.get("name", "") or "").lower().strip()
     weapon_slots = _get_curated_weapons(ship_name_lower, slots["weapon_slots"])
 
+    # Per-ship component overrides (verified via starcitizen.tools)
+    _COMPONENT_OVERRIDES = {
+        "f8c lightning": {"shield_size": 2, "shield_count": 2, "power_size": 2, "power_count": 1, "cooler_size": 1, "cooler_count": 2, "qd_size": 1, "qd_count": 1},
+        "f8c lightning executive edition": {"shield_size": 2, "shield_count": 2, "power_size": 2, "power_count": 1, "cooler_size": 1, "cooler_count": 2, "qd_size": 1, "qd_count": 1},
+        "f8a lightning": {"shield_size": 2, "shield_count": 2, "power_size": 2, "power_count": 1, "cooler_size": 1, "cooler_count": 2, "qd_size": 1, "qd_count": 1},
+        "f8 lightning": {"shield_size": 2, "shield_count": 2, "power_size": 2, "power_count": 1, "cooler_size": 1, "cooler_count": 2, "qd_size": 1, "qd_count": 1},
+    }
+    comp_override = _COMPONENT_OVERRIDES.get(ship_name_lower, {})
+
     # Extract quantum drive data from API
     quantum = v.get("quantum") or {}
     qd_speed_raw = quantum.get("quantum_speed", 0)  # m/s
@@ -291,10 +305,10 @@ def _normalize_vehicle(v: dict) -> dict:
         },
         # Hardpoint data for loadout builder
         "hardpoints": {
-            "shield": {"size": slots["shield_size"], "count": slots["shield_count"]},
-            "power_plant": {"size": slots["power_size"], "count": slots["power_count"]},
-            "cooler": {"size": slots["cooler_size"], "count": slots["cooler_count"]},
-            "quantum_drive": {"size": slots["qd_size"], "count": slots["qd_count"]},
+            "shield": {"size": comp_override.get("shield_size", slots["shield_size"]), "count": comp_override.get("shield_count", slots["shield_count"])},
+            "power_plant": {"size": comp_override.get("power_size", slots["power_size"]), "count": comp_override.get("power_count", slots["power_count"])},
+            "cooler": {"size": comp_override.get("cooler_size", slots["cooler_size"]), "count": comp_override.get("cooler_count", slots["cooler_count"])},
+            "quantum_drive": {"size": comp_override.get("qd_size", slots["qd_size"]), "count": comp_override.get("qd_count", slots["qd_count"])},
             "weapons": weapon_slots,
         },
     }
