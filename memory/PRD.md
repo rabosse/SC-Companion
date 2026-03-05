@@ -7,27 +7,14 @@ Build a full-stack application called "Star Citizen Fleet Manager" / "Star Citiz
 - **Frontend**: React, Tailwind CSS, Shadcn UI, react-router-dom, axios, lucide-react, framer-motion
 - **Backend**: FastAPI, Pydantic, JWT auth, modular routing (APIRouter)
 - **Database**: MongoDB
-- **External APIs**: starcitizen.tools (wiki), finder.cstone.space (CStone armor/weapon/gadget/backpack data)
-
-## Backend Module Structure
-```
-/app/backend/
-├── server.py                # Main FastAPI app, startup events
-├── armor_enhancer.py        # CStone + Wiki images for armor & backpacks (81 items)
-├── weapon_enhancer.py       # CStone + Wiki images for FPS weapons (50 weapons)
-├── equipment_enhancer.py    # CStone gadget images for equipment (26 items)
-├── ship_data_enhancer.py    # Wiki images for ships/vehicles (re-exports)
-├── personal_gear.py         # Static data for armor, weapons, equipment
-├── routes/gear.py           # /api/gear/* endpoints
-```
+- **External APIs**: starcitizen.tools (wiki), finder.cstone.space (CStone)
 
 ## What's Been Implemented
-- User authentication, fleet management, ship comparison, loadout builder
-- Route planner, price tracker, dashboard
-- Personal Gear section - ALL 3 tabs:
-  - **Armor Sets (81)**: 55 torso armor + 26 backpacks, all with CStone images, variant selectors, loot/purchase locations
-  - **FPS Weapons (50)**: CStone images, per-variant pricing/locations/loot
-  - **Equipment (26)**: Mining tools, undersuits, scanners, medical devices
+- User auth, fleet management, ship comparison, loadout builder, route planner, price tracker, dashboard
+- **Ships page**: 203 unique ships (deduped), variant dropdowns for cosmetic editions (PYAM Exec, Wikelo, etc.)
+- **Vehicles page**: 12 vehicles with variant dropdowns where applicable
+- **Gear section**: Armor (81 items incl. 26 backpacks), FPS Weapons (50), Equipment (26)
+  - All with CStone images, variant selectors, loot/purchase locations
 
 ## Completed (Mar 2026 - This Session)
 1. FPS Weapons tab CStone integration
@@ -35,8 +22,9 @@ Build a full-stack application called "Star Citizen Fleet Manager" / "Star Citiz
 3. Refactored ship_data_enhancer.py into 4 focused modules
 4. Added 27 missing armor sets from CStone
 5. Migrated backpacks from Equipment to Armor tab (26 CStone backpack sets)
-6. Backpack cards hide irrelevant temp/radiation stats
-7. All tests passed: iterations 17-20 (100%)
+6. Fixed duplicate ships (17 duplicates removed) and added variant grouping (41 ships with variants)
+7. Added variant dropdown to Ships and Vehicles pages
+8. All tests passed: iterations 17-21 (100%)
 
 ## Backlog
 - P2: Price change alerts for fleet ships
