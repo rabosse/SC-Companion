@@ -1,20 +1,30 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useAuth } from '../App';
 import axios from 'axios';
-import { Navigation, Clock, Ruler, Ship, ChevronRight, Zap, RotateCcw, ArrowLeftRight, Target, Gauge, Plus, X, AlertTriangle, CheckCircle, Fuel, Anchor, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Navigation, Clock, Ruler, ChevronRight, Zap, RotateCcw, ArrowLeftRight, Target, Gauge, Plus, X, AlertTriangle, CheckCircle, Fuel, ToggleLeft, ToggleRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const TYPE_COLORS = { star: '#FFD700', planet: '#00D4FF', moon: '#5A7A8F', station: '#00FF9D', gateway: '#FF6B35', city: '#FF1493', rest_stop: '#FFAE00', outpost: '#7CB342' };
-const SYSTEM_COLORS = { stanton: '#00D4FF', pyro: '#FF4500', nyx: '#A855F7' };
-const TYPE_RADIUS = { star: 8, planet: 6, moon: 3, station: 3, gateway: 5, city: 5, rest_stop: 3, outpost: 3 };
+const NODE_RADIUS = { star: 12, planet: 7, moon: 3.5, station: 3, gateway: 6, city: 5, rest_stop: 3.5, outpost: 3 };
+const LABEL_MIN_ZOOM = { star: 0, planet: 0.3, city: 0.5, gateway: 0.4, moon: 0.7, station: 0.8, rest_stop: 0.9, outpost: 0.9 };
 const TABS = [
   { id: 'route', label: 'Route', icon: Navigation },
   { id: 'interdiction', label: 'Interdiction', icon: Target },
   { id: 'chase', label: 'Chase', icon: Gauge },
 ];
+
+// Generate static starfield
+const genStars = (count) => Array.from({ length: count }, () => ({
+  x: Math.random(), y: Math.random(),
+  size: Math.random() * 1.6 + 0.4,
+  baseAlpha: Math.random() * 0.6 + 0.2,
+  speed: Math.random() * 2 + 0.5,
+  offset: Math.random() * Math.PI * 2,
+}));
+const STARS = genStars(500);
 
 const RoutePlanner = () => {
   const { API: authAPI } = useAuth();
@@ -47,16 +57,19 @@ const RoutePlanner = () => {
   const [chaseResult, setChaseResult] = useState(null);
 
   const canvasRef = useRef(null);
+  const animRef = useRef(null);
+  const mapState = useRef({ offset: { x: 0, y: 0 }, zoom: 1 });
   const [mapOffset, setMapOffset] = useState({ x: 0, y: 0 });
   const [mapZoom, setMapZoom] = useState(1);
   const [dragging, setDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [hoveredLoc, setHoveredLoc] = useState(null);
 
-  const ships = useMemo(() => {
-    if (useFleet) return fleetShips;
-    return allShips;
-  }, [useFleet, fleetShips, allShips]);
+  // Keep refs in sync for animation loop
+  const stateRef = useRef({});
+  stateRef.current = { locations, systems, origin, destination, route, interdictOrigins, interdictDest, interdictResult, hoveredLoc, activeTab, mapOffset, mapZoom };
+
+  const ships = useMemo(() => useFleet ? fleetShips : allShips, [useFleet, fleetShips, allShips]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -66,14 +79,12 @@ const RoutePlanner = () => {
         setSystems(locRes.data.systems || {});
         setQdSpeeds(locRes.data.qd_speeds || {});
       } catch { toast.error('Failed to load map data'); }
-
       let shipData = [];
       try {
         const shipsRes = await axios.get(`${authAPI}/ships`);
         shipData = (shipsRes.data.data || []).filter(s => !s.is_ground_vehicle);
         setAllShips(shipData);
       } catch { toast.error('Failed to load ships'); }
-
       try {
         const fleetRes = await axios.get(`${authAPI}/fleet/my`);
         const fleetIds = (fleetRes.data.data || []).map(f => f.ship_id);
@@ -81,7 +92,6 @@ const RoutePlanner = () => {
         setFleetShips(matched);
         if (matched.length > 0) setUseFleet(true);
       } catch { setFleetShips([]); }
-
       setLoading(false);
     };
     fetchData();
@@ -104,9 +114,7 @@ const RoutePlanner = () => {
     if (interdictOrigins.length === 0 || !interdictDest) { toast.error('Add origins and select a destination'); return; }
     setInterdicting(true);
     try {
-      const res = await axios.post(`${API}/routes/interdiction`, {
-        origins: interdictOrigins, destination: interdictDest, snare_range_mkm: snareRange,
-      });
+      const res = await axios.post(`${API}/routes/interdiction`, { origins: interdictOrigins, destination: interdictDest, snare_range_mkm: snareRange });
       setInterdictResult(res.data.data);
     } catch (err) { toast.error(err.response?.data?.detail || 'Interdiction calculation failed'); }
     finally { setInterdicting(false); }
@@ -114,243 +122,429 @@ const RoutePlanner = () => {
 
   const calcChase = useCallback(async () => {
     try {
-      const res = await axios.post(`${API}/routes/chase`, {
-        your_qd_size: chaseYourQd, target_qd_size: chaseTargetQd,
-        distance_mkm: chaseDist, prep_time_seconds: chasePrep,
-      });
+      const res = await axios.post(`${API}/routes/chase`, { your_qd_size: chaseYourQd, target_qd_size: chaseTargetQd, distance_mkm: chaseDist, prep_time_seconds: chasePrep });
       setChaseResult(res.data.data);
     } catch { toast.error('Chase calculation failed'); }
   }, [chaseYourQd, chaseTargetQd, chaseDist, chasePrep]);
 
-  const addInterdictOrigin = (id) => {
-    if (id && !interdictOrigins.includes(id)) { setInterdictOrigins(prev => [...prev, id]); setInterdictResult(null); }
-  };
+  const addInterdictOrigin = (id) => { if (id && !interdictOrigins.includes(id)) { setInterdictOrigins(prev => [...prev, id]); setInterdictResult(null); } };
   const removeInterdictOrigin = (id) => { setInterdictOrigins(prev => prev.filter(o => o !== id)); setInterdictResult(null); };
-
-  const onShipSelect = (shipId) => {
-    const ship = ships.find(s => s.id === shipId);
-    setSelectedShip(ship || null);
-    if (ship?.hardpoints?.quantum_drive) setQdSize(ship.hardpoints.quantum_drive.size || 1);
-    setRoute(null);
-  };
-
+  const onShipSelect = (shipId) => { const ship = ships.find(s => s.id === shipId); setSelectedShip(ship || null); if (ship?.hardpoints?.quantum_drive) setQdSize(ship.hardpoints.quantum_drive.size || 1); setRoute(null); };
   const swapOriginDest = () => { setOrigin(destination); setDestination(origin); setRoute(null); };
   const locName = (id) => locations.find(l => l.id === id)?.name || id;
 
-  // --- Canvas Map ---
-  const drawMap = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || locations.length === 0) return;
-    const ctx = canvas.getContext('2d');
-    const w = canvas.width, h = canvas.height;
-    ctx.clearRect(0, 0, w, h);
-
-    // Background gradient
-    const bgGrad = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w * 0.7);
-    bgGrad.addColorStop(0, '#080c14');
-    bgGrad.addColorStop(1, '#020408');
-    ctx.fillStyle = bgGrad;
-    ctx.fillRect(0, 0, w, h);
-
-    // Subtle grid with glow
-    ctx.strokeStyle = 'rgba(0,212,255,0.03)';
-    ctx.lineWidth = 1;
-    const gridSize = 50 * mapZoom;
-    const offX = (w / 2 + mapOffset.x) % gridSize, offY = (h / 2 + mapOffset.y) % gridSize;
-    for (let x = offX; x < w; x += gridSize) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
-    for (let y = offY; y < h; y += gridSize) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
-
-    // Scan-line effect
-    ctx.fillStyle = 'rgba(0,212,255,0.008)';
-    const scanY = (Date.now() / 40) % h;
-    ctx.fillRect(0, scanY - 2, w, 4);
-
-    const toScreen = (mx, my) => ({ x: w / 2 + (mx * mapZoom) + mapOffset.x, y: h / 2 + (my * mapZoom) + mapOffset.y });
-
-    // System nebula glow
-    Object.entries(systems).forEach(([, sys]) => {
-      const center = toScreen(sys.star.x, sys.star.y);
-      const nebGrad = ctx.createRadialGradient(center.x, center.y, 0, center.x, center.y, 180 * mapZoom);
-      nebGrad.addColorStop(0, `${sys.color}08`);
-      nebGrad.addColorStop(0.5, `${sys.color}04`);
-      nebGrad.addColorStop(1, 'transparent');
-      ctx.fillStyle = nebGrad;
-      ctx.beginPath(); ctx.arc(center.x, center.y, 180 * mapZoom, 0, Math.PI * 2); ctx.fill();
-
-      // Orbit rings
-      ctx.strokeStyle = `${sys.color}0a`;
-      ctx.lineWidth = 1;
-      [40, 80, 120, 160].forEach(r => { ctx.beginPath(); ctx.arc(center.x, center.y, r * mapZoom * 0.7, 0, Math.PI * 2); ctx.stroke(); });
-
-      // System label
-      ctx.fillStyle = `${sys.color}50`;
-      ctx.font = `bold ${Math.max(10, 14 * mapZoom)}px 'Rajdhani', monospace`;
-      ctx.textAlign = 'center';
-      ctx.fillText(sys.name.toUpperCase(), center.x, center.y - 12 * mapZoom);
-    });
-
-    // Jump connections (dashed glowing lines)
-    [['stanton-pyro-gw', 'pyro-stanton-gw'], ['stanton-nyx-gw', 'nyx-stanton-gw'], ['pyro-nyx-gw', 'nyx-pyro-gw']].forEach(([a, b]) => {
-      const la = locations.find(l => l.id === a), lb = locations.find(l => l.id === b);
-      if (la && lb) {
-        const sa = toScreen(la.map_x, la.map_y), sb = toScreen(lb.map_x, lb.map_y);
-        ctx.strokeStyle = '#FF6B3530'; ctx.lineWidth = 2; ctx.setLineDash([8, 6]);
-        ctx.beginPath(); ctx.moveTo(sa.x, sa.y); ctx.lineTo(sb.x, sb.y); ctx.stroke();
-        ctx.setLineDash([]);
-      }
-    });
-
-    // Draw interdiction routes + snare
-    if (activeTab === 'interdiction' && interdictResult) {
-      (interdictResult.route_lines || []).forEach(rl => {
-        const sf = toScreen(rl.sx, rl.sy), st = toScreen(rl.ex, rl.ey);
-        ctx.strokeStyle = '#FF005550'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
-        ctx.beginPath(); ctx.moveTo(sf.x, sf.y); ctx.lineTo(st.x, st.y); ctx.stroke();
-        ctx.setLineDash([]);
-      });
-      const sp = interdictResult.snare_position;
-      if (sp) {
-        const ss = toScreen(sp.x, sp.y);
-        const sr = (interdictResult.snare_range_map || 25) * mapZoom;
-        ctx.fillStyle = interdictResult.coverage_pct === 100 ? 'rgba(255,0,85,0.06)' : 'rgba(255,165,0,0.06)';
-        ctx.beginPath(); ctx.arc(ss.x, ss.y, sr, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = interdictResult.coverage_pct === 100 ? '#FF0055' : '#FFA500';
-        ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.arc(ss.x, ss.y, sr, 0, Math.PI * 2); ctx.stroke();
-        ctx.fillStyle = '#FF0055'; ctx.shadowColor = '#FF0055'; ctx.shadowBlur = 12;
-        ctx.beginPath(); ctx.arc(ss.x, ss.y, 5, 0, Math.PI * 2); ctx.fill();
-        ctx.shadowBlur = 0;
-        ctx.fillStyle = '#FF005590'; ctx.font = `bold ${Math.max(8, 10 * mapZoom)}px 'Rajdhani', monospace`;
-        ctx.textAlign = 'center'; ctx.fillText('SNARE', ss.x, ss.y - 10);
-      }
-    }
-
-    // Draw route lines with glow
-    if (activeTab === 'route' && route?.waypoints) {
-      route.waypoints.forEach(wp => {
-        if (wp.type === 'refuel') return;
-        const fromLoc = locations.find(l => l.id === wp.from_id), toLoc = locations.find(l => l.id === wp.to_id);
-        if (fromLoc && toLoc) {
-          const sf = toScreen(fromLoc.map_x, fromLoc.map_y), st = toScreen(toLoc.map_x, toLoc.map_y);
-          const isJump = wp.type === 'jump';
-          // Glow layer
-          ctx.strokeStyle = isJump ? '#FF6B3520' : '#00D4FF18';
-          ctx.lineWidth = isJump ? 8 : 6;
-          ctx.beginPath(); ctx.moveTo(sf.x, sf.y); ctx.lineTo(st.x, st.y); ctx.stroke();
-          // Main line
-          ctx.strokeStyle = isJump ? '#FF6B35' : '#00D4FF';
-          ctx.lineWidth = isJump ? 2.5 : 2;
-          ctx.setLineDash(isJump ? [8, 4] : []);
-          ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 6;
-          ctx.beginPath(); ctx.moveTo(sf.x, sf.y); ctx.lineTo(st.x, st.y); ctx.stroke();
-          ctx.shadowBlur = 0; ctx.setLineDash([]);
-          // Arrow
-          const angle = Math.atan2(st.y - sf.y, st.x - sf.x);
-          const mx = (sf.x + st.x) / 2, my = (sf.y + st.y) / 2;
-          ctx.fillStyle = isJump ? '#FF6B35' : '#00D4FF';
-          ctx.beginPath();
-          ctx.moveTo(mx + 7 * Math.cos(angle), my + 7 * Math.sin(angle));
-          ctx.lineTo(mx - 7 * Math.cos(angle) - 5 * Math.sin(angle), my - 7 * Math.sin(angle) + 5 * Math.cos(angle));
-          ctx.lineTo(mx - 7 * Math.cos(angle) + 5 * Math.sin(angle), my - 7 * Math.sin(angle) - 5 * Math.cos(angle));
-          ctx.fill();
-        }
-      });
-      // Draw refuel markers
-      route.waypoints.forEach(wp => {
-        if (wp.type !== 'refuel') return;
-        const loc = locations.find(l => l.id === wp.from_id);
-        if (loc) {
-          const s = toScreen(loc.map_x, loc.map_y);
-          ctx.fillStyle = '#FFAE00'; ctx.shadowColor = '#FFAE00'; ctx.shadowBlur = 14;
-          ctx.beginPath(); ctx.arc(s.x, s.y, 7 * mapZoom, 0, Math.PI * 2); ctx.fill();
-          ctx.shadowBlur = 0;
-          ctx.fillStyle = '#000'; ctx.font = `bold ${Math.max(8, 10 * mapZoom)}px sans-serif`;
-          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-          ctx.fillText('F', s.x, s.y);
-          ctx.textBaseline = 'alphabetic';
-          ctx.fillStyle = '#FFAE00'; ctx.font = `bold ${Math.max(7, 9 * mapZoom)}px 'Rajdhani', monospace`;
-          ctx.fillText('REFUEL', s.x, s.y + 14 * mapZoom);
-        }
-      });
-    }
-
-    // Locations
-    const isInterdict = activeTab === 'interdiction';
-    locations.forEach(loc => {
-      const s = toScreen(loc.map_x, loc.map_y);
-      if (s.x < -20 || s.x > w + 20 || s.y < -20 || s.y > h + 20) return;
-      const r = (TYPE_RADIUS[loc.type] || 3) * mapZoom;
-      const color = TYPE_COLORS[loc.type] || '#888';
-      const isOriginSel = isInterdict ? interdictOrigins.includes(loc.id) : loc.id === origin;
-      const isDestSel = isInterdict ? loc.id === interdictDest : loc.id === destination;
-      const isHov = hoveredLoc === loc.id;
-
-      if (isOriginSel || isDestSel || isHov) { ctx.shadowColor = isOriginSel ? '#00FF9D' : isDestSel ? '#FF0055' : color; ctx.shadowBlur = 14; }
-
-      ctx.fillStyle = color;
-      if (loc.type === 'gateway') {
-        ctx.beginPath(); ctx.moveTo(s.x, s.y - r); ctx.lineTo(s.x + r, s.y); ctx.lineTo(s.x, s.y + r); ctx.lineTo(s.x - r, s.y); ctx.closePath(); ctx.fill();
-      } else if (loc.type === 'star') {
-        const gradient = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, r * 2.5);
-        gradient.addColorStop(0, '#ffffff'); gradient.addColorStop(0.3, color); gradient.addColorStop(1, 'transparent');
-        ctx.fillStyle = gradient; ctx.beginPath(); ctx.arc(s.x, s.y, r * 2.5, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(s.x, s.y, r * 0.4, 0, Math.PI * 2); ctx.fill();
-      } else {
-        ctx.beginPath(); ctx.arc(s.x, s.y, r, 0, Math.PI * 2); ctx.fill();
-      }
-
-      if (isOriginSel || isDestSel) {
-        ctx.strokeStyle = isOriginSel ? '#00FF9D' : '#FF0055'; ctx.lineWidth = 1.5;
-        ctx.setLineDash([3, 3]);
-        ctx.beginPath(); ctx.arc(s.x, s.y, r + 5, 0, Math.PI * 2); ctx.stroke();
-        ctx.setLineDash([]);
-      }
-      ctx.shadowBlur = 0;
-
-      if (mapZoom > 0.6 || loc.type === 'planet' || loc.type === 'star' || isOriginSel || isDestSel || isHov) {
-        ctx.fillStyle = isOriginSel ? '#00FF9D' : isDestSel ? '#FF0055' : 'rgba(255,255,255,0.55)';
-        ctx.font = `${loc.type === 'planet' ? 'bold ' : ''}${Math.max(7, (loc.type === 'moon' || loc.type === 'station' ? 8 : 10) * mapZoom)}px 'Rajdhani', monospace`;
-        ctx.textAlign = 'center';
-        ctx.fillText(loc.name, s.x, s.y + r + 11 * mapZoom);
-      }
-    });
-
-    // HUD overlay corners
-    ctx.strokeStyle = '#00D4FF20';
-    ctx.lineWidth = 1;
-    const cs = 15;
-    [[0, 0, cs, 0, 0, cs], [w, 0, -cs, 0, 0, cs], [0, h, cs, 0, 0, -cs], [w, h, -cs, 0, 0, -cs]].forEach(([x, y, dx1, dy1, dx2, dy2]) => {
-      ctx.beginPath(); ctx.moveTo(x + dx1, y + dy1); ctx.lineTo(x, y); ctx.lineTo(x + dx2, y + dy2); ctx.stroke();
-    });
-  }, [locations, systems, origin, destination, route, interdictOrigins, interdictDest, interdictResult, mapOffset, mapZoom, hoveredLoc, activeTab]);
-
-  useEffect(() => { drawMap(); }, [drawMap]);
+  // ========== ANIMATED CANVAS ==========
   useEffect(() => {
+    if (loading) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+
     const resize = () => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const parent = canvas.parentElement;
-      canvas.width = parent.clientWidth; canvas.height = parent.clientHeight;
-      drawMap();
+      const p = canvas.parentElement;
+      if (!p) return;
+      const pw = p.clientWidth;
+      const ph = p.clientHeight;
+      if (pw > 10 && ph > 10 && (canvas.width !== pw || canvas.height !== ph)) {
+        canvas.width = pw;
+        canvas.height = ph;
+      }
     };
     resize();
+    const observer = new ResizeObserver(resize);
+    observer.observe(canvas.parentElement);
     window.addEventListener('resize', resize);
-    return () => window.removeEventListener('resize', resize);
-  }, [drawMap]);
 
-  const handleWheel = (e) => { e.preventDefault(); setMapZoom(z => Math.max(0.3, Math.min(3, z + (e.deltaY > 0 ? -0.1 : 0.1)))); };
+    const toScreen = (mx, my, w, h, offset, zoom) => ({
+      x: w / 2 + mx * zoom + offset.x,
+      y: h / 2 + my * zoom + offset.y,
+    });
+
+    const draw = (time) => {
+      const s = stateRef.current;
+      const w = canvas.width, h = canvas.height;
+      const { mapOffset: offset, mapZoom: zoom, locations: locs, systems: sys, origin: org, destination: dst, route: rt, hoveredLoc: hov, activeTab: tab, interdictOrigins: iOrigins, interdictDest: iDest, interdictResult: iResult } = s;
+      const t = time * 0.001;
+
+      ctx.clearRect(0, 0, w, h);
+
+      // === BACKGROUND ===
+      ctx.fillStyle = '#020306';
+      ctx.fillRect(0, 0, w, h);
+
+      // === STARFIELD ===
+      for (const star of STARS) {
+        const sx = star.x * w, sy = star.y * h;
+        const twinkle = Math.sin(t * star.speed + star.offset) * 0.5 + 0.5;
+        const alpha = star.baseAlpha * (0.4 + twinkle * 0.6);
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = '#c8d8f0';
+        ctx.beginPath();
+        ctx.arc(sx, sy, star.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+
+      // === NEBULA GLOW PER SYSTEM ===
+      const sysColors = { stanton: [0, 140, 220], pyro: [220, 60, 10], nyx: [140, 60, 220] };
+      Object.entries(sys).forEach(([sysId, sysData]) => {
+        const center = toScreen(sysData.star.x, sysData.star.y, w, h, offset, zoom);
+        const nebR = 260 * zoom;
+        const [cr, cg, cb] = sysColors[sysId] || [80, 80, 80];
+
+        // Outer nebula haze
+        const neb = ctx.createRadialGradient(center.x, center.y, 0, center.x, center.y, nebR);
+        neb.addColorStop(0, `rgba(${cr},${cg},${cb},0.07)`);
+        neb.addColorStop(0.35, `rgba(${cr},${cg},${cb},0.035)`);
+        neb.addColorStop(0.7, `rgba(${cr},${cg},${cb},0.01)`);
+        neb.addColorStop(1, 'transparent');
+        ctx.fillStyle = neb;
+        ctx.beginPath(); ctx.arc(center.x, center.y, nebR, 0, Math.PI * 2); ctx.fill();
+
+        // Inner bright core
+        const core = ctx.createRadialGradient(center.x, center.y, 0, center.x, center.y, nebR * 0.25);
+        core.addColorStop(0, `rgba(${cr},${cg},${cb},0.12)`);
+        core.addColorStop(1, 'transparent');
+        ctx.fillStyle = core;
+        ctx.beginPath(); ctx.arc(center.x, center.y, nebR * 0.25, 0, Math.PI * 2); ctx.fill();
+
+        // Orbit rings
+        ctx.strokeStyle = `rgba(${cr},${cg},${cb},0.04)`;
+        ctx.lineWidth = 0.8;
+        for (let r = 50; r <= 220; r += 40) {
+          ctx.beginPath(); ctx.arc(center.x, center.y, r * zoom, 0, Math.PI * 2); ctx.stroke();
+        }
+
+        // System label
+        const labelAlpha = Math.min(1, 0.15 + zoom * 0.1);
+        ctx.fillStyle = `rgba(${cr},${cg},${cb},${labelAlpha})`;
+        ctx.font = `600 ${Math.max(10, 13 * zoom)}px Rajdhani, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.letterSpacing = '3px';
+        ctx.fillText(sysData.name.toUpperCase(), center.x, center.y - 18 * zoom);
+        ctx.letterSpacing = '0px';
+      });
+
+      // === JUMP CONNECTIONS (dashed glow) ===
+      const jumpPairs = [['stanton-pyro-gw', 'pyro-stanton-gw'], ['stanton-nyx-gw', 'nyx-stanton-gw'], ['pyro-nyx-gw', 'nyx-pyro-gw']];
+      jumpPairs.forEach(([a, b]) => {
+        const la = locs.find(l => l.id === a), lb = locs.find(l => l.id === b);
+        if (!la || !lb) return;
+        const sa = toScreen(la.map_x, la.map_y, w, h, offset, zoom), sb = toScreen(lb.map_x, lb.map_y, w, h, offset, zoom);
+        // Glow
+        ctx.strokeStyle = 'rgba(255,107,53,0.06)';
+        ctx.lineWidth = 6 * zoom;
+        ctx.beginPath(); ctx.moveTo(sa.x, sa.y); ctx.lineTo(sb.x, sb.y); ctx.stroke();
+        // Dashed line
+        ctx.strokeStyle = 'rgba(255,107,53,0.2)';
+        ctx.lineWidth = 1.2;
+        ctx.setLineDash([6, 8]);
+        ctx.lineDashOffset = -t * 20;
+        ctx.beginPath(); ctx.moveTo(sa.x, sa.y); ctx.lineTo(sb.x, sb.y); ctx.stroke();
+        ctx.setLineDash([]);
+      });
+
+      // === INTERDICTION OVERLAY ===
+      if (tab === 'interdiction' && iResult) {
+        (iResult.route_lines || []).forEach(rl => {
+          const sf = toScreen(rl.sx, rl.sy, w, h, offset, zoom), st = toScreen(rl.ex, rl.ey, w, h, offset, zoom);
+          ctx.strokeStyle = 'rgba(255,0,85,0.25)';
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([5, 4]);
+          ctx.lineDashOffset = -t * 15;
+          ctx.beginPath(); ctx.moveTo(sf.x, sf.y); ctx.lineTo(st.x, st.y); ctx.stroke();
+          ctx.setLineDash([]);
+        });
+        const sp = iResult.snare_position;
+        if (sp) {
+          const ss = toScreen(sp.x, sp.y, w, h, offset, zoom);
+          const sr = (iResult.snare_range_map || 25) * zoom;
+          const pulse = Math.sin(t * 3) * 0.3 + 0.7;
+          // Snare radius fill
+          ctx.fillStyle = iResult.coverage_pct === 100 ? `rgba(255,0,85,${0.03 * pulse})` : `rgba(255,165,0,${0.03 * pulse})`;
+          ctx.beginPath(); ctx.arc(ss.x, ss.y, sr, 0, Math.PI * 2); ctx.fill();
+          // Snare ring
+          ctx.strokeStyle = iResult.coverage_pct === 100 ? `rgba(255,0,85,${0.5 * pulse})` : `rgba(255,165,0,${0.5 * pulse})`;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.arc(ss.x, ss.y, sr, 0, Math.PI * 2); ctx.stroke();
+          // Snare center
+          ctx.fillStyle = '#FF0055';
+          ctx.shadowColor = '#FF0055'; ctx.shadowBlur = 15;
+          ctx.beginPath(); ctx.arc(ss.x, ss.y, 4, 0, Math.PI * 2); ctx.fill();
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = `rgba(255,0,85,${0.6 * pulse})`;
+          ctx.font = `700 ${Math.max(8, 9 * zoom)}px Rajdhani, sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.fillText('QED SNARE', ss.x, ss.y - 10 * zoom);
+        }
+      }
+
+      // === ROUTE LINES (animated glow) ===
+      if (tab === 'route' && rt?.waypoints) {
+        // Draw glow layer first, then sharp line, then animated dash
+        rt.waypoints.forEach(wp => {
+          if (wp.type === 'refuel') return;
+          const fromLoc = locs.find(l => l.id === wp.from_id), toLoc = locs.find(l => l.id === wp.to_id);
+          if (!fromLoc || !toLoc) return;
+          const sf = toScreen(fromLoc.map_x, fromLoc.map_y, w, h, offset, zoom);
+          const st = toScreen(toLoc.map_x, toLoc.map_y, w, h, offset, zoom);
+          const isJump = wp.type === 'jump';
+          const color = isJump ? '#FF6B35' : '#00D4FF';
+
+          // Wide glow
+          ctx.strokeStyle = isJump ? 'rgba(255,107,53,0.08)' : 'rgba(0,212,255,0.08)';
+          ctx.lineWidth = 14 * zoom;
+          ctx.beginPath(); ctx.moveTo(sf.x, sf.y); ctx.lineTo(st.x, st.y); ctx.stroke();
+
+          // Medium glow
+          ctx.strokeStyle = isJump ? 'rgba(255,107,53,0.15)' : 'rgba(0,212,255,0.15)';
+          ctx.lineWidth = 6 * zoom;
+          ctx.beginPath(); ctx.moveTo(sf.x, sf.y); ctx.lineTo(st.x, st.y); ctx.stroke();
+
+          // Core line
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 1.8;
+          ctx.shadowColor = color; ctx.shadowBlur = 8;
+          ctx.beginPath(); ctx.moveTo(sf.x, sf.y); ctx.lineTo(st.x, st.y); ctx.stroke();
+          ctx.shadowBlur = 0;
+
+          // Animated dash overlay
+          ctx.strokeStyle = isJump ? 'rgba(255,200,150,0.6)' : 'rgba(180,240,255,0.6)';
+          ctx.lineWidth = 1.2;
+          ctx.setLineDash([3, 12]);
+          ctx.lineDashOffset = -t * (isJump ? 30 : 50);
+          ctx.beginPath(); ctx.moveTo(sf.x, sf.y); ctx.lineTo(st.x, st.y); ctx.stroke();
+          ctx.setLineDash([]);
+
+          // Direction arrow at midpoint
+          const angle = Math.atan2(st.y - sf.y, st.x - sf.x);
+          const mx = (sf.x + st.x) / 2, my = (sf.y + st.y) / 2;
+          ctx.fillStyle = color;
+          ctx.shadowColor = color; ctx.shadowBlur = 6;
+          ctx.beginPath();
+          ctx.moveTo(mx + 8 * Math.cos(angle), my + 8 * Math.sin(angle));
+          ctx.lineTo(mx - 6 * Math.cos(angle) - 5 * Math.sin(angle), my - 6 * Math.sin(angle) + 5 * Math.cos(angle));
+          ctx.lineTo(mx - 6 * Math.cos(angle) + 5 * Math.sin(angle), my - 6 * Math.sin(angle) - 5 * Math.cos(angle));
+          ctx.closePath(); ctx.fill();
+          ctx.shadowBlur = 0;
+        });
+
+        // Refuel markers
+        rt.waypoints.forEach(wp => {
+          if (wp.type !== 'refuel') return;
+          const loc = locs.find(l => l.id === wp.from_id);
+          if (!loc) return;
+          const sc = toScreen(loc.map_x, loc.map_y, w, h, offset, zoom);
+          const pulse = Math.sin(t * 4) * 0.3 + 0.7;
+          // Glow ring
+          ctx.strokeStyle = `rgba(255,174,0,${0.4 * pulse})`;
+          ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.arc(sc.x, sc.y, 12 * zoom, 0, Math.PI * 2); ctx.stroke();
+          // Fill
+          ctx.fillStyle = '#FFAE00';
+          ctx.shadowColor = '#FFAE00'; ctx.shadowBlur = 12;
+          ctx.beginPath(); ctx.arc(sc.x, sc.y, 6 * zoom, 0, Math.PI * 2); ctx.fill();
+          ctx.shadowBlur = 0;
+          // Label
+          ctx.fillStyle = '#000';
+          ctx.font = `700 ${Math.max(7, 8 * zoom)}px sans-serif`;
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText('F', sc.x, sc.y);
+          ctx.textBaseline = 'alphabetic';
+          ctx.fillStyle = `rgba(255,174,0,${0.7 * pulse})`;
+          ctx.font = `700 ${Math.max(7, 8 * zoom)}px Rajdhani, sans-serif`;
+          ctx.fillText('REFUEL', sc.x, sc.y + 16 * zoom);
+        });
+      }
+
+      // === LOCATION NODES ===
+      const isInterdict = tab === 'interdiction';
+      for (const loc of locs) {
+        const sc = toScreen(loc.map_x, loc.map_y, w, h, offset, zoom);
+        if (sc.x < -30 || sc.x > w + 30 || sc.y < -30 || sc.y > h + 30) continue;
+
+        const baseR = (NODE_RADIUS[loc.type] || 3) * zoom;
+        const color = TYPE_COLORS[loc.type] || '#888';
+        const isOriginSel = isInterdict ? iOrigins.includes(loc.id) : loc.id === org;
+        const isDestSel = isInterdict ? loc.id === iDest : loc.id === dst;
+        const isHov = hov === loc.id;
+        const isActive = isOriginSel || isDestSel || isHov;
+        const pulse = Math.sin(t * 2 + loc.map_x * 0.1) * 0.15 + 1;
+        const r = baseR * (isActive ? pulse * 1.2 : (loc.type === 'planet' ? pulse : 1));
+
+        if (loc.type === 'star') {
+          // Multi-layer star glow
+          const g3 = ctx.createRadialGradient(sc.x, sc.y, 0, sc.x, sc.y, r * 6);
+          g3.addColorStop(0, 'rgba(255,215,0,0.06)');
+          g3.addColorStop(1, 'transparent');
+          ctx.fillStyle = g3;
+          ctx.beginPath(); ctx.arc(sc.x, sc.y, r * 6, 0, Math.PI * 2); ctx.fill();
+
+          const g2 = ctx.createRadialGradient(sc.x, sc.y, 0, sc.x, sc.y, r * 3);
+          g2.addColorStop(0, 'rgba(255,230,150,0.2)');
+          g2.addColorStop(0.5, 'rgba(255,200,50,0.08)');
+          g2.addColorStop(1, 'transparent');
+          ctx.fillStyle = g2;
+          ctx.beginPath(); ctx.arc(sc.x, sc.y, r * 3, 0, Math.PI * 2); ctx.fill();
+
+          const g1 = ctx.createRadialGradient(sc.x, sc.y, 0, sc.x, sc.y, r * 1.2);
+          g1.addColorStop(0, '#fffbe6');
+          g1.addColorStop(0.6, '#FFD700');
+          g1.addColorStop(1, 'rgba(255,200,0,0)');
+          ctx.fillStyle = g1;
+          ctx.beginPath(); ctx.arc(sc.x, sc.y, r * 1.2, 0, Math.PI * 2); ctx.fill();
+
+          // Bright center
+          ctx.fillStyle = '#fff';
+          ctx.beginPath(); ctx.arc(sc.x, sc.y, r * 0.3, 0, Math.PI * 2); ctx.fill();
+
+        } else if (loc.type === 'gateway') {
+          // Diamond shape with glow
+          ctx.shadowColor = color; ctx.shadowBlur = isActive ? 16 : 8;
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.moveTo(sc.x, sc.y - r * 1.3); ctx.lineTo(sc.x + r, sc.y);
+          ctx.lineTo(sc.x, sc.y + r * 1.3); ctx.lineTo(sc.x - r, sc.y);
+          ctx.closePath(); ctx.fill();
+          ctx.shadowBlur = 0;
+
+        } else if (loc.type === 'planet') {
+          // Planet with atmospheric glow
+          const atmo = ctx.createRadialGradient(sc.x, sc.y, r * 0.6, sc.x, sc.y, r * 2.5);
+          atmo.addColorStop(0, `${color}15`);
+          atmo.addColorStop(1, 'transparent');
+          ctx.fillStyle = atmo;
+          ctx.beginPath(); ctx.arc(sc.x, sc.y, r * 2.5, 0, Math.PI * 2); ctx.fill();
+
+          // Body
+          ctx.shadowColor = color; ctx.shadowBlur = isActive ? 18 : 10;
+          const bodyGrad = ctx.createRadialGradient(sc.x - r * 0.3, sc.y - r * 0.3, 0, sc.x, sc.y, r);
+          bodyGrad.addColorStop(0, '#ffffff40');
+          bodyGrad.addColorStop(0.5, color);
+          bodyGrad.addColorStop(1, `${color}80`);
+          ctx.fillStyle = bodyGrad;
+          ctx.beginPath(); ctx.arc(sc.x, sc.y, r, 0, Math.PI * 2); ctx.fill();
+          ctx.shadowBlur = 0;
+
+        } else if (loc.type === 'city') {
+          // City - bright dot with ring
+          ctx.shadowColor = color; ctx.shadowBlur = isActive ? 14 : 6;
+          ctx.fillStyle = color;
+          ctx.beginPath(); ctx.arc(sc.x, sc.y, r, 0, Math.PI * 2); ctx.fill();
+          ctx.shadowBlur = 0;
+          ctx.strokeStyle = `${color}60`;
+          ctx.lineWidth = 0.8;
+          ctx.beginPath(); ctx.arc(sc.x, sc.y, r + 3 * zoom, 0, Math.PI * 2); ctx.stroke();
+
+        } else {
+          // Stations, moons, rest stops, outposts
+          ctx.shadowColor = color; ctx.shadowBlur = isActive ? 12 : 4;
+          ctx.fillStyle = color;
+          ctx.beginPath(); ctx.arc(sc.x, sc.y, r, 0, Math.PI * 2); ctx.fill();
+          ctx.shadowBlur = 0;
+        }
+
+        // Selection rings for origin / destination
+        if (isOriginSel || isDestSel) {
+          const ringColor = isOriginSel ? '#00FF9D' : '#FF0055';
+          const ringPulse = Math.sin(t * 3) * 0.3 + 0.7;
+          ctx.strokeStyle = ringColor;
+          ctx.globalAlpha = ringPulse;
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([4, 4]);
+          ctx.lineDashOffset = -t * 20;
+          ctx.beginPath(); ctx.arc(sc.x, sc.y, r + 8 * zoom, 0, Math.PI * 2); ctx.stroke();
+          ctx.setLineDash([]);
+          // Outer glow ring
+          ctx.strokeStyle = `${ringColor}30`;
+          ctx.lineWidth = 4;
+          ctx.beginPath(); ctx.arc(sc.x, sc.y, r + 12 * zoom, 0, Math.PI * 2); ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
+
+        // Hover highlight
+        if (isHov && !isOriginSel && !isDestSel) {
+          ctx.strokeStyle = `${color}80`;
+          ctx.lineWidth = 1;
+          ctx.setLineDash([3, 3]);
+          ctx.beginPath(); ctx.arc(sc.x, sc.y, r + 6 * zoom, 0, Math.PI * 2); ctx.stroke();
+          ctx.setLineDash([]);
+        }
+
+        // === LABELS ===
+        const minZ = LABEL_MIN_ZOOM[loc.type] ?? 0.9;
+        const showLabel = zoom >= minZ || isActive;
+        if (showLabel) {
+          const labelAlpha = isActive ? 1 : Math.min(1, (zoom - minZ) / 0.3 + 0.3);
+          const fontSize = loc.type === 'star' ? Math.max(10, 13 * zoom)
+            : loc.type === 'planet' ? Math.max(9, 11 * zoom)
+            : loc.type === 'city' ? Math.max(8, 10 * zoom)
+            : Math.max(7, 8 * zoom);
+          const weight = (loc.type === 'planet' || loc.type === 'star' || loc.type === 'city') ? '600' : '400';
+          ctx.font = `${weight} ${fontSize}px Rajdhani, sans-serif`;
+          ctx.textAlign = 'center';
+
+          const labelY = sc.y + r + 10 * zoom;
+          const labelColor = isOriginSel ? '#00FF9D' : isDestSel ? '#FF0055' : isHov ? '#ffffff' : color;
+
+          // Label background for readability
+          if (isActive || loc.type === 'planet' || loc.type === 'star') {
+            const metrics = ctx.measureText(loc.name);
+            const tw = metrics.width;
+            ctx.fillStyle = 'rgba(2,3,6,0.7)';
+            ctx.fillRect(sc.x - tw / 2 - 3, labelY - fontSize + 2, tw + 6, fontSize + 2);
+          }
+
+          ctx.globalAlpha = labelAlpha;
+          ctx.fillStyle = labelColor;
+          ctx.fillText(loc.name, sc.x, labelY);
+          ctx.globalAlpha = 1;
+        }
+      }
+
+      // === HUD SCAN LINE ===
+      const scanY = (t * 40) % h;
+      const scanGrad = ctx.createLinearGradient(0, scanY - 30, 0, scanY + 30);
+      scanGrad.addColorStop(0, 'transparent');
+      scanGrad.addColorStop(0.5, 'rgba(0,212,255,0.015)');
+      scanGrad.addColorStop(1, 'transparent');
+      ctx.fillStyle = scanGrad;
+      ctx.fillRect(0, scanY - 30, w, 60);
+
+      // === HUD CORNER BRACKETS ===
+      ctx.strokeStyle = 'rgba(0,212,255,0.08)';
+      ctx.lineWidth = 1;
+      const cs = 20;
+      [[0, 0, cs, 0, 0, cs], [w, 0, -cs, 0, 0, cs], [0, h, cs, 0, 0, -cs], [w, h, -cs, 0, 0, -cs]].forEach(([x, y, dx1, dy1, dx2, dy2]) => {
+        ctx.beginPath(); ctx.moveTo(x + dx1, y + dy1); ctx.lineTo(x, y); ctx.lineTo(x + dx2, y + dy2); ctx.stroke();
+      });
+
+      animRef.current = requestAnimationFrame(draw);
+    };
+
+    animRef.current = requestAnimationFrame(draw);
+    return () => {
+      cancelAnimationFrame(animRef.current);
+      observer.disconnect();
+      window.removeEventListener('resize', resize);
+    };
+  }, [loading]);
+
+  // === INTERACTION HANDLERS ===
+  const handleWheel = (e) => { e.preventDefault(); setMapZoom(z => Math.max(0.25, Math.min(4, z + (e.deltaY > 0 ? -0.12 : 0.12)))); };
   const handleMouseDown = (e) => { if (e.button === 0) { setDragging(true); setDragStart({ x: e.clientX - mapOffset.x, y: e.clientY - mapOffset.y }); } };
   const handleMouseMove = (e) => {
     const canvas = canvasRef.current; if (!canvas) return;
     if (dragging) { setMapOffset({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y }); return; }
     const rect = canvas.getBoundingClientRect();
-    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    const scaleX = canvas.width / rect.width, scaleY = canvas.height / rect.height;
+    const mx = (e.clientX - rect.left) * scaleX, my = (e.clientY - rect.top) * scaleY;
     const w = canvas.width, h = canvas.height;
     let found = null;
-    locations.forEach(loc => {
-      const sx = w / 2 + (loc.map_x * mapZoom) + mapOffset.x, sy = h / 2 + (loc.map_y * mapZoom) + mapOffset.y;
-      if (Math.sqrt((mx - sx) ** 2 + (my - sy) ** 2) < 15) found = loc.id;
-    });
+    for (const loc of locations) {
+      const sx = w / 2 + loc.map_x * mapZoom + mapOffset.x, sy = h / 2 + loc.map_y * mapZoom + mapOffset.y;
+      if (Math.sqrt((mx - sx) ** 2 + (my - sy) ** 2) < 18 * mapZoom) { found = loc.id; break; }
+    }
     setHoveredLoc(found);
     canvas.style.cursor = found ? 'pointer' : dragging ? 'grabbing' : 'grab';
   };
@@ -374,7 +568,7 @@ const RoutePlanner = () => {
     return `${Math.floor(m / 60)}h ${m % 60}m`;
   };
 
-  const LocationSelect = ({ value, onChange, label, color, testId, exclude = [] }) => (
+  const LocationSelect = ({ value, onChange, label, color, testId }) => (
     <div>
       <label className="text-[10px] font-bold uppercase tracking-widest block mb-1" style={{ color }}>{label}</label>
       <select value={value} onChange={e => onChange(e.target.value)} data-testid={testId}
@@ -383,7 +577,7 @@ const RoutePlanner = () => {
         <option value="" className="bg-[#060a12] text-gray-500">Select location...</option>
         {Object.entries(systems).map(([sysId, sys]) => (
           <optgroup key={sysId} label={sys.name} className="bg-[#060a12] text-gray-300">
-            {locations.filter(l => l.system === sysId && l.type !== 'star' && !exclude.includes(l.id)).map(l => (
+            {locations.filter(l => l.system === sysId && l.type !== 'star').map(l => (
               <option key={l.id} value={l.id} className="bg-[#060a12] text-white">{l.name}</option>
             ))}
           </optgroup>
@@ -392,26 +586,22 @@ const RoutePlanner = () => {
     </div>
   );
 
-  if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><div className="w-16 h-16 border-2 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin"></div></div>;
+  if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><div className="w-16 h-16 border-2 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin" /></div>;
 
   return (
     <div className="h-[calc(100vh-80px)] flex gap-3" data-testid="route-planner-page">
-      {/* Left Panel - HUD Style */}
+      {/* Left Panel */}
       <div className="w-[310px] shrink-0 flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="mb-3 relative">
+        <div className="mb-3">
           <div className="flex items-center gap-2">
             <div className="w-1 h-8 bg-cyan-500 rounded-full" />
             <div>
-              <h1 className="text-xl font-bold uppercase tracking-wider" style={{ fontFamily: 'Rajdhani, monospace', color: '#00D4FF' }}>
-                ROUTE PLANNER
-              </h1>
+              <h1 className="text-xl font-bold uppercase tracking-wider" style={{ fontFamily: 'Rajdhani, monospace', color: '#00D4FF' }}>ROUTE PLANNER</h1>
               <p className="text-[10px] text-gray-600 uppercase tracking-widest font-mono">Stanton // Pyro // Nyx</p>
             </div>
           </div>
         </div>
 
-        {/* Tabs - HUD Buttons */}
         <div className="flex gap-1 mb-3" data-testid="planner-tabs">
           {TABS.map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)} data-testid={`tab-${tab.id}`}
@@ -422,9 +612,7 @@ const RoutePlanner = () => {
         </div>
 
         <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 custom-scrollbar">
-          {/* === ROUTE TAB === */}
           {activeTab === 'route' && (<>
-            {/* Ship Selector with Fleet Toggle */}
             <div className="hud-panel p-3" data-testid="ship-selector">
               <div className="flex items-center justify-between mb-2">
                 <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Ship</label>
@@ -448,23 +636,20 @@ const RoutePlanner = () => {
               </select>
               {selectedShip && (
                 <div className="mt-2 grid grid-cols-3 gap-1">
-                  <div className="bg-white/3 rounded px-2 py-1 text-center">
-                    <div className="text-[9px] text-gray-600 uppercase">Speed</div>
-                    <div className="text-xs font-bold text-cyan-400 font-mono">{selectedShip.quantum?.speed_kms ? `${Math.round(selectedShip.quantum.speed_kms / 1000)}k` : `S${qdSize}`}</div>
-                  </div>
-                  <div className="bg-white/3 rounded px-2 py-1 text-center">
-                    <div className="text-[9px] text-gray-600 uppercase">Range</div>
-                    <div className="text-xs font-bold text-yellow-400 font-mono">{selectedShip.quantum?.range_mkm ? `${Math.round(selectedShip.quantum.range_mkm)}` : '--'}<span className="text-[8px] text-gray-600"> Mkm</span></div>
-                  </div>
-                  <div className="bg-white/3 rounded px-2 py-1 text-center">
-                    <div className="text-[9px] text-gray-600 uppercase">Fuel</div>
-                    <div className="text-xs font-bold text-orange-400 font-mono">{selectedShip.quantum?.fuel_capacity || '--'}</div>
-                  </div>
+                  {[
+                    { label: 'Speed', value: selectedShip.quantum?.speed_kms ? `${Math.round(selectedShip.quantum.speed_kms / 1000)}k` : `S${qdSize}`, color: 'text-cyan-400' },
+                    { label: 'Range', value: selectedShip.quantum?.range_mkm ? `${Math.round(selectedShip.quantum.range_mkm)}` : '--', unit: 'Mkm', color: 'text-yellow-400' },
+                    { label: 'Fuel', value: selectedShip.quantum?.fuel_capacity || '--', color: 'text-orange-400' },
+                  ].map(stat => (
+                    <div key={stat.label} className="bg-white/3 rounded px-2 py-1 text-center">
+                      <div className="text-[9px] text-gray-600 uppercase">{stat.label}</div>
+                      <div className={`text-xs font-bold ${stat.color} font-mono`}>{stat.value}{stat.unit && <span className="text-[8px] text-gray-600"> {stat.unit}</span>}</div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
 
-            {/* Route Config */}
             <div className="hud-panel p-3 space-y-2.5" data-testid="route-selectors">
               <LocationSelect value={origin} onChange={v => { setOrigin(v); setRoute(null); }} label="Origin" color="#00FF9D" testId="origin-select" />
               <button onClick={swapOriginDest} data-testid="swap-btn" className="w-full flex items-center justify-center gap-2 py-1 rounded text-gray-600 hover:text-gray-300 text-[10px] uppercase tracking-wider transition-all">
@@ -491,7 +676,6 @@ const RoutePlanner = () => {
             {route && <RouteResults route={route} formatTime={formatTime} />}
           </>)}
 
-          {/* === INTERDICTION TAB === */}
           {activeTab === 'interdiction' && (<>
             <div className="hud-panel p-3 space-y-3" data-testid="interdiction-panel">
               <div className="flex items-center gap-2 text-[10px] text-red-400 font-bold uppercase tracking-widest">
@@ -542,7 +726,6 @@ const RoutePlanner = () => {
             {interdictResult && <InterdictionResults result={interdictResult} />}
           </>)}
 
-          {/* === CHASE TAB === */}
           {activeTab === 'chase' && (<>
             <div className="hud-panel p-3 space-y-3" data-testid="chase-panel">
               <div className="flex items-center gap-2 text-[10px] text-yellow-400 font-bold uppercase tracking-widest">
@@ -571,14 +754,13 @@ const RoutePlanner = () => {
             {chaseResult && <ChaseResults result={chaseResult} qdSpeeds={qdSpeeds} formatTime={formatTime} />}
           </>)}
 
-          {/* Legend */}
           <div className="hud-panel p-2.5" data-testid="map-legend">
             <h4 className="text-[9px] font-bold text-gray-600 uppercase tracking-widest mb-1.5">Legend</h4>
             <div className="grid grid-cols-2 gap-0.5 text-[9px]">
               {Object.entries(TYPE_COLORS).map(([type, color]) => (
                 <div key={type} className="flex items-center gap-1.5 py-0.5">
-                  <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: color }} />
-                  <span className="text-gray-500 capitalize font-mono">{type.replace('_', ' ')}</span>
+                  <div className="w-2 h-2 rounded-full shrink-0" style={{ background: color, boxShadow: `0 0 4px ${color}` }} />
+                  <span className="text-gray-500 capitalize" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{type.replace('_', ' ')}</span>
                 </div>
               ))}
             </div>
@@ -586,33 +768,39 @@ const RoutePlanner = () => {
         </div>
       </div>
 
-      {/* Map Canvas - HUD Frame */}
-      <div className="flex-1 rounded overflow-hidden relative border border-white/5 bg-[#040810]" data-testid="star-map">
-        <canvas ref={canvasRef} onWheel={handleWheel} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp} onClick={handleCanvasClick} className="w-full h-full" />
-        {/* HUD overlays */}
-        <div className="absolute top-3 left-3 text-[9px] text-cyan-500/40 font-mono uppercase tracking-widest">
-          mobi-glass // nav-sys v4.6
+      {/* Star Map Canvas */}
+      <div className="flex-1 rounded-lg overflow-hidden relative border border-white/[0.04] bg-[#020306]" data-testid="star-map">
+        <canvas ref={canvasRef}
+          onWheel={handleWheel} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp} onClick={handleCanvasClick}
+          className="w-full h-full" />
+        {/* HUD overlay text */}
+        <div className="absolute top-3 left-3 pointer-events-none">
+          <div className="text-[9px] uppercase tracking-[3px] font-mono" style={{ color: 'rgba(0,212,255,0.25)' }}>mobi-glass // nav-sys v4.6</div>
+          <div className="text-[8px] uppercase tracking-[2px] font-mono mt-0.5" style={{ color: 'rgba(0,212,255,0.12)' }}>quantum navigation active</div>
         </div>
         <div className="absolute top-3 right-3 flex items-center gap-2">
+          <div className="text-[9px] text-gray-600 font-mono mr-2">{Math.round(mapZoom * 100)}%</div>
           <button onClick={() => { setMapOffset({ x: 0, y: 0 }); setMapZoom(1); }} data-testid="reset-map"
-            className="p-1.5 bg-black/40 backdrop-blur-sm border border-white/5 rounded text-gray-500 hover:text-white transition-colors">
+            className="p-1.5 bg-black/50 backdrop-blur-sm border border-white/[0.06] rounded text-gray-500 hover:text-cyan-400 transition-colors">
             <RotateCcw className="w-3.5 h-3.5" />
           </button>
         </div>
         {hoveredLoc && (
-          <div className="absolute bottom-3 left-3 bg-black/80 backdrop-blur-sm border border-cyan-500/20 rounded px-3 py-2 pointer-events-none">
-            <div className="text-xs font-bold text-white font-mono">{locName(hoveredLoc)}</div>
-            <div className="text-[9px] text-gray-500 capitalize font-mono">{locations.find(l => l.id === hoveredLoc)?.type?.replace('_', ' ')} // {locations.find(l => l.id === hoveredLoc)?.system}</div>
+          <div className="absolute bottom-3 left-3 bg-[#020306]/90 backdrop-blur-md border border-cyan-500/15 rounded-lg px-3 py-2 pointer-events-none">
+            <div className="text-sm font-bold text-white" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{locName(hoveredLoc)}</div>
+            <div className="text-[9px] text-gray-500 capitalize" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{locations.find(l => l.id === hoveredLoc)?.type?.replace('_', ' ')} &mdash; {locations.find(l => l.id === hoveredLoc)?.system}</div>
           </div>
         )}
-        <div className="absolute bottom-3 right-3 text-[9px] text-gray-600 font-mono bg-black/40 px-2 py-0.5 rounded">{Math.round(mapZoom * 100)}%</div>
+        <div className="absolute bottom-3 right-3 text-[8px] text-gray-700 font-mono pointer-events-none">
+          drag to pan &middot; scroll to zoom &middot; click to select
+        </div>
       </div>
     </div>
   );
 };
 
-// --- Sub-components ---
+// === SUB COMPONENTS ===
 
 const QdSizeSelector = ({ value, onChange, label, color, testPrefix, qdSpeeds }) => (
   <div>
@@ -642,8 +830,6 @@ const RouteResults = ({ route, formatTime }) => (
         <div className="text-[8px] text-gray-600 uppercase">Travel Time</div>
       </div>
     </div>
-
-    {/* Fuel & QD Info */}
     <div className="flex items-center gap-2 text-[10px] text-gray-400 font-mono flex-wrap">
       <div className="flex items-center gap-1"><Zap className="w-3 h-3 text-cyan-400" /> S{route.qd_size} @ {route.qd_speed_kms?.toLocaleString()} km/s</div>
       {route.cross_system && <span className="px-1.5 py-0.5 bg-orange-500/15 text-orange-400 rounded text-[9px] font-bold">CROSS-SYS</span>}
@@ -665,8 +851,6 @@ const RouteResults = ({ route, formatTime }) => (
       </div>
       <span className="text-gray-500 font-mono text-[9px]">{route.fuel_remaining_pct}%</span>
     </div>
-
-    {/* Waypoints */}
     <div className="space-y-1">
       <h4 className="text-[9px] font-bold text-gray-600 uppercase tracking-widest">Waypoints</h4>
       {route.waypoints.map((wp, i) => (
@@ -685,9 +869,7 @@ const RouteResults = ({ route, formatTime }) => (
                 <span className="truncate">{wp.to}</span>
               </div>
             )}
-            {wp.type !== 'refuel' && (
-              <div className="text-gray-600 font-mono">{wp.distance_mkm} Mkm {wp.type === 'jump' ? '// JUMP' : ''}</div>
-            )}
+            {wp.type !== 'refuel' && <div className="text-gray-600 font-mono">{wp.distance_mkm} Mkm {wp.type === 'jump' ? '// JUMP' : ''}</div>}
           </div>
           {wp.type !== 'refuel' && wp.fuel_remaining_pct !== undefined && (
             <div className="text-[8px] text-gray-600 shrink-0 font-mono">{wp.fuel_remaining_pct}%</div>
@@ -731,25 +913,13 @@ const ChaseResults = ({ result, qdSpeeds, formatTime }) => (
       border: `1px solid ${result.can_catch ? 'rgba(0,255,157,0.15)' : 'rgba(255,0,85,0.15)'}`
     }}>{result.verdict}</div>
     <div className="grid grid-cols-2 gap-1.5 text-[10px]">
-      <div className="bg-white/3 rounded p-1.5">
-        <div className="text-gray-600 font-mono">Your QD</div>
-        <div className="text-cyan-400 font-bold font-mono">{result.your_speed_kms?.toLocaleString()} km/s</div>
-      </div>
-      <div className="bg-white/3 rounded p-1.5">
-        <div className="text-gray-600 font-mono">Target QD</div>
-        <div className="text-red-400 font-bold font-mono">{result.target_speed_kms?.toLocaleString()} km/s</div>
-      </div>
+      <div className="bg-white/3 rounded p-1.5"><div className="text-gray-600 font-mono">Your QD</div><div className="text-cyan-400 font-bold font-mono">{result.your_speed_kms?.toLocaleString()} km/s</div></div>
+      <div className="bg-white/3 rounded p-1.5"><div className="text-gray-600 font-mono">Target QD</div><div className="text-red-400 font-bold font-mono">{result.target_speed_kms?.toLocaleString()} km/s</div></div>
     </div>
     {result.can_catch && (
       <div className="grid grid-cols-2 gap-1.5 text-[10px]">
-        <div className="bg-white/3 rounded p-1.5">
-          <div className="text-gray-600 font-mono">Closing</div>
-          <div className="text-yellow-400 font-bold font-mono">{formatTime(result.closing_time_seconds)}</div>
-        </div>
-        <div className="bg-white/3 rounded p-1.5">
-          <div className="text-gray-600 font-mono">Total</div>
-          <div className="text-yellow-400 font-bold font-mono">{formatTime(result.total_time_seconds)}</div>
-        </div>
+        <div className="bg-white/3 rounded p-1.5"><div className="text-gray-600 font-mono">Closing</div><div className="text-yellow-400 font-bold font-mono">{formatTime(result.closing_time_seconds)}</div></div>
+        <div className="bg-white/3 rounded p-1.5"><div className="text-gray-600 font-mono">Total</div><div className="text-yellow-400 font-bold font-mono">{formatTime(result.total_time_seconds)}</div></div>
       </div>
     )}
   </motion.div>
