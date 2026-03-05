@@ -103,8 +103,11 @@ async def get_equipment():
         )
         item["variant_data"] = get_equipment_variant_data(
             item["name"],
+            item.get("type", ""),
             item.get("variants", []),
             item.get("price_auec", 0),
             item.get("locations", []),
         )
+        if "loot_locations" not in item:
+            item["loot_locations"] = []
     return {"success": True, "data": items}

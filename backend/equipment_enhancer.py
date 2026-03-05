@@ -78,15 +78,38 @@ def get_equipment_variant_images(item_name, variants):
     return result
 
 
-def get_equipment_variant_data(item_name, variants, base_price, base_locations):
+_EQUIPMENT_LOOT_LOCATIONS = {
+    "Mining Head": ["Salvage operation loot crates", "Mining outpost beige boxes", "Derelict Reclaimer/Prospector loot"],
+    "Mining Attachment": ["Mining outpost beige boxes", "Cave exploration crates", "NPC miner drops"],
+    "Mining Module": ["Mining outpost crates", "Shubin facility beige boxes"],
+    "Medical Device": ["Medical facility loot", "Hospital beige boxes", "Medic NPC drops"],
+    "Undersuit": ["Bunker weapon racks", "NPC drops", "Outpost beige boxes"],
+    "Salvage Tool": ["Derelict ship loot", "Salvage yard crates", "NPC salvager drops"],
+    "Scanner": ["Exploration site loot", "Outpost crates", "NPC scout drops"],
+    "Hacking Tool": ["Grim HEX loot crates", "Outlaw NPC drops", "Security facility beige boxes"],
+}
+
+
+def get_equipment_variant_data(item_name, item_type, variants, base_price, base_locations):
     """Get per-variant acquisition data for equipment."""
+    type_loot = _EQUIPMENT_LOOT_LOCATIONS.get(item_type, ["Found in the verse"])
     result = {}
     for v in variants:
-        # Equipment variants are mostly color options, all purchasable
-        result[v] = {
-            "price_auec": base_price,
-            "locations": base_locations,
-            "loot_locations": [],
-            "sold": True,
-        }
+        cstone_name = _EQUIPMENT_CSTONE_MAP.get(v, v)
+        entry = _cstone_equipment_cache.get(cstone_name, {})
+        sold = entry.get("sold", 1) if isinstance(entry, dict) else 1
+        if sold:
+            result[v] = {
+                "price_auec": base_price,
+                "locations": base_locations,
+                "loot_locations": [],
+                "sold": True,
+            }
+        else:
+            result[v] = {
+                "price_auec": 0,
+                "locations": [],
+                "loot_locations": type_loot,
+                "sold": False,
+            }
     return result

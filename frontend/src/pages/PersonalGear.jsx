@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
-import { Search, Shield, Crosshair, ChevronDown, ChevronUp, MapPin, Shirt, Zap, Target, Package, Pickaxe, DollarSign, X } from 'lucide-react';
+import { Search, Shield, Crosshair, ChevronDown, ChevronUp, MapPin, Shirt, Target, Package, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 
@@ -113,7 +113,7 @@ const PersonalGear = () => {
       <div className="text-sm text-gray-500">{filteredItems.length} {activeTab} found</div>
 
       {/* Items Grid */}
-      <div className={activeTab === 'equipment' ? 'space-y-3' : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredItems.map((item, i) => (
           activeTab === 'armor'
             ? <ArmorCard key={item.id} armor={item} index={i} onClick={() => setSelectedItem({ ...item, _kind: 'armor' })} />
@@ -122,7 +122,7 @@ const PersonalGear = () => {
             : <EquipmentCard key={item.id} item={item} index={i} onClick={() => setSelectedItem({ ...item, _kind: 'equipment' })} />
         ))}
         {filteredItems.length === 0 && (
-          <div className={`${activeTab !== 'equipment' ? 'col-span-full' : ''} text-center py-16 glass-panel rounded-2xl`}>
+          <div className="col-span-full text-center py-16 glass-panel rounded-2xl">
             <Target className="w-12 h-12 mx-auto mb-3 text-gray-600" />
             <p className="text-gray-400">No {activeTab} match your filters</p>
           </div>
@@ -427,65 +427,82 @@ const EquipmentCard = ({ item, index, onClick }) => {
   const vd = selectedVariant !== item.name ? item.variant_data?.[selectedVariant] : null;
   const currentPrice = vd ? vd.price_auec : item.price_auec;
   const currentLocations = vd ? vd.locations : item.locations;
+  const currentLootLocations = vd ? vd.loot_locations : (item.loot_locations || []);
+  const isLootOnly = vd && !vd.sold;
 
   const statEntries = item.stats ? Object.entries(item.stats).slice(0, 4) : [];
 
   return (
-    <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.03 }}
-      className="glass-panel rounded-xl overflow-hidden cursor-pointer group" data-testid={`equip-${item.id}`}
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.04 }}
+      className="glass-panel rounded-2xl overflow-hidden group cursor-pointer" data-testid={`equip-${item.id}`}
       onClick={(e) => { if (!e.target.closest('button') && !e.target.closest('select')) onClick?.(); }}>
-      <div className="p-5">
-        <div className="flex items-start gap-4">
-          {/* Image thumbnail */}
-          <div className="w-16 h-16 shrink-0 rounded-lg bg-[#0c0c16] overflow-hidden flex items-center justify-center">
-            {hasImage ? (
-              <img src={currentImage} alt={selectedVariant} loading="lazy" className="w-full h-full object-contain" />
-            ) : (
-              <Package className="w-8 h-8 text-gray-700" />
-            )}
+      {/* Image section - matching armor layout */}
+      <div className="relative h-52 overflow-hidden bg-[#0c0c16]">
+        {hasImage ? (
+          <img src={currentImage} alt={selectedVariant} loading="lazy"
+            className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <Package className="w-16 h-16 text-gray-700" />
           </div>
+        )}
+        {/* Type badge overlay */}
+        <div className="absolute top-3 left-3 flex items-center gap-2">
+          <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase backdrop-blur-md"
+            style={{ background: `${color}30`, color, border: `1px solid ${color}40` }}>
+            {item.type}
+          </span>
+          {item.subtype && (
+            <span className="px-2 py-1 rounded-lg text-[10px] font-bold backdrop-blur-md bg-white/10 text-gray-300 border border-white/10">
+              {item.subtype}
+            </span>
+          )}
+        </div>
+        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#0a0a12] to-transparent" />
+      </div>
 
+      {/* Content */}
+      <div className="p-4 -mt-2 relative">
+        <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-3 mb-1">
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase" style={{ background: `${color}20`, color, border: `1px solid ${color}30` }}>
-                {item.type}
-              </span>
-              {item.subtype && <span className="text-xs text-gray-500">{item.subtype}</span>}
-            </div>
-            <h3 className="text-lg font-bold text-white" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{selectedVariant}</h3>
-            <div className="text-sm text-gray-400">{item.manufacturer}</div>
+            <h3 className="text-lg font-bold text-white truncate" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
+              {selectedVariant}
+            </h3>
+            <div className="text-xs text-gray-400">{item.manufacturer}</div>
+            {isLootOnly ? (
+              <div className="text-xs font-bold text-red-400 mt-0.5" style={{ fontFamily: 'Rajdhani, sans-serif' }}>LOOT ONLY</div>
+            ) : currentPrice > 0 ? (
+              <div className="text-xs font-bold text-amber-400 mt-0.5" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{currentPrice.toLocaleString()} aUEC</div>
+            ) : null}
           </div>
-
-          <div className="flex flex-col items-end gap-2 shrink-0">
-            {currentPrice > 0 && (
-              <div className="flex items-center gap-1 text-sm font-bold text-amber-400" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                <DollarSign className="w-3 h-3" /> {currentPrice.toLocaleString()} aUEC
-              </div>
-            )}
-            {item.variants?.length > 0 && (
-              <select value={selectedVariant} onChange={e => { e.stopPropagation(); setSelectedVariant(e.target.value); }}
-                data-testid={`variant-select-${item.id}`}
-                className="px-2 py-1 bg-[#0a0a10] border border-white/10 rounded-lg text-[10px] text-white focus:outline-none focus:border-cyan-500 max-w-[130px]"
-                style={{ colorScheme: 'dark' }}>
-                <option value={item.name} className="bg-[#0a0a10]">{item.name} (Base)</option>
-                {item.variants.map(v => <option key={v} value={v} className="bg-[#0a0a10]">{v}</option>)}
-              </select>
-            )}
-          </div>
+          {item.variants?.length > 0 && (
+            <select value={selectedVariant} onChange={e => { e.stopPropagation(); setSelectedVariant(e.target.value); }}
+              data-testid={`variant-select-${item.id}`}
+              className="px-2 py-1 bg-[#0a0a10] border border-white/10 rounded-lg text-[10px] text-white focus:outline-none focus:border-cyan-500 max-w-[130px]"
+              style={{ colorScheme: 'dark' }}>
+              <option value={item.name} className="bg-[#0a0a10]">{item.name} (Base)</option>
+              {item.variants.map(v => <option key={v} value={v} className="bg-[#0a0a10]">{v}</option>)}
+            </select>
+          )}
         </div>
 
+        {/* Stats - matching armor/weapon grid style */}
         {statEntries.length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+          <div className={`grid grid-cols-${Math.min(statEntries.length, 4)} gap-1.5 mt-3`}>
             {statEntries.map(([key, val]) => (
-              <StatPill key={key} label={key.replace(/_/g, ' ')} value={String(val)} color={color} />
+              <div key={key} className="bg-white/[0.04] rounded-lg p-1.5 text-center">
+                <div className="text-xs font-bold truncate" style={{ color, fontFamily: 'Rajdhani, sans-serif' }}>{String(val)}</div>
+                <div className="text-[8px] text-gray-600 uppercase truncate">{key.replace(/_/g, ' ')}</div>
+              </div>
             ))}
           </div>
         )}
 
-        <p className="text-xs text-gray-500 mt-3">{item.description}</p>
+        <p className="text-[11px] text-gray-500 mt-2 line-clamp-2">{item.description}</p>
 
+        {/* Locations toggle - matching armor */}
         <button onClick={() => setExpanded(!expanded)} data-testid={`expand-${item.id}`}
-          className="flex items-center gap-1 mt-3 text-xs text-cyan-500 hover:text-cyan-400 transition-colors">
+          className="flex items-center gap-1 mt-2 text-[11px] text-cyan-500 hover:text-cyan-400 transition-colors w-full">
           <MapPin className="w-3 h-3" /> Where to find
           {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
         </button>
@@ -494,13 +511,31 @@ const EquipmentCard = ({ item, index, onClick }) => {
       <AnimatePresence>
         {expanded && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-            className="border-t border-white/5 bg-white/[0.02] px-5 py-3 overflow-hidden">
-            <div className="space-y-1">
-              {currentLocations?.map((loc, i) => (
-                <div key={i} className="flex items-center gap-2 text-xs text-gray-300">
-                  <MapPin className="w-3 h-3 text-cyan-500 shrink-0" /> {loc}
+            className="border-t border-white/5 bg-white/[0.02] px-4 py-3 overflow-hidden">
+            <div className="space-y-1.5">
+              {currentLocations?.length > 0 && (
+                <div>
+                  <div className="text-[9px] text-gray-500 uppercase font-semibold mb-1">Buy</div>
+                  {currentLocations.map((loc, i) => (
+                    <div key={i} className="flex items-center gap-1.5 text-[11px] text-gray-300">
+                      <Package className="w-3 h-3 text-green-500 shrink-0" /> {loc}
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
+              {currentLootLocations?.length > 0 && (
+                <div>
+                  <div className="text-[9px] text-gray-500 uppercase font-semibold mb-1">Loot / Farm</div>
+                  {currentLootLocations.map((loc, i) => (
+                    <div key={i} className="flex items-center gap-1.5 text-[11px] text-yellow-400">
+                      <MapPin className="w-3 h-3 shrink-0" /> {loc}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {(!currentLocations?.length && !currentLootLocations?.length) && (
+                <div className="text-[11px] text-gray-500 italic">Acquisition data unavailable</div>
+              )}
             </div>
           </motion.div>
         )}
@@ -509,30 +544,23 @@ const EquipmentCard = ({ item, index, onClick }) => {
   );
 };
 
-const StatPill = ({ label, value, icon: Icon, color }) => (
-  <div className="bg-white/[0.03] rounded-lg p-2 text-center">
-    {Icon && <Icon className="w-3 h-3 mx-auto mb-0.5" style={{ color }} />}
-    <div className="text-sm font-bold" style={{ color, fontFamily: 'Rajdhani, sans-serif' }}>{value}</div>
-    <div className="text-[10px] text-gray-600">{label}</div>
-  </div>
-);
-
 
 const GearDetailModal = ({ item, onClose }) => {
   const isWeapon = item._kind === 'weapon';
   const isArmor = item._kind === 'armor';
-  const hasVariantData = isArmor || isWeapon;
+  const isEquipment = item._kind === 'equipment';
+  const hasVariantData = true;
   const color = TYPE_COLORS[item.type] || '#888';
   const [selectedVariant, setSelectedVariant] = useState(null);
 
-  // Determine current image based on selected variant (works for both armor & weapons)
-  const currentImage = hasVariantData && selectedVariant && item.variant_images?.[selectedVariant]
+  // Determine current image based on selected variant
+  const currentImage = selectedVariant && item.variant_images?.[selectedVariant]
     ? item.variant_images[selectedVariant]
     : item.image;
   const hasImage = !!currentImage;
 
-  // Per-variant acquisition data (works for both armor & weapons)
-  const vd = hasVariantData && selectedVariant ? item.variant_data?.[selectedVariant] : null;
+  // Per-variant acquisition data
+  const vd = selectedVariant ? item.variant_data?.[selectedVariant] : null;
   const currentPrice = vd ? vd.price_auec : item.price_auec;
   const currentLocations = vd ? vd.locations : item.locations;
   const currentLootLocations = vd ? vd.loot_locations : (item.loot_locations || []);
@@ -573,6 +601,11 @@ const GearDetailModal = ({ item, onClose }) => {
             {isWeapon && (
               <span className="px-2 py-1 rounded-lg text-[10px] font-bold backdrop-blur-md bg-white/10 text-gray-300 border border-white/10">
                 S{item.size}
+              </span>
+            )}
+            {isEquipment && item.subtype && (
+              <span className="px-2 py-1 rounded-lg text-[10px] font-bold backdrop-blur-md bg-white/10 text-gray-300 border border-white/10">
+                {item.subtype}
               </span>
             )}
           </div>
@@ -645,7 +678,7 @@ const GearDetailModal = ({ item, onClose }) => {
               <div className="space-y-1.5">
                 {currentLocations.map((loc, i) => (
                   <div key={i} className="flex items-center gap-2 text-sm text-gray-300">
-                    {isWeapon ? <Crosshair className="w-3.5 h-3.5 text-green-500 shrink-0" /> : <Shirt className="w-3.5 h-3.5 text-green-500 shrink-0" />} {loc}
+                    {isWeapon ? <Crosshair className="w-3.5 h-3.5 text-green-500 shrink-0" /> : isEquipment ? <Package className="w-3.5 h-3.5 text-green-500 shrink-0" /> : <Shirt className="w-3.5 h-3.5 text-green-500 shrink-0" />} {loc}
                   </div>
                 ))}
               </div>
