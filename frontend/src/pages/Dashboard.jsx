@@ -203,9 +203,11 @@ const Dashboard = () => {
                           {wpns.length > 0 && (
                             <div className="flex items-center gap-1.5 mt-1.5 text-[11px] text-red-400">
                               <Crosshair className="w-3 h-3 shrink-0" />
-                              {wpns.map((size, wi) => (
-                                <span key={wi} className="px-1.5 py-0.5 bg-red-500/10 rounded border border-red-500/20">S{size}</span>
-                              ))}
+                              {Object.entries(wpns.reduce((acc, s) => { acc[s] = (acc[s] || 0) + 1; return acc; }, {}))
+                                .sort(([a], [b]) => b - a)
+                                .map(([size, count]) => (
+                                  <span key={size} className="px-1.5 py-0.5 bg-red-500/10 rounded border border-red-500/20">{count}x S{size}</span>
+                                ))}
                             </div>
                           )}
                         </div>
