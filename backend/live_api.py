@@ -293,6 +293,130 @@ def _get_curated_weapons(ship_name_lower: str, fallback: list) -> list:
     return fallback
 
 
+# Missile rack sizes per ship (rack size, not individual missile size)
+_CURATED_MISSILES = {
+    # === Aegis Dynamics ===
+    "gladius": [3, 3, 3, 3], "gladius valiant": [3, 3, 3, 3], "gladius dunlevy": [3, 3, 3, 3],
+    "sabre": [4, 4], "sabre comet": [4, 4], "sabre firebird": [4, 4], "sabre peregrine": [4, 4], "sabre raven": [4, 4],
+    "avenger titan": [3, 3], "avenger titan renegade": [3, 3], "avenger stalker": [3, 3], "avenger warlock": [3, 3],
+    "eclipse": [9, 9, 9],
+    "vanguard warden": [3, 3, 3, 3], "vanguard sentinel": [3, 3, 3, 3],
+    "vanguard harbinger": [5, 5, 5], "vanguard hoplite": [3, 3, 3, 3],
+    "retaliator": [9, 9, 9, 9, 9, 9], "retaliator bomber": [9, 9, 9, 9, 9, 9],
+    "redeemer": [3, 3, 3, 3],
+    "hammerhead": [5, 5, 5, 5, 5, 5, 5, 5],
+    "reclaimer": [],
+    "idris-p": [5, 5, 5, 5, 5, 5], "idris-m": [5, 5, 5, 5, 5, 5, 10, 10],
+    "javelin": [5, 5, 5, 5, 5, 5, 5, 5, 10, 10, 10, 10],
+    # === Anvil Aerospace ===
+    "arrow": [3, 3, 3, 3],
+    "hawk": [2, 2],
+    "f7c hornet": [3, 3], "f7c hornet mk i": [3, 3], "f7c hornet mk ii": [3, 3],
+    "f7c hornet wildfire mk i": [3, 3],
+    "f7c-m super hornet": [4, 4], "f7c-m super hornet mk i": [4, 4], "f7c-m super hornet mk ii": [4, 4],
+    "f7c-m hornet heartseeker mk i": [4, 4], "f7c-m hornet heartseeker mk ii": [4, 4],
+    "f7c-s hornet ghost": [3, 3], "f7c-s hornet ghost mk i": [3, 3], "f7c-s hornet ghost mk ii": [3, 3],
+    "f7c-r hornet tracker mk i": [3, 3], "f7c-r hornet tracker mk ii": [3, 3],
+    "f7a hornet": [4, 4], "f7a hornet mk i": [4, 4], "f7a hornet mk ii": [4, 4],
+    "f7a hornet (military)": [4, 4], "hornet f7a mk ii pyam exec": [4, 4], "f7 hornet mk wikelo": [3, 3],
+    "hurricane": [3, 3],
+    "f8 lightning": [5, 5], "f8a lightning": [5, 5],
+    "f8c lightning": [4, 4], "f8c lightning executive edition": [4, 4],
+    "gladiator": [5, 5, 3, 3, 3, 3],
+    "terrapin": [], "terrapin medic": [],
+    "valkyrie": [3, 3, 3, 3], "carrack": [5, 5], "carrack expedition": [5, 5], "liberator": [],
+    "ballista": [4, 4, 4, 4], "centurion": [4, 4, 4, 4], "spartan": [],
+    "apollo medivac": [], "apollo triage": [],
+    # === RSI ===
+    "aurora mr": [], "aurora ln": [2, 2], "aurora cl": [], "aurora lx": [], "aurora es": [],
+    "mantis": [3, 3],
+    "scorpius": [3, 3, 3, 3], "scorpius antares": [3, 3, 3, 3],
+    "constellation andromeda": [5, 5, 5, 5], "constellation aquila": [5, 5],
+    "constellation taurus": [5, 5], "constellation phoenix": [5, 5],
+    "perseus": [5, 5, 5, 5, 3, 3], "polaris": [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 3, 3, 3, 3],
+    "galaxy": [], "meteor": [3, 3, 3, 3], "paladin": [5, 5, 5, 5], "lynx": [],
+    "zeus mk ii cl": [3, 3], "zeus mk ii es": [3, 3],
+    # === Crusader Industries ===
+    "ares ion": [3, 3], "ares inferno": [3, 3],
+    "ares star fighter ion": [3, 3], "ares star fighter inferno": [3, 3],
+    "spirit a1": [5, 5, 5, 5], "a1 spirit": [5, 5, 5, 5],
+    "spirit c1": [], "c1 spirit": [], "spirit e1": [],
+    "mercury star runner": [3, 3, 3, 3],
+    "c2 hercules": [], "c2 hercules starlifter": [],
+    "m2 hercules": [5, 5, 5, 5], "m2 hercules starlifter": [5, 5, 5, 5],
+    "a2 hercules": [10, 5, 5, 5, 5], "a2 hercules starlifter": [10, 5, 5, 5, 5],
+    "odyssey": [5, 5, 5, 5],
+    "intrepid": [], "starlancer max": [], "starlancer tac": [5, 5], "hermes": [],
+    # === MISC ===
+    "prospector": [], "razor": [], "razor ex": [], "razor lx": [],
+    "reliant kore": [], "reliant tana": [3, 3, 3, 3], "reliant sen": [], "reliant mako": [],
+    "freelancer": [3, 3], "freelancer dur": [3, 3], "freelancer max": [3, 3],
+    "freelancer mis": [5, 5, 4, 4, 4, 4],
+    "hull a": [], "hull b": [], "hull c": [],
+    "starfarer": [], "starfarer gemini": [3, 3], "fortune": [],
+    # === Drake Interplanetary ===
+    "buccaneer": [2, 2], "herald": [],
+    "cutlass black": [3, 3], "cutlass black pyam exec": [3, 3],
+    "cutlass red": [3, 3], "cutlass blue": [3, 3], "cutlass steel": [3, 3],
+    "corsair": [3, 3, 3, 3], "corsair pyam exec": [3, 3, 3, 3],
+    "caterpillar": [], "vulture": [],
+    "clipper": [3, 3], "cutter": [], "cutter rambler": [], "cutter scout": [],
+    "shiv": [3, 3, 3, 3],
+    # === Consolidated Outland ===
+    "mustang alpha": [], "mustang beta": [], "mustang gamma": [],
+    "mustang delta": [2, 2], "mustang omega": [], "mustang citizencon 2948 edition": [],
+    "nomad": [3, 3],
+    # === Esperia ===
+    "blade": [2, 2, 2, 2], "glaive": [3, 3],
+    "prowler": [3, 3, 3, 3], "prowler utility": [3, 3, 3, 3],
+    "talon": [3, 3], "talon shrike": [4, 4, 4, 4], "esperia stinger": [],
+    # === Aopoa / Alien ===
+    "nox": [], "nox kue": [], "khartu-al": [3, 3],
+    "san'tok.yāi": [3, 3], "vanduul scythe": [3, 3], "syulen": [],
+    # === Banu ===
+    "defender": [3, 3], "merchantman": [5, 5, 5, 5],
+    # === Argo ===
+    "raft": [], "mole": [], "csv-sm": [], "moth": [], "srv": [],
+    "mpuv cargo": [], "mpuv personnel": [], "mpuv tractor": [],
+    # === Origin ===
+    "85x": [], "85x limited": [],
+    "100i": [], "125a": [], "135c": [], "300i": [], "315p": [],
+    "325a": [4, 3, 3], "350r": [],
+    "400i": [4, 4], "600i explorer": [3, 3, 3, 3], "600i touring": [3, 3, 3, 3],
+    "600i 2951 bis": [3, 3, 3, 3], "890 jump": [5, 5, 5, 5],
+    "m50 interceptor": [],
+    # === Kruger ===
+    "p-52 merlin": [], "p-72 archimedes": [], "l-21 wolf": [], "l-22 alpha wolf": [],
+    # === Anvil (Pisces) ===
+    "c8 pisces": [], "c8r pisces rescue": [], "c8x pisces expedition": [],
+    # === Mirai ===
+    "guardian": [], "guardian mx": [4, 4], "guardian qi": [],
+    "fury": [2, 2], "fury lx": [2, 2], "fury mx": [2, 2],
+    "pulse": [], "pulse lx": [],
+    # === Drake / Ground ===
+    "dragonfly": [], "dragonfly yellowjacket": [],
+    # === Greycat / Ground ===
+    "mule": [], "ptv": [], "stv": [], "mtc": [], "mdc": [],
+    "roc": [], "roc-ds": [], "hoverquad": [],
+    "x1": [], "x1 force": [], "x1 velocity": [],
+    # === Misc ===
+    "golem": [], "golem ox": [], "salvation": [],
+    "atls": [], "atls cool metal color": [], "atls geo": [], "atls geo ikti": [],
+    "atls ikti": [], "atls ikti rad": [], "atls orange line": [], "atls snowland color": [],
+    "power suit": [], "asgard": [],
+}
+
+
+def _get_curated_missiles(ship_name_lower: str) -> list:
+    """Get curated missile rack sizes for a ship."""
+    if ship_name_lower in _CURATED_MISSILES:
+        return _CURATED_MISSILES[ship_name_lower]
+    for key, missiles in _CURATED_MISSILES.items():
+        if key in ship_name_lower or ship_name_lower in key:
+            return missiles
+    return []
+
+
 async def _fetch_paginated(endpoint: str, params: dict = None) -> list:
     """Fetch all pages from a paginated API endpoint."""
     if params is None:
@@ -371,6 +495,7 @@ def _normalize_vehicle(v: dict) -> dict:
     # Use curated per-ship hardpoint data when available, else use SLOT_MAP
     ship_name_lower = (v.get("name", "") or "").lower().strip()
     weapon_slots = _get_curated_weapons(ship_name_lower, slots["weapon_slots"])
+    missile_racks = _get_curated_missiles(ship_name_lower)
 
     # Per-ship component overrides (verified via starcitizen.tools / RSI)
     _COMPONENT_OVERRIDES = {
@@ -455,6 +580,7 @@ def _normalize_vehicle(v: dict) -> dict:
             "cooler": {"size": comp_override.get("cooler_size", slots["cooler_size"]), "count": comp_override.get("cooler_count", slots["cooler_count"])},
             "quantum_drive": {"size": comp_override.get("qd_size", slots["qd_size"]), "count": comp_override.get("qd_count", slots["qd_count"])},
             "weapons": weapon_slots,
+            "missiles": missile_racks,
         },
     }
 

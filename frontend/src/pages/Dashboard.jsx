@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../App';
 import axios from 'axios';
-import { Ship, Package, Crosshair, TrendingUp, Anchor, DollarSign, Building2, Users, Globe, Wrench, ArrowRight, Shield, Zap, Cpu, Snowflake } from 'lucide-react';
+import { Ship, Package, Crosshair, TrendingUp, Anchor, DollarSign, Building2, Users, Globe, Wrench, ArrowRight, Shield, Zap, Cpu, Snowflake, Rocket } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 
@@ -151,6 +151,7 @@ const Dashboard = () => {
               {fleetShips.map((fs, i) => {
                 const hp = fs.details?.hardpoints || {};
                 const wpns = hp.weapons || [];
+                const msls = hp.missiles || [];
                 return (
                   <motion.div key={fs.id} initial={{ opacity: 0, x: -15 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
                     data-testid={`fleet-ship-${fs.ship_id}`}>
@@ -207,6 +208,18 @@ const Dashboard = () => {
                                 .sort(([a], [b]) => b - a)
                                 .map(([size, count]) => (
                                   <span key={size} className="px-1.5 py-0.5 bg-red-500/10 rounded border border-red-500/20">{count}x S{size}</span>
+                                ))}
+                            </div>
+                          )}
+
+                          {/* Missiles row */}
+                          {msls.length > 0 && (
+                            <div className="flex items-center gap-1.5 mt-1 text-[11px] text-orange-400" data-testid="missiles-row">
+                              <Rocket className="w-3 h-3 shrink-0" />
+                              {Object.entries(msls.reduce((acc, s) => { acc[s] = (acc[s] || 0) + 1; return acc; }, {}))
+                                .sort(([a], [b]) => b - a)
+                                .map(([size, count]) => (
+                                  <span key={size} className="px-1.5 py-0.5 bg-orange-500/10 rounded border border-orange-500/20">{count}x S{size}</span>
                                 ))}
                             </div>
                           )}
