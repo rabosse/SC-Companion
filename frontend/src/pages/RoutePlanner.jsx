@@ -23,7 +23,7 @@ const RoutePlanner = () => {
   const [qdSpeeds, setQdSpeeds] = useState({});
   const [allShips, setAllShips] = useState([]);
   const [fleetShips, setFleetShips] = useState([]);
-  const [useFleet, setUseFleet] = useState(true);
+  const [useFleet, setUseFleet] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('route');
 
@@ -54,31 +54,35 @@ const RoutePlanner = () => {
   const [hoveredLoc, setHoveredLoc] = useState(null);
 
   const ships = useMemo(() => {
-    if (useFleet && fleetShips.length > 0) return fleetShips;
+    if (useFleet) return fleetShips;
     return allShips;
   }, [useFleet, fleetShips, allShips]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [locRes, shipsRes] = await Promise.all([
-          axios.get(`${API}/routes/locations`),
-          axios.get(`${authAPI}/ships`),
-        ]);
+        const locRes = await axios.get(`${API}/routes/locations`);
         setLocations(locRes.data.data || []);
         setSystems(locRes.data.systems || {});
         setQdSpeeds(locRes.data.qd_speeds || {});
-        const shipData = (shipsRes.data.data || []).filter(s => !s.is_ground_vehicle);
+      } catch { toast.error('Failed to load map data'); }
+
+      let shipData = [];
+      try {
+        const shipsRes = await axios.get(`${authAPI}/ships`);
+        shipData = (shipsRes.data.data || []).filter(s => !s.is_ground_vehicle);
         setAllShips(shipData);
-        // Fetch fleet
-        try {
-          const fleetRes = await axios.get(`${authAPI}/fleet/my`);
-          const fleetIds = (fleetRes.data.data || []).map(f => f.ship_id);
-          const matched = shipData.filter(s => fleetIds.includes(s.id));
-          setFleetShips(matched);
-        } catch { setFleetShips([]); }
-      } catch { toast.error('Failed to load route data'); }
-      finally { setLoading(false); }
+      } catch { toast.error('Failed to load ships'); }
+
+      try {
+        const fleetRes = await axios.get(`${authAPI}/fleet/my`);
+        const fleetIds = (fleetRes.data.data || []).map(f => f.ship_id);
+        const matched = shipData.filter(s => fleetIds.includes(s.id));
+        setFleetShips(matched);
+        if (matched.length > 0) setUseFleet(true);
+      } catch { setFleetShips([]); }
+
+      setLoading(false);
     };
     fetchData();
   }, [authAPI]);
@@ -434,7 +438,7 @@ const RoutePlanner = () => {
               <select value={selectedShip?.id || ''} onChange={e => onShipSelect(e.target.value)} data-testid="ship-select"
                 className="w-full px-3 py-2 bg-[#060a12] border border-white/8 rounded text-white text-xs focus:outline-none focus:border-cyan-500/50" style={{ colorScheme: 'dark' }}>
                 <option value="" className="bg-[#060a12] text-gray-500">
-                  {useFleet && fleetShips.length === 0 ? 'No ships in fleet' : 'Select a ship...'}
+                  {useFleet && fleetShips.length === 0 ? 'No ships in fleet — toggle to All Ships' : `Select a ship... (${ships.length})`}
                 </option>
                 {ships.map(s => (
                   <option key={s.id} value={s.id} className="bg-[#060a12] text-white">
