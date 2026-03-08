@@ -101,98 +101,61 @@ const Dashboard = () => {
         <QuickAction to="/community" label="Community Loadouts" icon={Globe} color="#A855F7" />
       </div>
 
-      {/* MY FLEET Section */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold uppercase tracking-wider" style={{ fontFamily: 'Rajdhani, sans-serif' }}>My Fleet</h2>
-          <Link to="/fleet" className="text-sm text-cyan-500 hover:text-cyan-400 flex items-center gap-1" data-testid="manage-fleet-link">
-            Manage Fleet <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
-
-        {/* Filter tabs + Sort */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex gap-2" data-testid="fleet-filter-tabs">
-            {['all', 'ships', 'land'].map(f => (
-              <button key={f} onClick={() => setFleetFilter(f)} data-testid={`fleet-filter-${f}`}
-                className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase transition-all ${fleetFilter === f ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'bg-white/5 text-gray-500 border border-white/10 hover:text-gray-300'}`}>
-                {f === 'all' ? 'All' : f === 'ships' ? 'Ships' : 'Land'}
-              </button>
-            ))}
-          </div>
-          <select value={fleetSort} onChange={e => setFleetSort(e.target.value)} data-testid="fleet-sort"
-            className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-white font-semibold focus:outline-none focus:border-cyan-500">
-            <option value="name" className="bg-gray-900">Name</option>
-            <option value="size" className="bg-gray-900">Size</option>
-          </select>
-        </div>
-
-        {/* Fleet Grid */}
-        {filteredFleet.length === 0 ? (
-          <div className="glass-panel rounded-2xl p-8 text-center" data-testid="empty-fleet-card">
-            <SpaceshipIcon className="w-12 h-12 mx-auto mb-3 text-gray-600" />
-            <h3 className="text-base font-bold mb-1" style={{ fontFamily: 'Rajdhani, sans-serif' }}>No Ships in Fleet</h3>
-            <p className="text-sm text-gray-500 mb-4">Add ships to see them here</p>
-            <Link to="/fleet" className="px-4 py-2 rounded-lg text-sm font-semibold text-black inline-block"
-              style={{ background: 'linear-gradient(135deg, #00D4FF, #00A8CC)' }}>
-              Go to Fleet
+      {/* MY FLEET + Favorite Manufacturer side by side */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+        {/* MY FLEET - Left */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold uppercase tracking-wider" style={{ fontFamily: 'Rajdhani, sans-serif' }}>My Fleet</h2>
+            <Link to="/fleet" className="text-sm text-cyan-500 hover:text-cyan-400 flex items-center gap-1" data-testid="manage-fleet-link">
+              Manage Fleet <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
-        ) : (
-          <div className="space-y-2">
-            {filteredFleet.map((fs, i) => (
-              <FleetCard key={fs.id || i} fs={fs} index={i} />
-            ))}
-          </div>
-        )}
-      </div>
 
-      {/* Bottom Row: Saved Loadouts + Favorite Manufacturer */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Saved Loadouts */}
-        <div>
-          <h2 className="text-lg font-bold uppercase tracking-wider mb-4" style={{ fontFamily: 'Rajdhani, sans-serif' }}>Saved Loadouts</h2>
-          {loadouts.length === 0 ? (
-            <div className="glass-panel rounded-2xl p-6 text-center" data-testid="no-loadouts">
-              <Wrench className="w-10 h-10 mx-auto mb-3 text-gray-600" />
-              <p className="text-sm text-gray-500 mb-3">No saved loadouts yet</p>
-              <Link to="/loadout" className="text-sm text-cyan-500 hover:text-cyan-400">Create a Loadout</Link>
+          {/* Filter tabs + Sort */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex gap-2" data-testid="fleet-filter-tabs">
+              {['all', 'ships', 'land'].map(f => (
+                <button key={f} onClick={() => setFleetFilter(f)} data-testid={`fleet-filter-${f}`}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase transition-all ${fleetFilter === f ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'bg-white/5 text-gray-500 border border-white/10 hover:text-gray-300'}`}>
+                  {f === 'all' ? 'All' : f === 'ships' ? 'Ships' : 'Land'}
+                </button>
+              ))}
+            </div>
+            <select value={fleetSort} onChange={e => setFleetSort(e.target.value)} data-testid="fleet-sort"
+              className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-white font-semibold focus:outline-none focus:border-cyan-500">
+              <option value="name" className="bg-gray-900">Name</option>
+              <option value="size" className="bg-gray-900">Size</option>
+            </select>
+          </div>
+
+          {/* Fleet List */}
+          {filteredFleet.length === 0 ? (
+            <div className="glass-panel rounded-2xl p-8 text-center" data-testid="empty-fleet-card">
+              <SpaceshipIcon className="w-12 h-12 mx-auto mb-3 text-gray-600" />
+              <h3 className="text-base font-bold mb-1" style={{ fontFamily: 'Rajdhani, sans-serif' }}>No Ships in Fleet</h3>
+              <p className="text-sm text-gray-500 mb-4">Add ships to see them here</p>
+              <Link to="/fleet" className="px-4 py-2 rounded-lg text-sm font-semibold text-black inline-block"
+                style={{ background: 'linear-gradient(135deg, #00D4FF, #00A8CC)' }}>
+                Go to Fleet
+              </Link>
             </div>
           ) : (
-            <div className="space-y-3" data-testid="saved-loadouts-list">
-              {loadouts.map((lo, i) => {
-                const ship = allVehicles.find(s => s.id === lo.ship_id);
-                const configuredSlots = lo.components ? Object.keys(lo.components).filter(k => lo.components[k]).length : 0;
-                return (
-                  <Link key={lo.id || i} to="/loadout" className="glass-panel rounded-xl p-4 block hover:border-cyan-500/30 transition-all" data-testid={`loadout-card-${i}`}>
-                    <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 rounded-lg overflow-hidden bg-white/5 shrink-0 flex items-center justify-center">
-                        {ship?.image ? (
-                          <img src={ship.image} alt={lo.loadout_name} className="w-full h-full object-cover" onError={e => { e.target.style.display = 'none'; }} />
-                        ) : (
-                          <Wrench className="w-6 h-6 text-gray-600" />
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <h4 className="text-sm font-bold text-orange-400 truncate" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{lo.loadout_name}</h4>
-                        <p className="text-xs text-gray-500">{ship?.name || lo.ship_id}</p>
-                        <p className="text-[10px] text-gray-600">{configuredSlots} slot{configuredSlots !== 1 ? 's' : ''} configured</p>
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })}
+            <div className="space-y-2">
+              {filteredFleet.map((fs, i) => (
+                <FleetCard key={fs.id || i} fs={fs} index={i} />
+              ))}
             </div>
           )}
         </div>
 
-        {/* Favorite Manufacturer */}
+        {/* Favorite Manufacturer - Right sidebar */}
         <div>
           <h2 className="text-lg font-bold uppercase tracking-wider mb-4" style={{ fontFamily: 'Rajdhani, sans-serif' }}>Favorite Manufacturer</h2>
           {fleetStats.topManufacturers.length === 0 ? (
             <div className="glass-panel rounded-2xl p-6 text-center" data-testid="no-manufacturer">
               <Building2 className="w-10 h-10 mx-auto mb-3 text-gray-600" />
-              <p className="text-sm text-gray-500">Add ships to your fleet to see manufacturer stats</p>
+              <p className="text-sm text-gray-500">Add ships to see stats</p>
             </div>
           ) : (
             <div className="glass-panel rounded-2xl p-5 space-y-4" data-testid="manufacturer-breakdown">
@@ -200,18 +163,50 @@ const Dashboard = () => {
                 const pct = Math.round((count / fleet.length) * 100);
                 return (
                   <div key={mfg}>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div>
-                        <span className="text-sm font-bold text-white">{mfg.split(' ')[0]}</span>
-                        <span className="text-xs text-gray-500 ml-2">{count} ship{count !== 1 ? 's' : ''} in your fleet</span>
-                      </div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-bold text-white">{mfg.split(' ')[0]}</span>
                       <span className="text-xs text-cyan-400 font-semibold">{pct}%</span>
                     </div>
-                    <p className="text-[10px] text-gray-600 mb-2">{mfg}</p>
+                    <p className="text-[10px] text-gray-600 mb-1">{count} ship{count !== 1 ? 's' : ''}</p>
                     <div className="h-2 bg-white/5 rounded-full overflow-hidden">
                       <div className="h-full rounded-full" style={{ width: `${pct}%`, background: 'linear-gradient(90deg, #00D4FF, #D4AF37)' }} />
                     </div>
                   </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Saved Loadouts below manufacturer */}
+          <h2 className="text-lg font-bold uppercase tracking-wider mb-4 mt-6" style={{ fontFamily: 'Rajdhani, sans-serif' }}>Saved Loadouts</h2>
+          {loadouts.length === 0 ? (
+            <div className="glass-panel rounded-2xl p-6 text-center" data-testid="no-loadouts">
+              <Wrench className="w-8 h-8 mx-auto mb-2 text-gray-600" />
+              <p className="text-sm text-gray-500 mb-2">No saved loadouts</p>
+              <Link to="/loadout" className="text-xs text-cyan-500 hover:text-cyan-400">Create a Loadout</Link>
+            </div>
+          ) : (
+            <div className="space-y-2" data-testid="saved-loadouts-list">
+              {loadouts.map((lo, i) => {
+                const ship = allVehicles.find(s => s.id === lo.ship_id);
+                const configuredSlots = lo.components ? Object.keys(lo.components).filter(k => lo.components[k]).length : 0;
+                return (
+                  <Link key={lo.id || i} to="/loadout" className="glass-panel rounded-xl p-3 block hover:border-cyan-500/30 transition-all" data-testid={`loadout-card-${i}`}>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg overflow-hidden bg-white/5 shrink-0 flex items-center justify-center">
+                        {ship?.image ? (
+                          <img src={ship.image} alt={lo.loadout_name} className="w-full h-full object-cover" onError={e => { e.target.style.display = 'none'; }} />
+                        ) : (
+                          <Wrench className="w-4 h-4 text-gray-600" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-xs font-bold text-orange-400 truncate">{lo.loadout_name}</h4>
+                        <p className="text-[10px] text-gray-500">{ship?.name || lo.ship_id}</p>
+                        <p className="text-[9px] text-gray-600">{configuredSlots} slot{configuredSlots !== 1 ? 's' : ''}</p>
+                      </div>
+                    </div>
+                  </Link>
                 );
               })}
             </div>
