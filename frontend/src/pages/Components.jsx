@@ -1,13 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../App';
 import axios from 'axios';
-import { Box, Search, Zap, Shield, Cpu, MapPin, DollarSign, SlidersHorizontal } from 'lucide-react';
+import { Box, Search, Zap, Shield, Cpu, MapPin, DollarSign, SlidersHorizontal, ArrowUpDown, ChevronUp, ChevronDown } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 
 const GRADE_COLORS = { A: '#00FF9D', B: '#00D4FF', C: '#FFAE00', D: '#FF6B6B' };
-const CLASS_FROM_GRADE = { A: 'Military', B: 'Civilian', C: 'Industrial', D: 'Stealth' };
-const CLASS_COLORS = { Military: '#FF6B6B', Civilian: '#00D4FF', Industrial: '#FFAE00', Stealth: '#A855F7' };
+const CLASS_COLORS = { Military: '#FF6B6B', Civilian: '#00D4FF', Industrial: '#FFAE00', Stealth: '#A855F7', Competition: '#00FF9D' };
 
 const Components = () => {
   const { API } = useAuth();
@@ -16,8 +15,10 @@ const Components = () => {
   const [selectedType, setSelectedType] = useState('all');
   const [selectedSize, setSelectedSize] = useState('all');
   const [selectedGrade, setSelectedGrade] = useState('all');
+  const [selectedClass, setSelectedClass] = useState('all');
   const [availability, setAvailability] = useState('all');
   const [sortBy, setSortBy] = useState('grade');
+  const [sortAsc, setSortAsc] = useState(true);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -37,28 +38,35 @@ const Components = () => {
   const types = useMemo(() => ['all', ...new Set(components.map(c => c.type))], [components]);
   const sizes = useMemo(() => ['all', ...new Set(components.map(c => c.size).filter(Boolean).sort((a, b) => Number(a) - Number(b)))], [components]);
   const grades = useMemo(() => ['all', ...new Set(components.map(c => c.grade).filter(Boolean).sort())], [components]);
+  const classes = useMemo(() => {
+    const unique = new Set(components.map(c => c.item_class).filter(Boolean));
+    return ['all', ...Array.from(unique).sort()];
+  }, [components]);
 
   const filtered = useMemo(() => {
     let result = components;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      result = result.filter(c => c.name.toLowerCase().includes(q) || c.manufacturer.toLowerCase().includes(q));
+      result = result.filter(c => c.name.toLowerCase().includes(q) || (c.manufacturer || '').toLowerCase().includes(q));
     }
     if (selectedType !== 'all') result = result.filter(c => c.type === selectedType);
     if (selectedSize !== 'all') result = result.filter(c => c.size === selectedSize);
     if (selectedGrade !== 'all') result = result.filter(c => c.grade === selectedGrade);
-    if (availability === 'purchasable') result = result.filter(c => c.location && c.location !== 'Unknown' && c.cost_auec > 0);
-    if (availability === 'unknown') result = result.filter(c => !c.location || c.location === 'Unknown');
+    if (selectedClass !== 'all') result = result.filter(c => c.item_class === selectedClass);
+    if (availability === 'purchasable') result = result.filter(c => c.sold);
+    if (availability === 'unknown') result = result.filter(c => !c.sold);
 
+    const dir = sortAsc ? 1 : -1;
     const sortFns = {
-      grade: (a, b) => (a.grade || 'Z').localeCompare(b.grade || 'Z'),
-      class: (a, b) => (CLASS_FROM_GRADE[a.grade] || '').localeCompare(CLASS_FROM_GRADE[b.grade] || ''),
-      price_low: (a, b) => (a.cost_auec || 0) - (b.cost_auec || 0),
-      price_high: (a, b) => (b.cost_auec || 0) - (a.cost_auec || 0),
+      grade: (a, b) => dir * (a.grade || 'Z').localeCompare(b.grade || 'Z'),
+      class: (a, b) => dir * (a.item_class || '').localeCompare(b.item_class || ''),
+      name: (a, b) => dir * (a.name || '').localeCompare(b.name || ''),
+      output: (a, b) => dir * ((a.output || 0) - (b.output || 0)),
+      size: (a, b) => dir * (Number(a.size || 0) - Number(b.size || 0)),
     };
     if (sortFns[sortBy]) result = [...result].sort(sortFns[sortBy]);
     return result;
-  }, [components, searchQuery, selectedType, selectedSize, selectedGrade, availability, sortBy]);
+  }, [components, searchQuery, selectedType, selectedSize, selectedGrade, selectedClass, availability, sortBy, sortAsc]);
 
   const getTypeIcon = (type) => {
     switch (type?.toLowerCase()) {
@@ -110,7 +118,7 @@ const Components = () => {
         </div>
 
         {/* Search + Dropdowns */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           <div className="relative sm:col-span-2 lg:col-span-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
             <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
@@ -120,6 +128,7 @@ const Components = () => {
           <FilterSelect value={selectedType} onChange={setSelectedType} options={types} label="All Types" testId="type-filter" />
           <FilterSelect value={selectedSize} onChange={setSelectedSize} options={sizes} label="All Sizes" prefix="Size " testId="size-filter" />
           <FilterSelect value={selectedGrade} onChange={setSelectedGrade} options={grades} label="All Grades" prefix="Grade " testId="grade-filter" />
+          <FilterSelect value={selectedClass} onChange={setSelectedClass} options={classes} label="All Classes" testId="class-filter" />
         </div>
 
         {/* Availability + Sort */}
@@ -134,12 +143,21 @@ const Components = () => {
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs text-gray-500 font-semibold uppercase">Sort:</span>
-            {[{ key: 'grade', label: 'Grade' }, { key: 'class', label: 'Class' }, { key: 'price_low', label: 'Price (Low)' }, { key: 'price_high', label: 'Price (High)' }].map(s => (
-              <button key={s.key} onClick={() => setSortBy(s.key)} data-testid={`sort-${s.key}`}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${sortBy === s.key ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-white/5 text-gray-500 border border-white/5 hover:text-gray-300'}`}>
-                {s.label}
-              </button>
-            ))}
+            <select value={sortBy} onChange={e => setSortBy(e.target.value)} data-testid="sort-dropdown"
+              className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-white font-semibold focus:outline-none focus:border-cyan-500 transition-all">
+              <option value="grade" className="bg-gray-900">Grade</option>
+              <option value="class" className="bg-gray-900">Class</option>
+              <option value="name" className="bg-gray-900">Name</option>
+              <option value="output" className="bg-gray-900">Output</option>
+              <option value="size" className="bg-gray-900">Size</option>
+            </select>
+            <button onClick={() => setSortAsc(!sortAsc)} data-testid="sort-direction-toggle"
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/5 border border-white/10 text-gray-400 hover:text-white transition-all"
+              title={sortAsc ? 'Ascending' : 'Descending'}>
+              <ArrowUpDown className="w-3.5 h-3.5" />
+              {sortAsc ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+              <span>{sortAsc ? 'ASC' : 'DESC'}</span>
+            </button>
           </div>
         </div>
       </div>
@@ -150,7 +168,7 @@ const Components = () => {
           const Icon = getTypeIcon(component.type);
           const typeColor = getTypeColor(component.type);
           const gradeColor = GRADE_COLORS[component.grade] || '#888';
-          const classification = CLASS_FROM_GRADE[component.grade] || '';
+          const classification = component.item_class || '';
           const classColor = CLASS_COLORS[classification] || '#888';
 
           return (
@@ -195,44 +213,44 @@ const Components = () => {
               <div className="text-sm space-y-1.5 mb-3">
                 {component.output > 0 && (
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Output</span>
-                    <span className="text-white font-semibold font-mono">{component.output.toLocaleString()}</span>
+                    <span className="text-gray-500">{component.type === 'Shield' ? 'Max Shield HP' : component.type === 'Power' ? 'Power Gen' : component.type === 'Cooler' ? 'Cooling Rate' : 'Output'}</span>
+                    <span className="text-white font-semibold font-mono">{typeof component.output === 'number' ? component.output.toLocaleString() : component.output}</span>
                   </div>
                 )}
                 {component.rate > 0 && (
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Rate</span>
-                    <span className="text-white font-semibold font-mono">{component.rate.toLocaleString()}</span>
+                    <span className="text-gray-500">{component.type === 'Shield' ? 'Regen Rate' : 'Rate'}</span>
+                    <span className="text-white font-semibold font-mono">{typeof component.rate === 'number' ? component.rate.toLocaleString() : component.rate}</span>
                   </div>
                 )}
                 {component.speed > 0 && (
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Speed</span>
-                    <span className="text-white font-semibold font-mono">{component.speed.toLocaleString()} km/s</span>
+                    <span className="text-gray-500">QT Speed</span>
+                    <span className="text-white font-semibold font-mono">{typeof component.speed === 'number' ? component.speed.toLocaleString() : component.speed} m/s</span>
                   </div>
                 )}
-                {component.range > 0 && (
+                {component.durability > 0 && (
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Range</span>
-                    <span className="text-white font-semibold font-mono">{component.range.toLocaleString()} m</span>
+                    <span className="text-gray-500">Durability</span>
+                    <span className="text-white font-semibold font-mono">{typeof component.durability === 'number' ? component.durability.toLocaleString() : component.durability} HP</span>
+                  </div>
+                )}
+                {component.fuel_requirement > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Fuel Req</span>
+                    <span className="text-white font-semibold font-mono">{component.fuel_requirement}</span>
                   </div>
                 )}
               </div>
 
-              {/* Location & Price */}
+              {/* Sold indicator */}
               <div className="border-t border-white/10 pt-3 space-y-1.5">
-                <div className="flex items-center gap-2 text-xs" data-testid={`component-location-${component.id}`}>
-                  <MapPin className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                  <span className={`${component.location && component.location !== 'Unknown' ? 'text-cyan-400' : 'text-gray-600'} font-medium`}>
-                    {component.location && component.location !== 'Unknown' ? component.location : 'Unknown'}
+                <div className="flex items-center gap-2 text-xs" data-testid={`component-sold-${component.id}`}>
+                  <DollarSign className={`w-3.5 h-3.5 shrink-0 ${component.sold ? 'text-green-400' : 'text-gray-600'}`} />
+                  <span className={component.sold ? 'text-green-400 font-medium' : 'text-gray-600'}>
+                    {component.sold ? 'Available in-game' : 'Not sold in-game'}
                   </span>
                 </div>
-                {component.cost_auec > 0 && (
-                  <div className="flex items-center gap-2 text-xs" data-testid={`component-price-${component.id}`}>
-                    <DollarSign className="w-3.5 h-3.5 text-yellow-400 shrink-0" />
-                    <span className="text-yellow-400 font-semibold font-mono">{component.cost_auec.toLocaleString()} aUEC</span>
-                  </div>
-                )}
               </div>
             </motion.div>
           );

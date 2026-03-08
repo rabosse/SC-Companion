@@ -9,6 +9,7 @@ from armor_enhancer import fetch_armor_images, fetch_armor_variant_images, fetch
 from weapon_enhancer import fetch_weapon_images, fetch_cstone_weapon_images
 from equipment_enhancer import fetch_cstone_equipment_images
 from live_api import prefetch_all
+from cstone_api import prefetch_cstone_data
 
 from routes.auth import router as auth_router
 from routes.ships import router as ships_router
@@ -49,21 +50,21 @@ logger = logging.getLogger(__name__)
 
 @app.on_event("startup")
 async def startup_event():
+    # Prefetch CStone data first (primary source of truth)
+    await prefetch_cstone_data()
+    # Then prefetch legacy API data for ship info
     await prefetch_all()
     from live_api import _vehicles_cache
     all_names = [v["name"] for v in _vehicles_cache if v.get("name")]
     await fetch_all_wiki_images(ship_names=all_names)
     await fetch_armor_images()
     await fetch_weapon_images()
-    # Fetch CStone data (comprehensive UUID-based coverage)
     await fetch_cstone_armor_images()
     await fetch_cstone_backpack_images()
     await fetch_cstone_weapon_images()
     await fetch_cstone_equipment_images()
-    # Fetch variant-specific armor images from wiki
     from personal_gear import get_all_armor_sets
     await fetch_armor_variant_images(get_all_armor_sets())
-    # Take initial price snapshot
     from routes.prices import _take_snapshot
     await _take_snapshot()
 

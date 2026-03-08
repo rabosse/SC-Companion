@@ -5,6 +5,13 @@ from deps import get_current_user
 from ship_data_enhancer import enhance_ship_data, get_vehicle_image, get_ship_image
 from live_api import fetch_live_vehicles, fetch_live_weapons, fetch_live_components
 from ship_purchases import get_purchase_info
+from cstone_api import (
+    get_all_components as cstone_components,
+    get_ship_weapons as cstone_ship_weapons,
+    get_missiles_list as cstone_missiles,
+    get_item_locations,
+    prefetch_cstone_data,
+)
 
 router = APIRouter(prefix="/api", tags=["ships"])
 
@@ -121,6 +128,11 @@ async def get_vehicles(user_id: str = Depends(get_current_user)):
 
 @router.get("/components")
 async def get_components(user_id: str = Depends(get_current_user)):
+    await prefetch_cstone_data()
+    data = cstone_components()
+    if data:
+        return {"success": True, "data": data, "source": "cstone"}
+    # Fallback to old API
     live = await fetch_live_components()
     if live:
         return {"success": True, "data": live, "source": "live"}
@@ -129,6 +141,10 @@ async def get_components(user_id: str = Depends(get_current_user)):
 
 @router.get("/weapons")
 async def get_weapons(user_id: str = Depends(get_current_user)):
+    await prefetch_cstone_data()
+    data = cstone_ship_weapons()
+    if data:
+        return {"success": True, "data": data, "source": "cstone"}
     live = await fetch_live_weapons()
     if live:
         return {"success": True, "data": live, "source": "live"}
@@ -137,8 +153,7 @@ async def get_weapons(user_id: str = Depends(get_current_user)):
 
 @router.get("/upgrades/{ship_id}")
 async def get_upgrades(ship_id: str, user_id: str = Depends(get_current_user)):
-    """Generate ship-specific upgrade recommendations using live component/weapon data."""
-    # Get ship data to determine hardpoint sizes
+    """Generate ship-specific upgrade recommendations using CStone component/weapon data."""
     ships = await fetch_live_vehicles()
     ship = next((s for s in ships if s["id"] == ship_id), None)
     if not ship:
@@ -151,12 +166,12 @@ async def get_upgrades(ship_id: str, user_id: str = Depends(get_current_user)):
     qd_size = str(hp.get("quantum_drive", {}).get("size", 1))
     weapon_sizes = hp.get("weapons", [])
 
-    # Fetch live component + weapon data
-    components = await fetch_live_components() or []
-    weapons = await fetch_live_weapons() or []
+    # Use CStone data as primary source
+    await prefetch_cstone_data()
+    components = cstone_components() or []
+    weapons = cstone_ship_weapons() or []
 
     def best_components(comp_type, size, limit=3):
-        """Find top components of the given type and size, sorted by output/performance."""
         matches = [c for c in components if c.get("type", "").lower() == comp_type.lower() and str(c.get("size", "")) == str(size)]
         sort_key = "output" if comp_type.lower() in ("shield", "power") else "rate" if comp_type.lower() == "cooler" else "speed"
         matches.sort(key=lambda c: c.get(sort_key, 0) or 0, reverse=True)
@@ -166,18 +181,16 @@ async def get_upgrades(ship_id: str, user_id: str = Depends(get_current_user)):
                 "id": c.get("id", ""), "name": c.get("name", ""),
                 "type": c.get("type", ""), "manufacturer": c.get("manufacturer", ""),
                 "size": c.get("size", ""), "grade": c.get("grade", ""),
+                "item_class": c.get("item_class", ""),
                 "output": c.get("output", 0), "rate": c.get("rate", 0),
-                "power": c.get("power", 0), "speed": c.get("speed", 0),
-                "range": c.get("range", 0),
-                "location": c.get("location", "Unknown"),
-                "cost_auec": c.get("cost_auec", 0),
+                "power_draw": c.get("power_draw", 0), "speed": c.get("speed", 0),
+                "durability": c.get("durability", 0),
             })
         return results
 
     def best_weapons(size, limit=3):
-        """Find top weapons of a given size, sorted by damage."""
         matches = [w for w in weapons if str(w.get("size", "")) == str(size)]
-        matches.sort(key=lambda w: w.get("damage", 0) or w.get("alpha_damage", 0) or 0, reverse=True)
+        matches.sort(key=lambda w: w.get("dps", 0) or w.get("alpha_damage", 0) or 0, reverse=True)
         results = []
         seen = set()
         for w in matches:
@@ -187,24 +200,19 @@ async def get_upgrades(ship_id: str, user_id: str = Depends(get_current_user)):
             results.append({
                 "id": w.get("id", ""), "name": w.get("name", ""),
                 "type": w.get("type", "Weapon"), "manufacturer": w.get("manufacturer", ""),
-                "size": w.get("size", ""), "damage_type": w.get("damage_type", ""),
-                "damage": w.get("damage", 0), "alpha_damage": w.get("alpha_damage", 0),
-                "fire_rate": w.get("fire_rate", 0) or w.get("rpm", 0),
-                "range": w.get("range", 0), "speed": w.get("speed", 0),
-                "location": w.get("location", "Unknown"),
-                "cost_auec": w.get("cost_auec", 0),
+                "size": w.get("size", ""), "alpha_damage": w.get("alpha_damage", 0),
+                "dps": w.get("dps", 0), "fire_rate": w.get("fire_rate", 0),
+                "range": w.get("range", 0), "ammo_speed": w.get("ammo_speed", 0),
             })
             if len(results) >= limit:
                 break
         return results
 
-    # Build recommendations per category
     shields = best_components("Shield", shield_size)
     power = best_components("Power", power_size)
     coolers = best_components("Cooler", cooler_size)
     quantum = best_components("Quantum", qd_size)
 
-    # For weapons, get recommendations for each unique weapon size on the ship
     weapon_recs = []
     seen_weapons = set()
     for ws in sorted(set(weapon_sizes), reverse=True):
@@ -218,6 +226,21 @@ async def get_upgrades(ship_id: str, user_id: str = Depends(get_current_user)):
         "shields": shields, "power": power, "weapons": weapon_recs,
         "quantum": quantum, "coolers": coolers,
     }}
+
+
+@router.get("/item-locations/{item_id}")
+async def get_item_purchase_locations(item_id: str, user_id: str = Depends(get_current_user)):
+    """Get purchase locations for a specific item from CStone Finder."""
+    locations = await get_item_locations(item_id)
+    return {"success": True, "data": locations}
+
+
+@router.get("/missiles")
+async def get_missiles(user_id: str = Depends(get_current_user)):
+    """Get all missile data from CStone."""
+    await prefetch_cstone_data()
+    data = cstone_missiles()
+    return {"success": True, "data": data, "source": "cstone"}
 
 
 # ---------------------------------------------------------------------------
