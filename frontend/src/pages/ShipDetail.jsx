@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
-import { Ship, ArrowLeft, Zap, Shield, Cpu, TrendingUp, Package, Users, Ruler, Weight, Gauge, DollarSign, Settings, MapPin, X, Crosshair, Rocket } from 'lucide-react';
+import { ArrowLeft, Zap, Shield, Cpu, TrendingUp, Package, Users, Ruler, Weight, Gauge, DollarSign, Settings, MapPin, X, Crosshair, Rocket } from 'lucide-react';
+import SpaceshipIcon from '../components/SpaceshipIcon';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 
@@ -49,7 +50,7 @@ const ShipDetail = () => {
   if (!ship) {
     return (
       <div className="text-center py-12" data-testid="ship-not-found">
-        <Ship className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+        <SpaceshipIcon className="w-16 h-16 text-gray-600 mx-auto mb-4" />
         <p className="text-gray-400 mb-4">Ship not found</p>
         <Link to="/ships" className="text-cyan-500 hover:text-cyan-400">
           ← Back to Ships

@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../App';
 import axios from 'axios';
-import { Ship, Search, X, Check, Shield, Zap, Cpu, Box, Crosshair, AlertTriangle, Save, Copy, Share2 } from 'lucide-react';
+import { Search, X, Check, Shield, Zap, Cpu, Box, Crosshair, AlertTriangle, Save, Copy, Share2 } from 'lucide-react';
+import SpaceshipIcon from '../components/SpaceshipIcon';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
@@ -232,7 +233,7 @@ const LoadoutBuilder = () => {
                   {ship.image ? (
                     <img src={ship.image} alt={ship.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" onError={e => { e.target.onerror = null; e.target.style.display = 'none'; }} />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center"><Ship className="w-8 h-8 text-cyan-500/20" /></div>
+                    <div className="w-full h-full flex items-center justify-center"><SpaceshipIcon className="w-8 h-8 text-cyan-500/20" /></div>
                   )}
                 </div>
                 <div className="font-bold text-white text-sm truncate">{ship.name}</div>

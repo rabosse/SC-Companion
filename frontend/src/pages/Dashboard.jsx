@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../App';
 import axios from 'axios';
-import { Ship, Package, Crosshair, Anchor, Wrench, Building2, ArrowRight, Shield, Zap, Cpu, Snowflake, Rocket, Users, Globe, Car } from 'lucide-react';
+import { Package, Crosshair, Anchor, Wrench, Building2, ArrowRight, Shield, Zap, Cpu, Snowflake, Rocket, Users, Globe, Car } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import SpaceshipIcon from '../components/SpaceshipIcon';
 
 const Dashboard = () => {
   const { API } = useAuth();
@@ -86,7 +87,7 @@ const Dashboard = () => {
     <div className="space-y-6" data-testid="dashboard-page">
       {/* Fleet Stats Row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4" data-testid="fleet-stats">
-        <StatCard label="Ships" value={fleetStats.shipCount} icon={Ship} color="#00D4FF" testId="stat-ships" />
+        <StatCard label="Ships" value={fleetStats.shipCount} icon={SpaceshipIcon} color="#00D4FF" testId="stat-ships" />
         <StatCard label="Vehicles" value={fleetStats.vehicleCount} icon={Car} color="#D4AF37" testId="stat-vehicles" />
         <StatCard label="Loadouts" value={loadouts.length} icon={Wrench} color="#FF6B35" testId="stat-loadouts" />
         <StatCard label="Manufacturers" value={fleetStats.uniqueMfgs} icon={Building2} color="#A855F7" testId="stat-manufacturers" />
@@ -94,7 +95,7 @@ const Dashboard = () => {
 
       {/* Quick Actions - Horizontal */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3" data-testid="quick-actions">
-        <QuickAction to="/ships" label="Browse Ships" icon={Ship} color="#00D4FF" />
+        <QuickAction to="/ships" label="Browse Ships" icon={SpaceshipIcon} color="#00D4FF" />
         <QuickAction to="/compare" label="Compare Ships" icon={Users} color="#FFAE00" />
         <QuickAction to="/loadout" label="Build Loadout" icon={Wrench} color="#FF6B35" />
         <QuickAction to="/community" label="Community Loadouts" icon={Globe} color="#A855F7" />
@@ -129,7 +130,7 @@ const Dashboard = () => {
         {/* Fleet Grid */}
         {filteredFleet.length === 0 ? (
           <div className="glass-panel rounded-2xl p-8 text-center" data-testid="empty-fleet-card">
-            <Ship className="w-12 h-12 mx-auto mb-3 text-gray-600" />
+            <SpaceshipIcon className="w-12 h-12 mx-auto mb-3 text-gray-600" />
             <h3 className="text-base font-bold mb-1" style={{ fontFamily: 'Rajdhani, sans-serif' }}>No Ships in Fleet</h3>
             <p className="text-sm text-gray-500 mb-4">Add ships to see them here</p>
             <Link to="/fleet" className="px-4 py-2 rounded-lg text-sm font-semibold text-black inline-block"
@@ -138,7 +139,7 @@ const Dashboard = () => {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
             {filteredFleet.map((fs, i) => (
               <FleetCard key={fs.id || i} fs={fs} index={i} />
             ))}
@@ -228,68 +229,60 @@ const FleetCard = ({ fs, index }) => {
   const isCustom = fs.custom_name && fs.custom_name !== fs.ship_name;
 
   return (
-    <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(index * 0.05, 0.5) }}
-      className="glass-panel rounded-2xl overflow-hidden" data-testid={`fleet-ship-${fs.ship_id}`}>
-      {/* Image */}
-      <div className="relative h-36 bg-[#0a0a14] overflow-hidden">
-        {fs.details?.image ? (
-          <img src={fs.details.image} alt={fs.ship_name} className="w-full h-full object-cover opacity-80" onError={e => { e.target.style.display = 'none'; }} />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center"><Ship className="w-12 h-12 text-gray-700" /></div>
-        )}
-        <div className="absolute top-3 right-3 flex gap-1.5">
-          {fs.details?.size && (
-            <span className="text-[10px] px-2 py-0.5 rounded font-bold backdrop-blur-md bg-black/50 text-gray-300 border border-white/10">
-              {fs.details.size.toUpperCase()}
-            </span>
-          )}
-          {isCustom && (
-            <span className="text-[10px] px-2 py-0.5 rounded font-bold backdrop-blur-md bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
-              CUSTOM
-            </span>
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(index * 0.04, 0.3) }}
+      data-testid={`fleet-ship-${fs.ship_id}`}>
+      <Link to={`/ships/${fs.ship_id}`} className="glass-panel rounded-xl p-3 flex items-center gap-4 hover:bg-white/5 transition-all group block">
+        {/* Small image */}
+        <div className="w-16 h-16 rounded-lg overflow-hidden bg-[#0a0a14] shrink-0">
+          {fs.details?.image ? (
+            <img src={fs.details.image} alt={fs.ship_name} className="w-full h-full object-cover" onError={e => { e.target.style.display = 'none'; }} />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center"><SpaceshipIcon className="w-7 h-7 text-gray-700" /></div>
           )}
         </div>
-        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#0d0d18] to-transparent" />
-      </div>
 
-      {/* Content */}
-      <div className="p-4 -mt-4 relative">
-        <h3 className="text-base font-bold text-white mb-0.5" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-          {isCustom ? fs.custom_name : fs.ship_name}
-        </h3>
-        {isCustom && <p className="text-xs text-gray-500 mb-1">{fs.ship_name}</p>}
-        <p className="text-xs text-gray-500 mb-3">{fs.manufacturer}</p>
+        {/* Details */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <h3 className="text-sm font-bold text-white truncate" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
+              {isCustom ? fs.custom_name : fs.ship_name}
+            </h3>
+            {fs.details?.size && (
+              <span className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-white/5 text-gray-400 border border-white/10 shrink-0 uppercase">
+                {fs.details.size}
+              </span>
+            )}
+            {isCustom && (
+              <span className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shrink-0">
+                CUSTOM
+              </span>
+            )}
+          </div>
+          {isCustom && <p className="text-[10px] text-gray-600 -mt-0.5">{fs.ship_name}</p>}
+          <p className="text-xs text-gray-500 mb-1">{fs.manufacturer}</p>
 
-        {/* Component + Weapon summary */}
-        <div className="flex flex-wrap gap-x-2 gap-y-1 text-[11px] mb-3">
-          {hp.shield && <CompBadge icon={Shield} label={`${hp.shield.count}xS${hp.shield.size}`} suffix="shld" color="#00D4FF" />}
-          {hp.power_plant && <CompBadge icon={Zap} label={`${hp.power_plant.count}xS${hp.power_plant.size}`} suffix="pwr" color="#FFD700" />}
-          {hp.cooler && <CompBadge icon={Snowflake} label={`${hp.cooler.count}xS${hp.cooler.size}`} suffix="cool" color="#00FF9D" />}
-          {hp.quantum_drive && <CompBadge icon={Cpu} label={`${hp.quantum_drive.count}xS${hp.quantum_drive.size}`} suffix="qd" color="#FFAE00" />}
-          {wpns.length > 0 && Object.entries(wpns.reduce((a, s) => { a[s] = (a[s] || 0) + 1; return a; }, {}))
-            .sort(([a], [b]) => b - a)
-            .map(([size, count]) => (
-              <span key={`w${size}`} className="text-red-400">{count}xS{size}</span>
-            ))}
-        </div>
-
-        {/* Missiles */}
-        {msls.length > 0 && (
-          <div className="flex items-center gap-1.5 text-[11px] text-orange-400 mb-3" data-testid="missiles-row">
-            <Rocket className="w-3 h-3 shrink-0" />
-            {Object.entries(msls.reduce((a, s) => { a[s] = (a[s] || 0) + 1; return a; }, {}))
+          {/* Compact component + weapon line */}
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px]">
+            {hp.shield && <CompBadge icon={Shield} label={`${hp.shield.count}xS${hp.shield.size}`} suffix="shld" color="#00D4FF" />}
+            {hp.power_plant && <CompBadge icon={Zap} label={`${hp.power_plant.count}xS${hp.power_plant.size}`} suffix="pwr" color="#FFD700" />}
+            {hp.cooler && <CompBadge icon={Snowflake} label={`${hp.cooler.count}xS${hp.cooler.size}`} suffix="cool" color="#00FF9D" />}
+            {hp.quantum_drive && <CompBadge icon={Cpu} label={`${hp.quantum_drive.count}xS${hp.quantum_drive.size}`} suffix="qd" color="#FFAE00" />}
+            {wpns.length > 0 && Object.entries(wpns.reduce((a, s) => { a[s] = (a[s] || 0) + 1; return a; }, {}))
               .sort(([a], [b]) => b - a)
               .map(([size, count]) => (
-                <span key={size} className="px-1.5 py-0.5 bg-orange-500/10 rounded border border-orange-500/20">{count}x S{size}</span>
+                <span key={`w${size}`} className="text-red-400 font-semibold">{count}xS{size}</span>
+              ))}
+            {msls.length > 0 && Object.entries(msls.reduce((a, s) => { a[s] = (a[s] || 0) + 1; return a; }, {}))
+              .sort(([a], [b]) => b - a)
+              .map(([size, count]) => (
+                <span key={`m${size}`} className="text-orange-400 font-semibold">{count}xS{size}m</span>
               ))}
           </div>
-        )}
+        </div>
 
-        {/* Manage button */}
-        <Link to={`/ships/${fs.ship_id}`} className="w-full block text-center py-2 rounded-lg text-xs font-bold uppercase tracking-wider border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 transition-all" data-testid={`manage-${fs.ship_id}`}>
-          Manage
-        </Link>
-      </div>
+        {/* Arrow */}
+        <ArrowRight className="w-4 h-4 text-gray-600 group-hover:text-cyan-400 transition-colors shrink-0" />
+      </Link>
     </motion.div>
   );
 };

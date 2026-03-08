@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../App';
 import axios from 'axios';
-import { Ship, Plus, Search, Scale, ChevronDown } from 'lucide-react';
+import { Plus, Search, Scale, ChevronDown } from 'lucide-react';
+import SpaceshipIcon from '../components/SpaceshipIcon';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -29,7 +30,7 @@ const ShipCard = ({ ship, index, onAddToFleet }) => {
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
           {!displayImage && (
             <div className="absolute inset-0 flex items-center justify-center">
-              <Ship className="w-16 h-16 text-cyan-500/30" />
+              <SpaceshipIcon className="w-16 h-16 text-cyan-500/30" />
             </div>
           )}
         </div>
@@ -233,7 +234,7 @@ const Ships = () => {
 
       {filteredShips.length === 0 && (
         <div className="text-center py-12" data-testid="no-ships-message">
-          <Ship className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+          <SpaceshipIcon className="w-16 h-16 text-gray-600 mx-auto mb-4" />
           <p className="text-gray-400">No ships found matching your criteria</p>
         </div>
       )}

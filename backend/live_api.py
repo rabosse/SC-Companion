@@ -698,6 +698,11 @@ async def fetch_live_vehicles() -> list:
         logger.info("Fetching live vehicle data from Star Citizen Wiki API...")
         raw = await _fetch_paginated("vehicles")
         vehicles = [_normalize_vehicle(v) for v in raw]
+        # Inject missing ships that the wiki API doesn't have
+        existing_ids = {v["id"] for v in vehicles}
+        for ship in _ADDITIONAL_SHIPS:
+            if ship["id"] not in existing_ids:
+                vehicles.append(ship)
         _vehicles_cache = vehicles
         _api_available = True
         _last_fetch_time = time.time()
@@ -707,6 +712,25 @@ async def fetch_live_vehicles() -> list:
         logger.error(f"Live API vehicles fetch failed: {e}")
         _api_available = False
         return _vehicles_cache or []
+
+
+# Ships not yet in the wiki API that should be included
+_ADDITIONAL_SHIPS = [
+    {
+        "id": "galaxy", "name": "Galaxy", "manufacturer": "Roberts Space Industries",
+        "size": "Large", "crew": "4-8", "cargo": 0, "length": 115,
+        "focus": "Modular Multi-Role", "type": "ship",
+        "description": "The RSI Galaxy is a large modular platform ship featuring swappable mission modules for versatile multi-crew operations.",
+        "hardpoints": {
+            "weapons": [4, 4],
+            "missiles": [3, 3, 3, 3],
+            "shield": {"size": 3, "count": 2},
+            "power_plant": {"size": 3, "count": 1},
+            "cooler": {"size": 3, "count": 2},
+            "quantum_drive": {"size": 3, "count": 1},
+        },
+    },
+]
 
 
 async def fetch_live_weapons() -> list:

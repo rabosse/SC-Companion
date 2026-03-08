@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
-import { Ship, User, Clock, Copy, Shield, Zap, Cpu, Box, Crosshair, Download, ArrowLeft } from 'lucide-react';
+import { User, Clock, Copy, Shield, Zap, Cpu, Box, Crosshair, Download, ArrowLeft } from 'lucide-react';
+import SpaceshipIcon from '../components/SpaceshipIcon';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 
@@ -71,7 +72,7 @@ const SharedLoadout = () => {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: '#050508' }}>
         <div className="text-center">
-          <Ship className="w-16 h-16 mx-auto mb-4 text-gray-600" />
+          <SpaceshipIcon className="w-16 h-16 mx-auto mb-4 text-gray-600" />
           <h2 className="text-2xl font-bold text-white mb-2" style={{ fontFamily: 'Rajdhani, sans-serif' }}>Loadout Not Found</h2>
           <p className="text-gray-400 mb-6">This loadout may have been deleted or the link is invalid.</p>
           <Link to="/community" className="btn-origin inline-block">Browse Community</Link>
@@ -111,7 +112,7 @@ const SharedLoadout = () => {
                 </h1>
                 <div className="flex items-center gap-3 mt-2 flex-wrap">
                   <div className="flex items-center gap-2">
-                    <Ship className="w-4 h-4 text-cyan-500" />
+                    <SpaceshipIcon className="w-4 h-4 text-cyan-500" />
                     <span className="text-cyan-400 font-semibold">{loadout.ship_name}</span>
                   </div>
                   <span className="text-gray-600">|</span>

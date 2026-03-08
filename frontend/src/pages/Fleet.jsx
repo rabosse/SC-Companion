@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../App';
 import axios from 'axios';
-import { Trash2, Search, TrendingUp, Package, Users, DollarSign, Plus, Check, X, Ship } from 'lucide-react';
+import { Trash2, Search, TrendingUp, Package, Users, DollarSign, Plus, Check, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -338,7 +338,7 @@ const QuickImportModal = ({ ships, fleetShipIds, API, onClose, onImported }) => 
                     {ship.image ? (
                       <img src={ship.image} alt={ship.name} className="w-full h-full object-cover" onError={e => { e.target.onerror = null; e.target.style.display = 'none'; }} />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center"><Ship className="w-6 h-6 text-cyan-500/20" /></div>
+                      <div className="w-full h-full flex items-center justify-center"><SpaceshipIcon className="w-6 h-6 text-cyan-500/20" /></div>
                     )}
                     {isSelected && (
                       <div className="absolute top-1 right-1 w-5 h-5 rounded-full bg-cyan-500 flex items-center justify-center">

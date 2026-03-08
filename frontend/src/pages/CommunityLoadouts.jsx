@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { Search, Ship, User, Clock, Copy, Wrench, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, User, Clock, Copy, Wrench, ChevronLeft, ChevronRight } from 'lucide-react';
+import SpaceshipIcon from '../components/SpaceshipIcon';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 
@@ -123,7 +124,7 @@ const LoadoutCard = ({ loadout, onCopyLink, index }) => {
               {loadout.loadout_name}
             </h3>
             <div className="flex items-center gap-2 mt-1">
-              <Ship className="w-4 h-4 text-cyan-500 shrink-0" />
+              <SpaceshipIcon className="w-4 h-4 text-cyan-500 shrink-0" />
               <span className="text-sm text-cyan-400 truncate">{loadout.ship_name}</span>
             </div>
           </div>

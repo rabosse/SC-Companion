@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../App';
 import axios from 'axios';
-import { Ship, X, Plus, ArrowLeft, Search } from 'lucide-react';
+import { X, Plus, ArrowLeft, Search } from 'lucide-react';
+import SpaceshipIcon from '../components/SpaceshipIcon';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -144,7 +145,7 @@ const Compare = () => {
       {compareList.length === 0 ? (
         <div className="text-center py-16">
           <div className="glass-panel rounded-3xl p-12 max-w-2xl mx-auto">
-            <Ship className="w-24 h-24 text-gray-600 mx-auto mb-6" />
+            <SpaceshipIcon className="w-24 h-24 text-gray-600 mx-auto mb-6" />
             <h2 className="text-3xl font-bold mb-4" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
               No Ships Selected
             </h2>
@@ -184,7 +185,7 @@ const Compare = () => {
                           {ship.image ? (
                             <img src={ship.image} alt={ship.name} className="w-full h-full object-cover" onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; }} />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center"><Ship className="w-10 h-10 text-cyan-500/30" /></div>
+                            <div className="w-full h-full flex items-center justify-center"><SpaceshipIcon className="w-10 h-10 text-cyan-500/30" /></div>
                           )}
                         </div>
                         <Link to={`/ships/${ship.id}`} className="text-lg font-bold text-cyan-500 hover:text-cyan-400 transition-colors" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
@@ -273,7 +274,7 @@ const Compare = () => {
                       {ship.image ? (
                         <img src={ship.image} alt={ship.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; }} />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center"><Ship className="w-8 h-8 text-cyan-500/20" /></div>
+                        <div className="w-full h-full flex items-center justify-center"><SpaceshipIcon className="w-8 h-8 text-cyan-500/20" /></div>
                       )}
                     </div>
                     <div className="font-bold text-white text-sm truncate">{ship.name}</div>
