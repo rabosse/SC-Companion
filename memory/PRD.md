@@ -1,59 +1,86 @@
 # Star Citizen Fleet Manager - PRD
 
 ## Original Problem Statement
-Build a full-stack "Star Citizen Fleet Manager" allowing players to track ships, ground vehicles, components, weapons, with detailed information from the Star Citizen API.
+Build a full-stack "Star Citizen Fleet Manager" application allowing players to track ships, ground vehicles, components, weapons, and personal gear from Star Citizen. The app must use accurate game data from `finder.cstone.space` as the primary source of truth.
 
-## Core Features (Implemented)
-- User authentication (username/password)
-- Fleet management (add/remove unlimited vehicles)
-- Ship/vehicle database with images, specs, and filtering
-- Ship comparison tool
-- Loadout builder with savable/shareable loadouts
-- Fleet statistics dashboard
-- Components and weapons pages with filtering
-- Personal Gear section (Armor, FPS Weapons, Equipment)
-- Route planner with fuel-aware calculations
-- Interactive Canvas-based Starmap (Mobi-Glass style)
-- Interdiction planner with tactical analysis
-- **Enhanced Chase Planner** with location-aware pursuit analysis
-- Purchase location display (in-game and RSI store)
+## Core Requirements
+- User authentication (Username/Password) with fleet management
+- Ship/vehicle catalog with accurate stats from CStone Finder
+- Component catalog with Class filtering (Military, Civilian, Industrial, Stealth, Competition)
+- Ship weapons, FPS weapons, armor, and equipment data
+- Ship comparison tool, loadout builder with savable/shareable loadouts
+- Route planner with starmap, interdiction planner
+- Fleet dashboard with stats, saved loadouts, manufacturer breakdown
+- Purchase locations and prices from CStone Finder
 
 ## Tech Stack
-- **Frontend**: React, Tailwind CSS, Shadcn UI, Canvas API, lucide-react
+- **Frontend**: React, Tailwind CSS, Shadcn UI, Framer Motion
 - **Backend**: FastAPI, Pydantic, JWT auth, bcrypt
 - **Database**: MongoDB
-- **Data Sources**: starcitizen.tools API, cstone.space API
+- **Data Source**: finder.cstone.space (primary), starcitizen.tools (ship images/basic info)
 
 ## Architecture
 ```
-/app/backend/  → FastAPI server, routes/, data_enhancers/
-/app/frontend/ → React SPA, pages/, components/
+/app/backend/
+  cstone_api.py         - CStone Finder JSON API integration (primary data source)
+  live_api.py           - Legacy starcitizen.tools API (ship info, images)
+  server.py             - FastAPI app with startup prefetch
+  routes/
+    ships.py            - /api/ships, /api/components, /api/weapons, /api/missiles, /api/item-locations
+    gear.py             - /api/gear/weapons, /api/gear/armor, /api/gear/equipment
+    fleet.py            - /api/fleet/add, /api/fleet/my, /api/fleet/{id}
+    auth.py             - /api/auth/login, /api/auth/register
+    loadouts.py         - /api/loadouts/*
+    starmap.py          - /api/starmap/*, /api/chase
+
+/app/frontend/src/pages/
+  Dashboard.jsx         - Fleet overview with stats, quick actions, ship cards
+  Components.jsx        - Component catalog with Class/Grade filters + sort
+  Ships.jsx, Vehicles.jsx, Weapons.jsx, PersonalGear.jsx, ShipDetail.jsx
+  Fleet.jsx, RoutePlanner.jsx, etc.
 ```
 
-## Key API Endpoints
-- `/api/auth/login`, `/api/auth/register`
-- `/api/ships`, `/api/fleet`
-- `/api/routes/locations`, `/api/routes/calculate`
-- `/api/routes/interdiction`, `/api/routes/chase`, `/api/routes/chase/advanced`
-- `/api/loadouts`, `/api/gear/*`, `/api/prices`
-
-## DB Schema
-- users: {username, email, password_hash, fleet[]}
-- saved_loadouts: {user_id, ship_id, loadout_name, components, is_public, share_code}
-- price_history: {item_id, item_type, snapshots[]}
-
 ## What's Been Implemented
-- All core features listed above
-- **Comprehensive hardpoint audit**: All 203 ships/vehicles have curated weapon hardpoints and component overrides (verified via starcitizen.tools, RSI, community sources)
-- **Enhanced Chase Planner**: Location-aware pursuit analysis with escape route calculation, threat assessment, and Canvas visualization
-- **Interdiction Planner**: Tactical analysis with arrival timelines, escape analysis, and smart intel
-- **Starmap**: Canvas-based animated visualization with nebulas, glowing nodes, animated routes
 
-## Remaining Tasks
-### P1
-- Real-time price tracking for in-game items
-### P2
-- RSI fleet import tool
-### Low Priority
-- Clean up ship_data_enhancer.py wrapper
-- Fix React duplicate key warnings for ships with identical names
+### CStone Finder Data Integration (March 2026) - COMPLETE
+- Created `cstone_api.py` with all CStone JSON API endpoints
+- 270 vehicle components (coolers, power plants, quantum drives, shields)
+- 146 ship weapons with accurate DPS, damage, fire rate, range
+- 65 missiles with damage and speed data
+- FPS weapons stats merged from CStone into curated entries
+- Armor stats merged from CStone
+- Item purchase locations fetched from CStone detail pages
+- Data cached in-memory with 1-hour TTL
+
+### Dashboard Redesign (March 2026) - COMPLETE
+- Simplified fleet stats (Ships, Vehicles, Loadouts, Manufacturers)
+- Quick Actions moved to horizontal row above fleet
+- Ship cards with images, size tags, component/weapon summary, MANAGE button
+- Filter tabs (All/Ships/Land) + sort by Name/Size
+- Saved Loadouts + Favorite Manufacturer sections
+
+### Components Page Enhancement (March 2026) - COMPLETE
+- Sort by Class dropdown (Military, Civilian, Industrial, Stealth, Competition)
+- Ascending/Descending toggle
+- CStone data with real Class field (not derived from Grade)
+
+### Previously Completed
+- User authentication (JWT)
+- Fleet management (add/remove ships)
+- Ship comparison tool
+- Loadout builder with save/share
+- Route planner with starmap
+- Interdiction/Chase planner
+- Personal gear pages (FPS weapons, armor, equipment)
+- Ship detail pages with upgrade recommendations
+
+## Prioritized Backlog
+
+### P1 - Re-validate Chase Planner
+- Chase planner was completed but needs verification post-data overhaul
+
+### P2 - Real-time Price Tracking
+- Track in-game item prices over time
+
+### P3 - RSI Fleet Import
+- Import fleet from RSI account

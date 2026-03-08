@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../App';
 import axios from 'axios';
-import { Ship, Package, Crosshair, TrendingUp, Anchor, DollarSign, Building2, Users, Globe, Wrench, ArrowRight, Shield, Zap, Cpu, Snowflake, Rocket } from 'lucide-react';
+import { Ship, Package, Crosshair, Anchor, Wrench, Building2, ArrowRight, Shield, Zap, Cpu, Snowflake, Rocket, Users, Globe, Car } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 
@@ -9,29 +9,25 @@ const Dashboard = () => {
   const { API } = useAuth();
   const [ships, setShips] = useState([]);
   const [vehicles, setVehicles] = useState([]);
-  const [components, setComponents] = useState([]);
-  const [weapons, setWeapons] = useState([]);
   const [fleet, setFleet] = useState([]);
   const [loadouts, setLoadouts] = useState([]);
   const [communityCount, setCommunityCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [fleetFilter, setFleetFilter] = useState('all');
+  const [fleetSort, setFleetSort] = useState('name');
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [shipsRes, vehiclesRes, componentsRes, weaponsRes, fleetRes, loadoutsRes, communityRes] = await Promise.all([
+        const [shipsRes, vehiclesRes, fleetRes, loadoutsRes, communityRes] = await Promise.all([
           axios.get(`${API}/ships`),
           axios.get(`${API}/vehicles`),
-          axios.get(`${API}/components`),
-          axios.get(`${API}/weapons`),
           axios.get(`${API}/fleet/my`),
           axios.get(`${API}/loadouts/my/all`),
           axios.get(`${API}/community/loadouts?limit=1`),
         ]);
         setShips(shipsRes.data.data || []);
         setVehicles(vehiclesRes.data.data || []);
-        setComponents(componentsRes.data.data || []);
-        setWeapons(weaponsRes.data.data || []);
         setFleet(fleetRes.data.data || []);
         setLoadouts(loadoutsRes.data.data || []);
         setCommunityCount(communityRes.data.total || 0);
@@ -44,34 +40,35 @@ const Dashboard = () => {
     fetchData();
   }, [API]);
 
+  const allVehicles = useMemo(() => [...ships, ...vehicles], [ships, vehicles]);
+
   const fleetShips = useMemo(() => {
-    const shipMap = {};
-    ships.forEach(s => { shipMap[s.id] = s; });
-    return fleet.map(f => ({ ...f, details: shipMap[f.ship_id] }));
-  }, [fleet, ships]);
+    const lookup = {};
+    allVehicles.forEach(s => { lookup[s.id] = s; });
+    return fleet.map(f => ({ ...f, details: lookup[f.ship_id] }));
+  }, [fleet, allVehicles]);
+
+  const filteredFleet = useMemo(() => {
+    let items = fleetShips;
+    if (fleetFilter === 'ships') items = items.filter(f => f.details && f.details.type !== 'ground');
+    if (fleetFilter === 'land') items = items.filter(f => f.details && f.details.type === 'ground');
+    if (fleetSort === 'name') items = [...items].sort((a, b) => (a.ship_name || '').localeCompare(b.ship_name || ''));
+    if (fleetSort === 'size') items = [...items].sort((a, b) => (a.details?.length || 0) - (b.details?.length || 0));
+    return items;
+  }, [fleetShips, fleetFilter, fleetSort]);
 
   const fleetStats = useMemo(() => {
     const mfgCount = {};
-    let totalValueAuec = 0;
-    let totalValueUsd = 0;
-    let sizeBreakdown = {};
-
     fleetShips.forEach(f => {
       const mfg = f.manufacturer || 'Unknown';
       mfgCount[mfg] = (mfgCount[mfg] || 0) + 1;
-      if (f.details) {
-        totalValueAuec += f.details.price_auec || 0;
-        totalValueUsd += f.details.price_usd || f.details.msrp || 0;
-        const sz = f.details.size || 'Unknown';
-        sizeBreakdown[sz] = (sizeBreakdown[sz] || 0) + 1;
-      }
     });
-
     const sorted = Object.entries(mfgCount).sort((a, b) => b[1] - a[1]);
-    const favoriteVendor = sorted.length > 0 ? sorted[0] : ['None', 0];
     const topManufacturers = sorted.slice(0, 5);
-
-    return { totalValueAuec, totalValueUsd, favoriteVendor, topManufacturers, sizeBreakdown };
+    const uniqueMfgs = Object.keys(mfgCount).length;
+    const shipCount = fleetShips.filter(f => !f.details || f.details.type !== 'ground').length;
+    const vehicleCount = fleetShips.filter(f => f.details && f.details.type === 'ground').length;
+    return { topManufacturers, uniqueMfgs, shipCount, vehicleCount };
   }, [fleetShips]);
 
   if (loading) {
@@ -85,233 +82,239 @@ const Dashboard = () => {
     );
   }
 
-  const dbStats = [
-    { label: 'Ships', value: ships.length, icon: Ship, color: '#00D4FF' },
-    { label: 'Ground Vehicles', value: vehicles.length, icon: Package, color: '#D4AF37' },
-    { label: 'Components', value: components.length, icon: TrendingUp, color: '#00FF9D' },
-    { label: 'Weapons', value: weapons.length, icon: Crosshair, color: '#FFAE00' },
-  ];
-
   return (
-    <div className="space-y-8" data-testid="dashboard-page">
-      {/* Hero */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center py-8">
-        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-3 uppercase" style={{ fontFamily: 'Rajdhani, sans-serif', color: '#00D4FF' }}>
-          Fleet Command Center
-        </h1>
-        <p className="text-base text-gray-400 max-w-2xl mx-auto">Precision management for the discerning star citizen</p>
-      </motion.div>
-
-      {/* Fleet Overview - Personal Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-        <StatCard label="My Fleet" value={fleet.length} icon={Anchor} color="#00D4FF" testId="stat-my-fleet" />
-        <StatCard label="Fleet Value" value={formatAuec(fleetStats.totalValueAuec)} icon={DollarSign} color="#FFD700" sub="aUEC" testId="stat-fleet-value" />
-        <StatCard label="Pledge Value" value={`$${fleetStats.totalValueUsd}`} icon={DollarSign} color="#00FF9D" sub="USD" testId="stat-pledge-value" />
-        <StatCard label="My Loadouts" value={loadouts.length} icon={Wrench} color="#FF6B35" testId="stat-my-loadouts" />
-        <StatCard label="Community" value={communityCount} icon={Globe} color="#A855F7" sub="Shared" testId="stat-community" />
-        <StatCard label="Favorite Vendor" value={fleetStats.favoriteVendor[0].split(' ')[0]} icon={Building2} color="#FF0055" sub={`${fleetStats.favoriteVendor[1]} ships`} testId="stat-fav-vendor" />
+    <div className="space-y-6" data-testid="dashboard-page">
+      {/* Fleet Stats Row */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4" data-testid="fleet-stats">
+        <StatCard label="Ships" value={fleetStats.shipCount} icon={Ship} color="#00D4FF" testId="stat-ships" />
+        <StatCard label="Vehicles" value={fleetStats.vehicleCount} icon={Car} color="#D4AF37" testId="stat-vehicles" />
+        <StatCard label="Loadouts" value={loadouts.length} icon={Wrench} color="#FF6B35" testId="stat-loadouts" />
+        <StatCard label="Manufacturers" value={fleetStats.uniqueMfgs} icon={Building2} color="#A855F7" testId="stat-manufacturers" />
       </div>
 
-      {/* Database Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {dbStats.map((stat, i) => (
-          <motion.div key={stat.label} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-            className="glass-panel rounded-xl p-4 flex items-center gap-4" data-testid={`stat-db-${stat.label.toLowerCase().replace(' ', '-')}`}>
-            <stat.icon className="w-6 h-6 shrink-0" style={{ color: stat.color }} />
-            <div>
-              <div className="text-2xl font-bold" style={{ fontFamily: 'Rajdhani, sans-serif', color: stat.color }}>{stat.value}</div>
-              <div className="text-xs text-gray-500">{stat.label} in Database</div>
-            </div>
-          </motion.div>
-        ))}
+      {/* Quick Actions - Horizontal */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3" data-testid="quick-actions">
+        <QuickAction to="/ships" label="Browse Ships" icon={Ship} color="#00D4FF" />
+        <QuickAction to="/compare" label="Compare Ships" icon={Users} color="#FFAE00" />
+        <QuickAction to="/loadout" label="Build Loadout" icon={Wrench} color="#FF6B35" />
+        <QuickAction to="/community" label="Community Loadouts" icon={Globe} color="#A855F7" />
       </div>
 
-      {/* Two Column: Fleet Ships + Manufacturer Breakdown */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* My Fleet Ships */}
-        <div className="lg:col-span-2">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold uppercase" style={{ fontFamily: 'Rajdhani, sans-serif' }}>My Fleet</h2>
-            <Link to="/fleet" className="text-sm text-cyan-500 hover:text-cyan-400 flex items-center gap-1" data-testid="view-fleet-link">
-              Manage Fleet <ArrowRight className="w-4 h-4" />
+      {/* MY FLEET Section */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold uppercase tracking-wider" style={{ fontFamily: 'Rajdhani, sans-serif' }}>My Fleet</h2>
+          <Link to="/fleet" className="text-sm text-cyan-500 hover:text-cyan-400 flex items-center gap-1" data-testid="manage-fleet-link">
+            Manage Fleet <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+
+        {/* Filter tabs + Sort */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex gap-2" data-testid="fleet-filter-tabs">
+            {['all', 'ships', 'land'].map(f => (
+              <button key={f} onClick={() => setFleetFilter(f)} data-testid={`fleet-filter-${f}`}
+                className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase transition-all ${fleetFilter === f ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'bg-white/5 text-gray-500 border border-white/10 hover:text-gray-300'}`}>
+                {f === 'all' ? 'All' : f === 'ships' ? 'Ships' : 'Land'}
+              </button>
+            ))}
+          </div>
+          <select value={fleetSort} onChange={e => setFleetSort(e.target.value)} data-testid="fleet-sort"
+            className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-white font-semibold focus:outline-none focus:border-cyan-500">
+            <option value="name" className="bg-gray-900">Name</option>
+            <option value="size" className="bg-gray-900">Size</option>
+          </select>
+        </div>
+
+        {/* Fleet Grid */}
+        {filteredFleet.length === 0 ? (
+          <div className="glass-panel rounded-2xl p-8 text-center" data-testid="empty-fleet-card">
+            <Ship className="w-12 h-12 mx-auto mb-3 text-gray-600" />
+            <h3 className="text-base font-bold mb-1" style={{ fontFamily: 'Rajdhani, sans-serif' }}>No Ships in Fleet</h3>
+            <p className="text-sm text-gray-500 mb-4">Add ships to see them here</p>
+            <Link to="/fleet" className="px-4 py-2 rounded-lg text-sm font-semibold text-black inline-block"
+              style={{ background: 'linear-gradient(135deg, #00D4FF, #00A8CC)' }}>
+              Go to Fleet
             </Link>
           </div>
-          {fleetShips.length === 0 ? (
-            <div className="glass-panel rounded-2xl p-8 text-center" data-testid="empty-fleet-card">
-              <Ship className="w-12 h-12 mx-auto mb-3 text-gray-600" />
-              <h3 className="text-base font-bold mb-1" style={{ fontFamily: 'Rajdhani, sans-serif' }}>No Ships in Fleet</h3>
-              <p className="text-sm text-gray-500 mb-4">Add ships to see them here</p>
-              <Link to="/fleet" className="px-4 py-2 rounded-lg text-sm font-semibold text-black inline-block"
-                style={{ background: 'linear-gradient(135deg, #00D4FF, #00A8CC)' }}>
-                Go to Fleet
-              </Link>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {filteredFleet.map((fs, i) => (
+              <FleetCard key={fs.id || i} fs={fs} index={i} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Bottom Row: Saved Loadouts + Favorite Manufacturer */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Saved Loadouts */}
+        <div>
+          <h2 className="text-lg font-bold uppercase tracking-wider mb-4" style={{ fontFamily: 'Rajdhani, sans-serif' }}>Saved Loadouts</h2>
+          {loadouts.length === 0 ? (
+            <div className="glass-panel rounded-2xl p-6 text-center" data-testid="no-loadouts">
+              <Wrench className="w-10 h-10 mx-auto mb-3 text-gray-600" />
+              <p className="text-sm text-gray-500 mb-3">No saved loadouts yet</p>
+              <Link to="/loadout" className="text-sm text-cyan-500 hover:text-cyan-400">Create a Loadout</Link>
             </div>
           ) : (
-            <div className="space-y-4">
-              {fleetShips.map((fs, i) => {
-                const hp = fs.details?.hardpoints || {};
-                const wpns = hp.weapons || [];
-                const msls = hp.missiles || [];
+            <div className="space-y-3" data-testid="saved-loadouts-list">
+              {loadouts.map((lo, i) => {
+                const ship = allVehicles.find(s => s.id === lo.ship_id);
+                const configuredSlots = lo.components ? Object.keys(lo.components).filter(k => lo.components[k]).length : 0;
                 return (
-                  <motion.div key={fs.id} initial={{ opacity: 0, x: -15 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
-                    data-testid={`fleet-ship-${fs.ship_id}`}>
-                    <Link to={`/ships/${fs.ship_id}`} className="glass-panel rounded-xl p-4 group hover:border-cyan-500/30 transition-all block">
-                      <div className="flex items-start gap-4">
-                        <div className="w-24 h-16 rounded-lg overflow-hidden bg-white/5 shrink-0">
-                          {fs.details?.image ? (
-                            <img src={fs.details.image} alt={fs.ship_name} className="w-full h-full object-cover" onError={e => { e.target.style.display = 'none'; }} />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center"><Ship className="w-6 h-6 text-gray-600" /></div>
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center justify-between mb-1">
-                            <h4 className="font-bold text-white text-sm group-hover:text-cyan-400 transition-colors truncate" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                              {fs.ship_name}
-                            </h4>
-                            <div className="flex items-center gap-2 shrink-0 ml-2">
-                              {fs.details?.size && <span className="text-[10px] px-1.5 py-0.5 rounded border border-white/10 text-gray-400">{fs.details.size}</span>}
-                              {fs.details?.price_auec > 0 && <span className="text-xs text-yellow-400 font-semibold hidden sm:block">{formatAuec(fs.details.price_auec)}</span>}
-                            </div>
-                          </div>
-                          <div className="text-xs text-gray-500 mb-2">{fs.manufacturer}</div>
-
-                          {/* Components row */}
-                          <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px]">
-                            {hp.shield && (
-                              <span className="flex items-center gap-1 text-cyan-400">
-                                <Shield className="w-3 h-3" /> S{hp.shield.size} x{hp.shield.count}
-                              </span>
-                            )}
-                            {hp.power_plant && (
-                              <span className="flex items-center gap-1 text-yellow-400">
-                                <Zap className="w-3 h-3" /> S{hp.power_plant.size} x{hp.power_plant.count}
-                              </span>
-                            )}
-                            {hp.cooler && (
-                              <span className="flex items-center gap-1 text-green-400">
-                                <Snowflake className="w-3 h-3" /> S{hp.cooler.size} x{hp.cooler.count}
-                              </span>
-                            )}
-                            {hp.quantum_drive && (
-                              <span className="flex items-center gap-1 text-amber-400">
-                                <Cpu className="w-3 h-3" /> S{hp.quantum_drive.size} x{hp.quantum_drive.count}
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Weapons row */}
-                          {wpns.length > 0 && (
-                            <div className="flex items-center gap-1.5 mt-1.5 text-[11px] text-red-400">
-                              <Crosshair className="w-3 h-3 shrink-0" />
-                              {Object.entries(wpns.reduce((acc, s) => { acc[s] = (acc[s] || 0) + 1; return acc; }, {}))
-                                .sort(([a], [b]) => b - a)
-                                .map(([size, count]) => (
-                                  <span key={size} className="px-1.5 py-0.5 bg-red-500/10 rounded border border-red-500/20">{count}x S{size}</span>
-                                ))}
-                            </div>
-                          )}
-
-                          {/* Missiles row */}
-                          {msls.length > 0 && (
-                            <div className="flex items-center gap-1.5 mt-1 text-[11px] text-orange-400" data-testid="missiles-row">
-                              <Rocket className="w-3 h-3 shrink-0" />
-                              {Object.entries(msls.reduce((acc, s) => { acc[s] = (acc[s] || 0) + 1; return acc; }, {}))
-                                .sort(([a], [b]) => b - a)
-                                .map(([size, count]) => (
-                                  <span key={size} className="px-1.5 py-0.5 bg-orange-500/10 rounded border border-orange-500/20">{count}x S{size}</span>
-                                ))}
-                            </div>
-                          )}
-                        </div>
+                  <Link key={lo.id || i} to="/loadout" className="glass-panel rounded-xl p-4 block hover:border-cyan-500/30 transition-all" data-testid={`loadout-card-${i}`}>
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 rounded-lg overflow-hidden bg-white/5 shrink-0 flex items-center justify-center">
+                        {ship?.image ? (
+                          <img src={ship.image} alt={lo.loadout_name} className="w-full h-full object-cover" onError={e => { e.target.style.display = 'none'; }} />
+                        ) : (
+                          <Wrench className="w-6 h-6 text-gray-600" />
+                        )}
                       </div>
-                    </Link>
-                  </motion.div>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-sm font-bold text-orange-400 truncate" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{lo.loadout_name}</h4>
+                        <p className="text-xs text-gray-500">{ship?.name || lo.ship_id}</p>
+                        <p className="text-[10px] text-gray-600">{configuredSlots} slot{configuredSlots !== 1 ? 's' : ''} configured</p>
+                      </div>
+                    </div>
+                  </Link>
                 );
               })}
             </div>
           )}
         </div>
 
-        {/* Sidebar: Manufacturer Breakdown + Quick Actions */}
-        <div className="space-y-6">
-          {/* Manufacturer Breakdown */}
-          {fleetStats.topManufacturers.length > 0 && (
-            <div className="glass-panel rounded-2xl p-5" data-testid="manufacturer-breakdown">
-              <h3 className="text-sm font-bold text-gray-400 uppercase mb-4">Top Manufacturers</h3>
-              <div className="space-y-3">
-                {fleetStats.topManufacturers.map(([mfg, count]) => {
-                  const pct = Math.round((count / fleet.length) * 100);
-                  return (
-                    <div key={mfg}>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm text-white font-medium truncate">{mfg}</span>
-                        <span className="text-xs text-cyan-400 shrink-0 ml-2">{count} ({pct}%)</span>
+        {/* Favorite Manufacturer */}
+        <div>
+          <h2 className="text-lg font-bold uppercase tracking-wider mb-4" style={{ fontFamily: 'Rajdhani, sans-serif' }}>Favorite Manufacturer</h2>
+          {fleetStats.topManufacturers.length === 0 ? (
+            <div className="glass-panel rounded-2xl p-6 text-center" data-testid="no-manufacturer">
+              <Building2 className="w-10 h-10 mx-auto mb-3 text-gray-600" />
+              <p className="text-sm text-gray-500">Add ships to your fleet to see manufacturer stats</p>
+            </div>
+          ) : (
+            <div className="glass-panel rounded-2xl p-5 space-y-4" data-testid="manufacturer-breakdown">
+              {fleetStats.topManufacturers.map(([mfg, count]) => {
+                const pct = Math.round((count / fleet.length) * 100);
+                return (
+                  <div key={mfg}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div>
+                        <span className="text-sm font-bold text-white">{mfg.split(' ')[0]}</span>
+                        <span className="text-xs text-gray-500 ml-2">{count} ship{count !== 1 ? 's' : ''} in your fleet</span>
                       </div>
-                      <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
-                        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: 'linear-gradient(90deg, #00D4FF, #00A8CC)' }} />
-                      </div>
+                      <span className="text-xs text-cyan-400 font-semibold">{pct}%</span>
                     </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Size Breakdown */}
-          {Object.keys(fleetStats.sizeBreakdown).length > 0 && (
-            <div className="glass-panel rounded-2xl p-5" data-testid="size-breakdown">
-              <h3 className="text-sm font-bold text-gray-400 uppercase mb-4">Fleet by Size</h3>
-              <div className="grid grid-cols-2 gap-3">
-                {Object.entries(fleetStats.sizeBreakdown).map(([size, count]) => (
-                  <div key={size} className="bg-white/[0.03] rounded-lg p-3 text-center">
-                    <div className="text-xl font-bold text-white" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{count}</div>
-                    <div className="text-xs text-gray-500">{size}</div>
+                    <p className="text-[10px] text-gray-600 mb-2">{mfg}</p>
+                    <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full" style={{ width: `${pct}%`, background: 'linear-gradient(90deg, #00D4FF, #D4AF37)' }} />
+                    </div>
                   </div>
-                ))}
-              </div>
+                );
+              })}
             </div>
           )}
-
-          {/* Quick Actions */}
-          <div className="glass-panel rounded-2xl p-5" data-testid="quick-actions">
-            <h3 className="text-sm font-bold text-gray-400 uppercase mb-4">Quick Actions</h3>
-            <div className="space-y-2">
-              <QuickAction to="/ships" label="Browse Ships" icon={Ship} color="#00D4FF" />
-              <QuickAction to="/compare" label="Compare Ships" icon={Users} color="#FFAE00" />
-              <QuickAction to="/loadout" label="Build Loadout" icon={Wrench} color="#FF6B35" />
-              <QuickAction to="/community" label="Community Loadouts" icon={Globe} color="#A855F7" />
-            </div>
-          </div>
         </div>
       </div>
     </div>
   );
 };
 
-const StatCard = ({ label, value, icon: Icon, color, sub, testId }) => (
+const FleetCard = ({ fs, index }) => {
+  const hp = fs.details?.hardpoints || {};
+  const wpns = hp.weapons || [];
+  const msls = hp.missiles || [];
+  const isCustom = fs.custom_name && fs.custom_name !== fs.ship_name;
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(index * 0.05, 0.5) }}
+      className="glass-panel rounded-2xl overflow-hidden" data-testid={`fleet-ship-${fs.ship_id}`}>
+      {/* Image */}
+      <div className="relative h-36 bg-[#0a0a14] overflow-hidden">
+        {fs.details?.image ? (
+          <img src={fs.details.image} alt={fs.ship_name} className="w-full h-full object-cover opacity-80" onError={e => { e.target.style.display = 'none'; }} />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center"><Ship className="w-12 h-12 text-gray-700" /></div>
+        )}
+        <div className="absolute top-3 right-3 flex gap-1.5">
+          {fs.details?.size && (
+            <span className="text-[10px] px-2 py-0.5 rounded font-bold backdrop-blur-md bg-black/50 text-gray-300 border border-white/10">
+              {fs.details.size.toUpperCase()}
+            </span>
+          )}
+          {isCustom && (
+            <span className="text-[10px] px-2 py-0.5 rounded font-bold backdrop-blur-md bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+              CUSTOM
+            </span>
+          )}
+        </div>
+        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#0d0d18] to-transparent" />
+      </div>
+
+      {/* Content */}
+      <div className="p-4 -mt-4 relative">
+        <h3 className="text-base font-bold text-white mb-0.5" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
+          {isCustom ? fs.custom_name : fs.ship_name}
+        </h3>
+        {isCustom && <p className="text-xs text-gray-500 mb-1">{fs.ship_name}</p>}
+        <p className="text-xs text-gray-500 mb-3">{fs.manufacturer}</p>
+
+        {/* Component + Weapon summary */}
+        <div className="flex flex-wrap gap-x-2 gap-y-1 text-[11px] mb-3">
+          {hp.shield && <CompBadge icon={Shield} label={`${hp.shield.count}xS${hp.shield.size}`} suffix="shld" color="#00D4FF" />}
+          {hp.power_plant && <CompBadge icon={Zap} label={`${hp.power_plant.count}xS${hp.power_plant.size}`} suffix="pwr" color="#FFD700" />}
+          {hp.cooler && <CompBadge icon={Snowflake} label={`${hp.cooler.count}xS${hp.cooler.size}`} suffix="cool" color="#00FF9D" />}
+          {hp.quantum_drive && <CompBadge icon={Cpu} label={`${hp.quantum_drive.count}xS${hp.quantum_drive.size}`} suffix="qd" color="#FFAE00" />}
+          {wpns.length > 0 && Object.entries(wpns.reduce((a, s) => { a[s] = (a[s] || 0) + 1; return a; }, {}))
+            .sort(([a], [b]) => b - a)
+            .map(([size, count]) => (
+              <span key={`w${size}`} className="text-red-400">{count}xS{size}</span>
+            ))}
+        </div>
+
+        {/* Missiles */}
+        {msls.length > 0 && (
+          <div className="flex items-center gap-1.5 text-[11px] text-orange-400 mb-3" data-testid="missiles-row">
+            <Rocket className="w-3 h-3 shrink-0" />
+            {Object.entries(msls.reduce((a, s) => { a[s] = (a[s] || 0) + 1; return a; }, {}))
+              .sort(([a], [b]) => b - a)
+              .map(([size, count]) => (
+                <span key={size} className="px-1.5 py-0.5 bg-orange-500/10 rounded border border-orange-500/20">{count}x S{size}</span>
+              ))}
+          </div>
+        )}
+
+        {/* Manage button */}
+        <Link to={`/ships/${fs.ship_id}`} className="w-full block text-center py-2 rounded-lg text-xs font-bold uppercase tracking-wider border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 transition-all" data-testid={`manage-${fs.ship_id}`}>
+          Manage
+        </Link>
+      </div>
+    </motion.div>
+  );
+};
+
+const CompBadge = ({ icon: Icon, label, suffix, color }) => (
+  <span className="flex items-center gap-0.5" style={{ color }}>
+    <Icon className="w-3 h-3" /> {label} <span className="text-gray-600">{suffix}</span>
+  </span>
+);
+
+const StatCard = ({ label, value, icon: Icon, color, testId }) => (
   <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
     className="glass-panel rounded-xl p-4 text-center" data-testid={testId}>
     <Icon className="w-5 h-5 mx-auto mb-2" style={{ color }} />
-    <div className="text-xl font-bold truncate" style={{ fontFamily: 'Rajdhani, sans-serif', color }}>{value}</div>
+    <div className="text-2xl font-bold" style={{ fontFamily: 'Rajdhani, sans-serif', color }}>{value}</div>
     <div className="text-xs text-gray-500">{label}</div>
-    {sub && <div className="text-[10px] text-gray-600 mt-0.5">{sub}</div>}
   </motion.div>
 );
 
 const QuickAction = ({ to, label, icon: Icon, color }) => (
-  <Link to={to} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-white/5 transition-colors group" data-testid={`quick-action-${label.toLowerCase().replace(/ /g, '-')}`}>
-    <Icon className="w-4 h-4 shrink-0" style={{ color }} />
-    <span className="text-sm text-gray-400 group-hover:text-white transition-colors">{label}</span>
-    <ArrowRight className="w-3 h-3 ml-auto text-gray-600 group-hover:text-gray-400 transition-colors" />
+  <Link to={to} className="glass-panel rounded-xl p-3 flex items-center gap-3 hover:bg-white/5 transition-all group" data-testid={`quick-action-${label.toLowerCase().replace(/ /g, '-')}`}>
+    <Icon className="w-5 h-5 shrink-0" style={{ color }} />
+    <span className="text-sm text-gray-400 group-hover:text-white transition-colors font-medium">{label}</span>
+    <ArrowRight className="w-3.5 h-3.5 ml-auto text-gray-600 group-hover:text-gray-400 transition-colors" />
   </Link>
 );
-
-function formatAuec(n) {
-  if (!n || n === 0) return '0';
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
-  return n.toLocaleString();
-}
 
 export default Dashboard;
