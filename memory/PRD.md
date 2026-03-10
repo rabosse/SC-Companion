@@ -25,19 +25,20 @@ Build a full-stack "Star Citizen Fleet Manager" application allowing players to 
   cstone_api.py         - CStone Finder JSON API integration (primary data source)
   live_api.py           - Legacy starcitizen.tools API (ship info, images)
   server.py             - FastAPI app with startup prefetch
+  star_systems.py       - Starmap data, route/interdiction/chase calculations
   routes/
     ships.py            - /api/ships, /api/components, /api/weapons, /api/missiles, /api/item-locations
     gear.py             - /api/gear/weapons, /api/gear/armor, /api/gear/equipment
     fleet.py            - /api/fleet/add, /api/fleet/my, /api/fleet/{id}
     auth.py             - /api/auth/login, /api/auth/register
     loadouts.py         - /api/loadouts/*
-    starmap.py          - /api/starmap/*, /api/chase
+    starmap.py          - /api/routes/locations, /api/routes/calculate, /api/routes/interdiction, /api/routes/chase/*
 
 /app/frontend/src/pages/
   Dashboard.jsx         - Fleet overview with stats, quick actions, ship cards
   Components.jsx        - Component catalog with Class/Grade filters + sort
   Ships.jsx, Vehicles.jsx, Weapons.jsx, PersonalGear.jsx, ShipDetail.jsx
-  Fleet.jsx, RoutePlanner.jsx, etc.
+  Fleet.jsx, RoutePlanner.jsx (Route/Interdiction/Chase tabs), etc.
 ```
 
 ## What's Been Implemented
@@ -52,6 +53,12 @@ Build a full-stack "Star Citizen Fleet Manager" application allowing players to 
 - Item purchase locations fetched from CStone detail pages
 - Data cached in-memory with 1-hour TTL
 
+### Ship & Vehicle Data Migration (March 2026) - COMPLETE (P0)
+- Hybrid data strategy merging CStone API data (purchase locations, prices, images, roles) with Wiki API data (technical specs)
+- All ship/vehicle endpoints serve merged, accurate data
+- Backend pre-caches ship purchase locations on startup
+- Tested 100% by testing agent
+
 ### Dashboard Redesign (March 2026) - COMPLETE
 - Simplified fleet stats (Ships, Vehicles, Loadouts, Manufacturers)
 - Quick Actions moved to horizontal row above fleet
@@ -64,23 +71,29 @@ Build a full-stack "Star Citizen Fleet Manager" application allowing players to 
 - Ascending/Descending toggle
 - CStone data with real Class field (not derived from Grade)
 
+### Route Planner Validation (March 2026) - COMPLETE (P3)
+- Route tab: calculate quantum routes with fuel tracking, cross-system jumps, waypoints
+- Interdiction tab: QED snare positioning with coverage analysis, tactical notes
+- Chase tab: pursuit analysis with escape destinations, intercept %, threat level
+- All 3 backend endpoints validated, all frontend tabs functional
+- Tested 100% (35/35 backend, all frontend flows) by testing agent
+
 ### Previously Completed
 - User authentication (JWT)
 - Fleet management (add/remove ships)
 - Ship comparison tool
 - Loadout builder with save/share
-- Route planner with starmap
-- Interdiction/Chase planner
 - Personal gear pages (FPS weapons, armor, equipment)
 - Ship detail pages with upgrade recommendations
 
 ## Prioritized Backlog
 
-### P1 - Re-validate Chase Planner
-- Chase planner was completed but needs verification post-data overhaul
-
-### P2 - Real-time Price Tracking
+### P1 - Real-time Price Tracking
 - Track in-game item prices over time
+- PriceTracker.jsx page exists, needs validation and potential enhancement
 
-### P3 - RSI Fleet Import
+### P2 - RSI Fleet Import (de-prioritized by user)
 - Import fleet from RSI account
+
+### P3 - Full Re-validation
+- Complete app-wide validation after all features done
