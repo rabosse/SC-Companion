@@ -1,54 +1,123 @@
 from fastapi import APIRouter
 
 from personal_gear import get_all_fps_weapons, get_all_armor_sets, get_all_equipment
-from armor_enhancer import (
-    get_armor_image, get_armor_variant_images, get_armor_variant_data,
-    fetch_armor_images, fetch_armor_variant_images, fetch_cstone_armor_images,
-    fetch_cstone_backpack_images,
-    get_backpack_image, get_backpack_variant_images, get_backpack_variant_data,
-)
-from weapon_enhancer import (
-    get_weapon_image, get_weapon_variant_images, get_weapon_variant_data,
-    fetch_weapon_images, fetch_cstone_weapon_images,
-)
-from equipment_enhancer import (
-    get_equipment_image, get_equipment_variant_images, get_equipment_variant_data,
-    fetch_cstone_equipment_images,
-)
 from cstone_api import (
     get_fps_weapons as cstone_fps_weapons,
     get_all_armor as cstone_all_armor,
     prefetch_cstone_data,
+    batch_fetch_locations,
+    get_cached_locations,
+    CSTONE_IMG_BASE,
 )
 
 router = APIRouter(prefix="/api/gear", tags=["gear"])
 
-_variant_images_fetched = False
+_locations_fetched = False
+
+_SLOT_WORDS = {"helmet", "core", "arms", "legs", "undersuit", "backpack"}
 
 
-def _merge_fps_stats(curated_weapons: list) -> list:
-    """Overlay CStone FPS weapon stats onto curated entries by fuzzy name match."""
-    cstone = cstone_fps_weapons()
-    if not cstone:
-        return curated_weapons
+def _strip_slot_words(name: str) -> str:
+    parts = name.lower().strip().split()
+    return " ".join(p for p in parts if p not in _SLOT_WORDS)
 
-    # Build lookup by lowercase name
-    cstone_lookup = {}
-    for w in cstone:
-        key = w["name"].lower().strip()
-        cstone_lookup[key] = w
+
+def _build_cstone_lookups():
+    """Build all CStone lookup dicts once per request."""
+    fps = cstone_fps_weapons()
+    armor = cstone_all_armor()
+
+    fps_lookup = {}
+    for w in fps:
+        fps_lookup[w["name"].lower().strip()] = w
+
+    # Armor: stripped name -> first item (for stats/image)
+    armor_first = {}
+    for a in armor:
+        stripped = _strip_slot_words(a["name"])
+        if stripped not in armor_first:
+            armor_first[stripped] = a
+
+    # Armor: stripped name -> first SOLD item (for locations)
+    armor_first_sold = {}
+    for a in armor:
+        stripped = _strip_slot_words(a["name"])
+        if stripped not in armor_first_sold and a.get("sold") and a.get("id"):
+            armor_first_sold[stripped] = a
+
+    return fps_lookup, armor_first, armor_first_sold
+
+
+def _find_match(name, lookup):
+    """Find a match in lookup by exact then partial stripped name."""
+    stripped = _strip_slot_words(name)
+    match = lookup.get(stripped)
+    if not match:
+        for ck, cv in lookup.items():
+            if stripped in ck or ck in stripped:
+                return cv
+    return match
+
+
+def _cstone_image(item_id):
+    """Get CStone image URL for an item."""
+    if item_id:
+        return f"{CSTONE_IMG_BASE}/{item_id}.png"
+    return ""
+
+
+async def _ensure_cstone_locations():
+    global _locations_fetched
+    if _locations_fetched:
+        return
+    await prefetch_cstone_data()
+
+    curated_weapons = get_all_fps_weapons()
+    curated_armor = get_all_armor_sets()
+    fps_lookup, armor_first, armor_first_sold = _build_cstone_lookups()
+
+    item_ids_to_fetch = []
 
     for w in curated_weapons:
         key = w["name"].lower().strip()
-        match = cstone_lookup.get(key)
+        match = fps_lookup.get(key)
         if not match:
-            # Try partial match: "P8-SC SMG" might be "P8-SC" in CStone
-            for ckey, cval in cstone_lookup.items():
-                if key in ckey or ckey in key:
-                    match = cval
+            for ck, cv in fps_lookup.items():
+                if key in ck or ck in key:
+                    match = cv
                     break
+        if match and match.get("sold") and match.get("id"):
+            item_ids_to_fetch.append(match["id"])
+
+    for s in curated_armor:
+        names = [s["name"]] + s.get("variants", [])
+        for name in names:
+            match = _find_match(name, armor_first_sold)
+            if match:
+                item_ids_to_fetch.append(match["id"])
+
+    item_ids_to_fetch = list(set(item_ids_to_fetch))
+    if item_ids_to_fetch:
+        await batch_fetch_locations(item_ids_to_fetch)
+    _locations_fetched = True
+
+
+@router.get("/weapons")
+async def get_fps_weapons():
+    await _ensure_cstone_locations()
+    weapons = get_all_fps_weapons()
+    fps_lookup, _, _ = _build_cstone_lookups()
+
+    for w in weapons:
+        key = w["name"].lower().strip()
+        match = fps_lookup.get(key)
+        if not match:
+            for ck, cv in fps_lookup.items():
+                if key in ck or ck in key:
+                    match = cv
+                    break
+
         if match:
-            # Update stats from CStone
             if match.get("alpha_damage"):
                 w["damage"] = match["alpha_damage"]
             if match.get("max_dps"):
@@ -59,32 +128,72 @@ def _merge_fps_stats(curated_weapons: list) -> list:
                 w["bullet_speed"] = match["bullet_speed"]
             if match.get("max_fire_rate"):
                 w["rpm"] = match["max_fire_rate"]
-            if match.get("single_dps"):
-                w["single_dps"] = match["single_dps"]
-            if match.get("rapid_dps"):
-                w["rapid_dps"] = match["rapid_dps"]
-    return curated_weapons
+
+            # CStone image
+            w["image"] = _cstone_image(match.get("id"))
+
+            # CStone locations
+            if match.get("sold") and match.get("id"):
+                locs = get_cached_locations(match["id"])
+                if locs:
+                    w["locations"] = [loc["location"] for loc in locs]
+                    prices = [loc["price"] for loc in locs if loc.get("price")]
+                    if prices:
+                        w["price_auec"] = min(prices)
+
+        # Variant images from CStone
+        vi = {}
+        for vname in w.get("variants", []):
+            vkey = vname.lower().strip()
+            vmatch = fps_lookup.get(vkey)
+            if not vmatch:
+                for ck, cv in fps_lookup.items():
+                    if vkey in ck or ck in vkey:
+                        vmatch = cv
+                        break
+            vi[vname] = _cstone_image(vmatch["id"]) if vmatch else w.get("image", "")
+        w["variant_images"] = vi
+
+        # Variant data
+        vd = {}
+        for vname in w.get("variants", []):
+            vkey = vname.lower().strip()
+            vmatch = fps_lookup.get(vkey)
+            if not vmatch:
+                for ck, cv in fps_lookup.items():
+                    if vkey in ck or ck in vkey:
+                        vmatch = cv
+                        break
+            vlocs = []
+            vprice = w.get("price_auec", 0)
+            if vmatch and vmatch.get("sold") and vmatch.get("id"):
+                cached = get_cached_locations(vmatch["id"])
+                if cached:
+                    vlocs = [loc["location"] for loc in cached]
+                    prices = [loc["price"] for loc in cached if loc.get("price")]
+                    if prices:
+                        vprice = min(prices)
+            vd[vname] = {
+                "type": w.get("type", ""),
+                "locations": vlocs if vlocs else w.get("locations", []),
+                "loot_locations": w.get("loot_locations", []),
+                "price_auec": vprice,
+            }
+        w["variant_data"] = vd
+
+    return {"success": True, "data": weapons}
 
 
-def _merge_armor_stats(curated_armor: list) -> list:
-    """Overlay CStone armor stats onto curated entries."""
-    cstone = cstone_all_armor()
-    if not cstone:
-        return curated_armor
+@router.get("/armor")
+async def get_armor_sets():
+    await _ensure_cstone_locations()
+    sets = get_all_armor_sets()
+    _, armor_first, armor_first_sold = _build_cstone_lookups()
 
-    cstone_lookup = {}
-    for a in cstone:
-        key = a["name"].lower().strip()
-        cstone_lookup[key] = a
+    for s in sets:
+        # Match base armor to CStone
+        match = _find_match(s["name"], armor_first)
 
-    for s in curated_armor:
-        key = s["name"].lower().strip()
-        match = cstone_lookup.get(key)
-        if not match:
-            for ckey, cval in cstone_lookup.items():
-                if key in ckey or ckey in key:
-                    match = cval
-                    break
         if match:
             if match.get("damage_reduction"):
                 s["damage_reduction"] = match["damage_reduction"]
@@ -94,100 +203,69 @@ def _merge_armor_stats(curated_armor: list) -> list:
                 s["temp_max"] = match["max_temp"]
             if match.get("radiation_resistance"):
                 s["rad_resistance"] = match["radiation_resistance"]
-    return curated_armor
+            s["image"] = _cstone_image(match.get("id"))
 
+        # Base locations from CStone
+        sold_match = _find_match(s["name"], armor_first_sold)
+        if sold_match:
+            locs = get_cached_locations(sold_match["id"])
+            if locs:
+                s["locations"] = [loc["location"] for loc in locs]
+                prices = [loc["price"] for loc in locs if loc.get("price")]
+                if prices:
+                    s["price_auec"] = min(prices)
 
-@router.get("/weapons")
-async def get_fps_weapons():
-    global _variant_images_fetched
-    await prefetch_cstone_data()
-    weapons = get_all_fps_weapons()
-    weapons = _merge_fps_stats(weapons)
-    if not _variant_images_fetched:
-        await fetch_armor_images()
-        await fetch_cstone_armor_images()
-        await fetch_cstone_backpack_images()
-        await fetch_cstone_weapon_images()
-        await fetch_cstone_equipment_images()
-        await fetch_armor_variant_images(get_all_armor_sets())
-        _variant_images_fetched = True
-    for w in weapons:
-        w["image"] = get_weapon_image(w["name"])
-        w["variant_images"] = get_weapon_variant_images(w["name"], w.get("variants", []))
-        w["variant_data"] = get_weapon_variant_data(
-            w["name"], w.get("type", ""),
-            w.get("variants", []),
-            w.get("price_auec", 0),
-            w.get("locations", []),
-        )
-    return {"success": True, "data": weapons}
+        # Variant images and data from CStone
+        vi = {}
+        vd = {}
+        for vname in s.get("variants", []):
+            vmatch = _find_match(vname, armor_first)
+            vi[vname] = _cstone_image(vmatch["id"]) if vmatch else s.get("image", "")
 
+            # Variant locations
+            vsold = _find_match(vname, armor_first_sold)
+            vlocs = []
+            vprice = s.get("price_auec", 0)
+            if vsold:
+                cached = get_cached_locations(vsold["id"])
+                if cached:
+                    vlocs = [loc["location"] for loc in cached]
+                    prices = [loc["price"] for loc in cached if loc.get("price")]
+                    if prices:
+                        vprice = min(prices)
 
-@router.get("/armor")
-async def get_armor_sets():
-    global _variant_images_fetched
-    await prefetch_cstone_data()
-    sets = get_all_armor_sets()
-    sets = _merge_armor_stats(sets)
+            vd[vname] = {
+                "type": s.get("type", ""),
+                "locations": vlocs if vlocs else s.get("locations", []),
+                "loot_locations": s.get("loot_locations", []),
+                "price_auec": vprice,
+            }
 
-    if not _variant_images_fetched:
-        await fetch_armor_images()
-        await fetch_cstone_armor_images()
-        await fetch_cstone_backpack_images()
-        await fetch_cstone_weapon_images()
-        await fetch_cstone_equipment_images()
-        await fetch_armor_variant_images(sets)
-        _variant_images_fetched = True
+        s["variant_images"] = vi
+        s["variant_data"] = vd
 
-    for s in sets:
-        is_backpack = s.get("type") == "Backpack"
-        if is_backpack:
-            s["image"] = get_backpack_image(s["name"])
-            s["variant_images"] = get_backpack_variant_images(s["name"], s.get("variants", []))
-            s["variant_data"] = get_backpack_variant_data(
-                s["name"], s.get("variants", []),
-                s.get("price_auec", 0),
-                s.get("locations", []),
-                s.get("loot_locations", []),
-            )
-        else:
-            s["image"] = get_armor_image(s["name"])
-            s["variant_images"] = get_armor_variant_images(s["name"], s.get("variants", []))
-            s["variant_data"] = get_armor_variant_data(
-                s["name"], s.get("variants", []),
-                s.get("price_auec", 0),
-                s.get("locations", []),
-                s.get("loot_locations", []),
-            )
     return {"success": True, "data": sets}
 
 
 @router.get("/equipment")
 async def get_equipment():
-    global _variant_images_fetched
     items = get_all_equipment()
-
-    if not _variant_images_fetched:
-        await fetch_armor_images()
-        await fetch_cstone_armor_images()
-        await fetch_cstone_backpack_images()
-        await fetch_cstone_weapon_images()
-        await fetch_cstone_equipment_images()
-        await fetch_armor_variant_images(get_all_armor_sets())
-        _variant_images_fetched = True
-
     for item in items:
-        item["image"] = get_equipment_image(item["name"])
-        item["variant_images"] = get_equipment_variant_images(
-            item["name"], item.get("variants", [])
-        )
-        item["variant_data"] = get_equipment_variant_data(
-            item["name"],
-            item.get("type", ""),
-            item.get("variants", []),
-            item.get("price_auec", 0),
-            item.get("locations", []),
-        )
+        # Equipment doesn't have CStone matches typically, use empty image
+        if not item.get("image"):
+            item["image"] = ""
+        vi = {}
+        vd = {}
+        for vname in item.get("variants", []):
+            vi[vname] = item.get("image", "")
+            vd[vname] = {
+                "type": item.get("type", ""),
+                "locations": item.get("locations", []),
+                "loot_locations": item.get("loot_locations", []),
+                "price_auec": item.get("price_auec", 0),
+            }
+        item["variant_images"] = vi
+        item["variant_data"] = vd
         if "loot_locations" not in item:
             item["loot_locations"] = []
     return {"success": True, "data": items}

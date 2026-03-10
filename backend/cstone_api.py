@@ -14,6 +14,7 @@ from bs4 import BeautifulSoup
 logger = logging.getLogger(__name__)
 
 CSTONE_BASE = "https://finder.cstone.space"
+CSTONE_IMG_BASE = "https://cstone.space/uifimages"
 CACHE_TTL = 3600  # 1 hour
 _last_fetch: float = 0
 
@@ -166,8 +167,9 @@ def _norm_ship_weapon(item: dict) -> dict:
 
 def _norm_fps_weapon(item: dict) -> dict:
     """Normalize a CStone FPS weapon."""
+    item_id = item.get("ItemId", "")
     return {
-        "id": item.get("ItemId", ""),
+        "id": item_id,
         "name": item.get("Name", ""),
         "type": item.get("Type", item.get("ItemClass", "Unknown")),
         "manufacturer": item.get("Manu", ""),
@@ -188,13 +190,15 @@ def _norm_fps_weapon(item: dict) -> dict:
         "sold": item.get("Sold", 0) == 1,
         "volume": item.get("Volume", 0),
         "description": item.get("Desc", ""),
+        "image": f"{CSTONE_IMG_BASE}/{item_id}.png" if item_id else "",
     }
 
 
 def _norm_armor(item: dict, slot: str) -> dict:
     """Normalize a CStone armor piece."""
+    item_id = item.get("ItemId", "")
     return {
-        "id": item.get("ItemId", ""),
+        "id": item_id,
         "name": item.get("Name", ""),
         "slot": slot,
         "type": item.get("Atype", item.get("Type", "")),
@@ -214,6 +218,7 @@ def _norm_armor(item: dict, slot: str) -> dict:
         "sold": item.get("Sold", 0) == 1,
         "volume": item.get("Volume", 0),
         "description": item.get("Desc", ""),
+        "image": f"{CSTONE_IMG_BASE}/{item_id}.png" if item_id else "",
     }
 
 
@@ -378,3 +383,24 @@ def get_ship_shops() -> list:
 async def get_item_locations(item_id: str) -> list:
     """Get purchase locations for a specific item."""
     return await _fetch_item_locations(item_id)
+
+
+async def batch_fetch_locations(item_ids: list):
+    """Fetch locations for multiple items concurrently with rate limiting."""
+    import asyncio
+    sem = asyncio.Semaphore(15)
+
+    async def _fetch_one(item_id):
+        async with sem:
+            return await _fetch_item_locations(item_id)
+
+    tasks = [_fetch_one(iid) for iid in item_ids if iid not in _location_cache]
+    if tasks:
+        logger.info(f"Batch fetching locations for {len(tasks)} items...")
+        await asyncio.gather(*tasks, return_exceptions=True)
+        logger.info(f"Location cache size: {len(_location_cache)}")
+
+
+def get_cached_locations(item_id: str) -> list:
+    """Get locations from cache without fetching. Returns empty list if not cached."""
+    return _location_cache.get(item_id, [])

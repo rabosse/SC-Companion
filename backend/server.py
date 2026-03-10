@@ -5,9 +5,6 @@ import logging
 
 from deps import client
 from ship_data_enhancer import fetch_all_wiki_images
-from armor_enhancer import fetch_armor_images, fetch_armor_variant_images, fetch_cstone_armor_images, fetch_cstone_backpack_images
-from weapon_enhancer import fetch_weapon_images, fetch_cstone_weapon_images
-from equipment_enhancer import fetch_cstone_equipment_images
 from live_api import prefetch_all
 from cstone_api import prefetch_cstone_data
 
@@ -52,21 +49,26 @@ logger = logging.getLogger(__name__)
 async def startup_event():
     # Prefetch CStone data first (primary source of truth)
     await prefetch_cstone_data()
-    # Then prefetch legacy API data for ship info
+    # Prefetch legacy API for ship catalog data (names, specs, images)
     await prefetch_all()
     from live_api import _vehicles_cache
     all_names = [v["name"] for v in _vehicles_cache if v.get("name")]
     await fetch_all_wiki_images(ship_names=all_names)
-    await fetch_armor_images()
-    await fetch_weapon_images()
-    await fetch_cstone_armor_images()
-    await fetch_cstone_backpack_images()
-    await fetch_cstone_weapon_images()
-    await fetch_cstone_equipment_images()
-    from personal_gear import get_all_armor_sets
-    await fetch_armor_variant_images(get_all_armor_sets())
     from routes.prices import _take_snapshot
     await _take_snapshot()
+    # Pre-fetch CStone purchase locations for gear items (background)
+    import asyncio
+    asyncio.create_task(_prefetch_gear_locations())
+
+
+async def _prefetch_gear_locations():
+    """Background task to pre-fetch CStone purchase locations for curated gear."""
+    try:
+        from routes.gear import _ensure_cstone_locations
+        await _ensure_cstone_locations()
+        logger.info("CStone gear purchase locations pre-fetched")
+    except Exception as e:
+        logger.error(f"Failed to prefetch gear locations: {e}")
 
 
 @app.on_event("shutdown")
