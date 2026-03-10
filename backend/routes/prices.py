@@ -59,10 +59,18 @@ async def _take_snapshot():
                 "timestamp": now,
             })
 
-    if entries:
-        await db[COLLECTION].insert_many(entries)
+    # Deduplicate by item_name — keep first occurrence
+    seen = set()
+    unique_entries = []
+    for e in entries:
+        if e["item_name"] not in seen:
+            seen.add(e["item_name"])
+            unique_entries.append(e)
 
-    return len(entries)
+    if unique_entries:
+        await db[COLLECTION].insert_many(unique_entries)
+
+    return len(unique_entries)
 
 
 async def _get_previous_snapshot_time():
@@ -191,9 +199,9 @@ async def get_price_summary():
     return {
         "success": True,
         "data": {
-            "ships": sorted(ships, key=lambda x: x["price_auec"], reverse=True)[:50],
-            "weapons": sorted(weapons, key=lambda x: x["price_auec"], reverse=True)[:50],
-            "components": sorted(components, key=lambda x: x["price_auec"], reverse=True)[:50],
+            "ships": sorted(ships, key=lambda x: x["price_auec"], reverse=True),
+            "weapons": sorted(weapons, key=lambda x: x["price_auec"], reverse=True),
+            "components": sorted(components, key=lambda x: x["price_auec"], reverse=True),
         },
         "snapshot_count": len(all_ts),
         "latest_snapshot": latest_ts,

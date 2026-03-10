@@ -101,7 +101,7 @@ const PriceTracker = () => {
           <h1 className="text-4xl sm:text-5xl font-bold mb-2 uppercase" style={{ fontFamily: 'Rajdhani, sans-serif', color: '#00D4FF' }}>
             Price Tracker
           </h1>
-          <p className="text-gray-400">Real-time aUEC prices from the Star Citizen Wiki API</p>
+          <p className="text-gray-400">Real-time aUEC prices from CStone Finder &amp; Star Citizen data</p>
         </div>
         <button onClick={handleRefresh} disabled={refreshing} data-testid="refresh-snapshot-btn"
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm uppercase bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/25 transition-all disabled:opacity-50">
