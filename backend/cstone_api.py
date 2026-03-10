@@ -76,6 +76,9 @@ async def _fetch_item_locations(item_id: str) -> list:
             for t in tables:
                     headers = [th.text.strip() for th in t.find_all("th")]
                     if any("LOCATION" in h.upper() for h in headers):
+                        # Skip rental tables (they have day-based pricing columns)
+                        if any("DAY" in h.upper() for h in headers):
+                            continue
                         locations = []
                         for row in t.find_all("tr"):
                             cells = [td.text.strip() for td in row.find_all("td")]
@@ -92,10 +95,12 @@ async def _fetch_item_locations(item_id: str) -> list:
                                 })
                         _location_cache[item_id] = locations
                         return locations
+            # Page loaded successfully but no purchase table found - cache empty
+            _location_cache[item_id] = []
     except Exception as e:
         logger.debug(f"Failed to fetch locations for {item_id}: {e}")
-    _location_cache[item_id] = []
-    return []
+        # Don't cache failures - allow retry on next request
+    return _location_cache.get(item_id, [])
 
 
 def _norm_component(item: dict, comp_type: str) -> dict:
@@ -224,6 +229,7 @@ def _norm_armor(item: dict, slot: str) -> dict:
 
 def _norm_ship_shop(item: dict) -> dict:
     """Normalize a CStone vehicle shop entry."""
+    item_id = item.get("ItemId", "")
     desc = item.get("Desc", "")
     focus = ""
     if "Focus:" in desc:
@@ -231,19 +237,63 @@ def _norm_ship_shop(item: dict) -> dict:
         if len(parts) > 1:
             focus = parts[1].split("\\n")[0].strip().replace("\xa0", " ")
 
+    # Extract clean description (after Focus line)
+    clean_desc = ""
+    if "\\n\\n" in desc:
+        clean_desc = desc.split("\\n\\n", 1)[1].replace("\\n", " ").strip()
+    elif "\n\n" in desc:
+        clean_desc = desc.split("\n\n", 1)[1].replace("\n", " ").strip()
+
+    # Build a short "display name" by stripping manufacturer prefix
+    raw_name = item.get("Name", "")
+    manu = item.get("Manu", "")
+    display_name = _strip_manufacturer_prefix(raw_name, manu)
+
     return {
-        "id": item.get("ItemId", ""),
+        "id": item_id,
         "code_name": item.get("ItemCodeName", ""),
-        "name": item.get("Name", ""),
-        "manufacturer": item.get("Manu", ""),
+        "name": raw_name,
+        "display_name": display_name,
+        "manufacturer": manu,
         "focus": focus,
         "sold": item.get("Sold", 0) == 1,
         "rentable": item.get("Rent", 0) == 1,
         "length": item.get("Length", 0),
         "width": item.get("Width", 0),
         "volume": item.get("Volume", 0),
-        "description": desc,
+        "description": clean_desc or desc,
+        "image": f"{CSTONE_IMG_BASE}/{item_id}.png" if item_id else "",
     }
+
+
+# Manufacturer prefix abbreviations used on CStone
+_MANU_PREFIXES = {
+    "Consolidated Outland": ["C.O.", "Consolidated Outland"],
+    "Musashi Industrial & Starflight Concern": ["MISC", "Musashi Industrial & Starflight Concern"],
+    "Roberts Space Industries": ["RSI", "Roberts Space Industries"],
+    "Kruger Intergalatic": ["Kruger Intergalatic", "Kruger"],
+    "Tumbril Land Systems": ["Tumbril Land Systems", "Tumbril"],
+    "Greycat Industrial": ["Greycat Industrial", "Greycat"],
+    "Argo Astronautics": ["Argo Astronautics", "Argo"],
+    "Gatac Manufacture": ["Gatac Manufacture", "Gatac"],
+    "Grey's Market": ["Grey's Market"],
+}
+
+
+def _strip_manufacturer_prefix(name: str, manufacturer: str) -> str:
+    """Strip the manufacturer prefix from a CStone ship name to get the display name."""
+    if not name or not manufacturer:
+        return name
+    # Try known abbreviation prefixes first
+    prefixes_to_try = _MANU_PREFIXES.get(manufacturer, [manufacturer])
+    # Also try the first word of manufacturer
+    first_word = manufacturer.split()[0]
+    if first_word not in prefixes_to_try:
+        prefixes_to_try.append(first_word)
+    for prefix in prefixes_to_try:
+        if name.startswith(prefix + " "):
+            return name[len(prefix) + 1:].strip()
+    return name
 
 
 def _norm_missile(item: dict) -> dict:
@@ -380,6 +430,30 @@ def get_ship_shops() -> list:
     return _ship_shops
 
 
+def get_ship_shop_by_display_name(display_name: str) -> dict:
+    """Find a CStone ship shop entry by its display name (without manufacturer prefix)."""
+    name_lower = display_name.lower().strip()
+    for s in _ship_shops:
+        if s.get("display_name", "").lower().strip() == name_lower:
+            return s
+    # Fuzzy: try partial matching
+    for s in _ship_shops:
+        dn = s.get("display_name", "").lower().strip()
+        if dn and (dn in name_lower or name_lower in dn):
+            return s
+    return {}
+
+
+def build_ship_lookup() -> dict:
+    """Build a lookup dict: lowercase display_name -> CStone ship shop entry."""
+    lookup = {}
+    for s in _ship_shops:
+        dn = s.get("display_name", "").lower().strip()
+        if dn:
+            lookup[dn] = s
+    return lookup
+
+
 async def get_item_locations(item_id: str) -> list:
     """Get purchase locations for a specific item."""
     return await _fetch_item_locations(item_id)
@@ -388,16 +462,23 @@ async def get_item_locations(item_id: str) -> list:
 async def batch_fetch_locations(item_ids: list):
     """Fetch locations for multiple items concurrently with rate limiting."""
     import asyncio
-    sem = asyncio.Semaphore(15)
+    sem = asyncio.Semaphore(10)
 
     async def _fetch_one(item_id):
         async with sem:
+            await asyncio.sleep(0.1)  # Small delay between requests
             return await _fetch_item_locations(item_id)
 
-    tasks = [_fetch_one(iid) for iid in item_ids if iid not in _location_cache]
-    if tasks:
-        logger.info(f"Batch fetching locations for {len(tasks)} items...")
-        await asyncio.gather(*tasks, return_exceptions=True)
+    to_fetch = [iid for iid in item_ids if iid not in _location_cache]
+    if to_fetch:
+        logger.info(f"Batch fetching locations for {len(to_fetch)} items...")
+        await asyncio.gather(*[_fetch_one(iid) for iid in to_fetch], return_exceptions=True)
+        # Retry items that failed (not in cache after first attempt)
+        retry = [iid for iid in to_fetch if iid not in _location_cache]
+        if retry:
+            logger.info(f"Retrying {len(retry)} failed location fetches...")
+            await asyncio.sleep(2)
+            await asyncio.gather(*[_fetch_one(iid) for iid in retry], return_exceptions=True)
         logger.info(f"Location cache size: {len(_location_cache)}")
 
 

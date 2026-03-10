@@ -45,6 +45,30 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 
 
+async def _prefetch_gear_locations():
+    """Background task to pre-fetch CStone purchase locations for curated gear."""
+    try:
+        from routes.gear import _ensure_cstone_locations
+        await _ensure_cstone_locations()
+        logger.info("CStone gear purchase locations pre-fetched")
+    except Exception as e:
+        logger.error(f"Failed to prefetch gear locations: {e}")
+
+
+async def _prefetch_ship_locations():
+    """Background task to pre-fetch CStone purchase locations for ships/vehicles."""
+    try:
+        from cstone_api import get_ship_shops, batch_fetch_locations
+        ships = get_ship_shops()
+        # Only fetch for ships marked as sold in-game
+        sold_ids = [s["id"] for s in ships if s.get("sold") and s.get("id")]
+        if sold_ids:
+            await batch_fetch_locations(sold_ids)
+            logger.info(f"CStone ship purchase locations pre-fetched for {len(sold_ids)} ships")
+    except Exception as e:
+        logger.error(f"Failed to prefetch ship locations: {e}")
+
+
 @app.on_event("startup")
 async def startup_event():
     # Prefetch CStone data first (primary source of truth)
@@ -56,19 +80,10 @@ async def startup_event():
     await fetch_all_wiki_images(ship_names=all_names)
     from routes.prices import _take_snapshot
     await _take_snapshot()
-    # Pre-fetch CStone purchase locations for gear items (background)
+    # Pre-fetch CStone purchase locations for gear and ships (background)
     import asyncio
     asyncio.create_task(_prefetch_gear_locations())
-
-
-async def _prefetch_gear_locations():
-    """Background task to pre-fetch CStone purchase locations for curated gear."""
-    try:
-        from routes.gear import _ensure_cstone_locations
-        await _ensure_cstone_locations()
-        logger.info("CStone gear purchase locations pre-fetched")
-    except Exception as e:
-        logger.error(f"Failed to prefetch gear locations: {e}")
+    asyncio.create_task(_prefetch_ship_locations())
 
 
 @app.on_event("shutdown")

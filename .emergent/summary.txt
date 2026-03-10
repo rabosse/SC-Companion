@@ -2,6 +2,7 @@
 The user wants to build a full-stack application called Star Citizen Fleet Manager. The core purpose is to allow players to track their ships and ground vehicles from the game Star Citizen.
 
 **PRODUCT REQUIREMENTS:**
+-   **Data Accuracy Mandate:** The primary source for all stats (Gear, FPS Weapons, Ship Weapons, Components, Ships) must be .
 -   Use the Star Citizen API for data.
 -   User authentication (Username/Password) and the ability to manage a personal Fleet.
 -   Display ships, ground vehicles, components, and weapons with detailed information.
@@ -10,67 +11,68 @@ The user wants to build a full-stack application called Star Citizen Fleet Manag
 -   Implement a loadout builder with savable and shareable loadouts and accurate hardpoint data.
 -   Display fleet statistics on a dashboard.
 -   Users must be able to add and remove an unlimited number of vehicles from their fleet.
--   Components and Weapons pages should have filtering and show in-game acquisition data.
--   The Gear section (Armor, Weapons, Equipment) must be detailed, accurate, and visually consistent.
+-   Components and Weapons pages should have filtering and show in-game acquisition data. Add sorting by category (Military, Civilian, etc.) with an ascending/descending toggle.
+-   The Gear section (Armor, Weapons, Equipment) must be detailed, accurate, and visually consistent, with correct purchase locations and images sourced from CStone.
 -   Display ship/vehicle purchase locations (in-game and RSI store), including costs.
--   Implement a route planner for all star systems, including fuel stops and jump calculations based on the selected ship's capabilities. The visual design should be inspired by the in-game Mobi-Glass.
+-   Implement a route planner for all star systems, including fuel stops and jump calculations based on the selected ship's capabilities.
 -   The route planner should integrate with the user's fleet.
 -   Add an interdiction planner for pirating with enhanced tactical data.
 -   Add a section for rare armor and FPS weapon locations.
 -   Implement real-time price tracking for in-game items.
--   **Data Accuracy Mandate:** The primary source for all stats (Gear, FPS Weapons, Ship Weapons, Components, Ships) must be .
+-   Redesign the dashboard to match the user's provided screenshot, including a specific layout for fleet items, quick actions, and sidebars.
+-   Replace all boat icons with spaceship icons throughout the application.
 
 **User's preferred language**: English
 
 **what currently exists?**
-A comprehensive full-stack application (Star Citizen Companion) using React, FastAPI, and MongoDB. The application integrates with  for some game data.
+A comprehensive full-stack application using React, FastAPI, and MongoDB. A massive data overhaul has been performed to use  as the primary data source, replacing previous sources.
 
-The app features secure user authentication and fleet management. It includes an interactive starmap/route planner, an interdiction planner, and detailed sections for ships, personal gear, and components. The backend has a significant amount of curated data for ship hardpoints and components, which has now been flagged by the user as incorrect.
+The backend now has a dedicated module () for fetching and normalizing data from the CStone API. This module's data is pre-cached on server startup for performance. The API endpoints for components, ship weapons, missiles, FPS weapons, and armor have been rewritten to serve this new, accurate data, including stats, purchase locations, and images.
+
+The frontend dashboard has been completely redesigned to match the user's specifications, and all boat icons have been replaced with proper spaceship icons.
 
 **Last working item**:
--   **Last item agent was working:** The agent was investigating a critical data accuracy problem reported by the user. The user stated that almost all game data (ships, weapons, components, gear) is incorrect and mandated that  be used as the primary source of truth. The agent had just begun exploring the  website to understand its data structure and potential API endpoints.
--   **Status:** IN PROGRESS
--   **Agent Testing Done:** N/A
--   **Which testing method agent to use?** N/A (Investigation phase)
--   **User Testing Done:** N/A
+The agent had just finished a complete overhaul of the Gear (Armor and FPS Weapons) section, ensuring all data, images, and purchase locations are sourced exclusively from . This was the final part of a long series of data-accuracy and UI fixes. The user then gave the go-ahead to proceed with the next major tasks.
+
+-   **Last item agent was working:** User confirmation to proceed with upcoming tasks after completing the Gear data/image overhaul.
+-   **Status:** NONE (Previous major task is finished; next one is not yet started).
+-   **Agent Testing Done:** Y
+-   **Which testing method agent to use?** N/A
+-   **User Testing Done:** Y
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Critical Data Inaccuracy Across Entire Application (P0)**
-    -   **Description:** The user has reported that the stats for nearly all items (Gear, FPS Weapons, Ship Weapons, Components, Ships) are incorrect. This invalidates the extensive data curation work done previously. The user has mandated that  must become the new, primary source of data for the entire application.
-    -   **Attempted fixes:** The agent began exploring  to assess its API capabilities.
-    -   **Next debug checklist:**
-        1.  Thoroughly investigate  to determine if a public or private API is available for consumption. Use browser developer tools to inspect network requests.
-        2.  If an API exists, analyze its structure, endpoints, and the data it provides for ships, weapons, and components.
-        3.  If no API exists, evaluate the feasibility of web scraping.
-        4.  Create a detailed plan to replace the current data sources ( and internal curated data) with the new CStone Finder source. This will likely involve significant rewrites in , , and any related data enhancer scripts.
-        5.  Present the plan to the user for approval before implementation.
-    -   **Why fix this issue and what will be achieved with the fix?** Fixing this is the user's highest priority. It will ensure the application's core value proposition—providing accurate Star Citizen data—is met. All other features are secondary to data integrity.
-    -   **Status:** IN PROGRESS
-    -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** Both
-    -   **Blocked on other issue:** None
+-   None. The previous P0 data-inaccuracy issue has been resolved for components, weapons, and gear.
 
 **In progress Task List**:
--   None. The data accuracy issue has superseded all other tasks.
+-   None.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   **(P1) Enhance the Chase Planner Tab**: The agent completed the implementation, but it was not fully tested or verified by the user before the data accuracy issue was raised. Once the data is corrected, this feature should be re-validated.
+    -   **(P0) Complete Ship & Vehicle Data Migration:** The data for components, weapons, and gear has been migrated to CStone. However, the core stats for the ships and vehicles themselves (e.g., speed, hull HP, dimensions) are still using old, potentially inaccurate data. This is the remaining part of the original data-accuracy mandate.
+    -   **(P1) Real-time Price Tracking:** Implement real-time price tracking for in-game items, as per the original product requirements.
+    -   **(P2) RSI Fleet Import:** Implement a tool to easily import a user's fleet from their RSI account.
 -   **Future Tasks:**
-    -   **(P2)** Add real-time price tracking for in-game items.
-    -   **(P3)** Implement a tool to easily import a user's fleet from their RSI account.
+    -   **(P3) Re-validate Chase Planner Tab:** The Chase Planner feature was built before the data overhaul. It needs to be tested and validated to ensure it functions correctly with the new data backend.
 
 **Completed work in this session**
--   **Data Curation Overhaul (Now Deprecated):** Audited and manually corrected weapon, component, and missile hardpoints for all 203 ships, creating a comprehensive curated dataset in . **Note:** The user has since flagged this data as incorrect and requested a new primary source.
--   **Chase Planner Enhancement:** Implemented backend logic () and frontend UI () for a location-aware chase planner with tactical pursuit data.
--   **Ship Detail Page Feature:** Made recommended upgrades on the  page clickable, opening a modal with detailed component/weapon stats and acquisition locations.
--   **Dashboard UI Improvements:**
-    -   Condensed the weapon display on ship cards to a count x size format (e.g., ) in .
-    -   Added missile hardpoint data to the backend and displayed it on dashboard cards.
--   **UI/UX Fixes:**
-    -   Fixed a transparent background issue on the mobile navigation menu in .
-    -   Reverted the Components page () to a previous, user-preferred design.
--   **Testing:** Performed and passed full-stack testing for the Interdiction Planner, Chase Planner, and the (now deprecated) hardpoint data overhaul.
+-   **Complete Data Source Overhaul (CStone API):**
+    -   Discovered and reverse-engineered the internal JSON API for .
+    -   Created a new backend module  to handle all fetching and normalization from the CStone API.
+    -   Rewrote backend routes in  and  to serve data exclusively from CStone for:
+        -   Components
+        -   Ship Weapons
+        -   Missiles
+        -   FPS Weapons
+        -   Armor
+    -   Implemented performant on-startup data pre-caching in  and background-threaded fetching for item locations to ensure fast API responses.
+    -   Fixed all purchase location and image data for Gear and Armor to be sourced from CStone, removing all dependencies on the old wiki source.
+-   **Dashboard Redesign:**
+    -   Completely rebuilt the  page to match a user-provided screenshot, including a 2-column layout with a fleet list and sidebars for Favorite Manufacturer and Saved Loadouts.
+    -   Redesigned the ship cards on the dashboard to be a compact, horizontal list view.
+-   **Frontend UI/UX Fixes:**
+    -   Added sorting controls (by category and direction) to the Components page ().
+    -   Replaced all instances of the   (boat) icon with a custom  across the application.
+    -   Added the RSI Galaxy ship to the database.
 
 **Earlier issues found/mentioned but not fixed**
 -   None.
@@ -82,77 +84,73 @@ The app features secure user authentication and fleet management. It includes an
 
 
 **Key Technical Concepts**
--   **Frontend**: React, Tailwind CSS, Shadcn UI, , , , HTML5 Canvas API.
--   **Backend**: FastAPI, Pydantic, JWT for authentication, .
--   **Database**: MongoDB
--   **Architecture**: SPA with a modular RESTful API backend. Data sourcing is the main point of contention, moving from a mixed model (API + curation) to a single primary source.
+-   **Frontend**: React, Tailwind CSS, Shadcn UI, , , .
+-   **Backend**: FastAPI, Pydantic, JWT for authentication, ,  (for scraping location data).
+-   **Database**: MongoDB.
+-   **Architecture**: SPA with a RESTful API backend. Data is sourced from a reverse-engineered third-party API () and pre-cached on server startup for performance.
 
 **key DB schema**
 -   **users**: 
 -   **saved_loadouts**: 
 
 **changes in tech stack**
--   None.
+-   **Backend**: Added  and  to  for parsing HTML to get item purchase locations.
 
 **All files of reference**
--   : Heavily modified for hardpoint, component, and missile data. **Will require a complete rewrite** to use the new data source.
--   : **Will likely require a complete rewrite.**
--   : Modified for the Chase Planner enhancement.
--   : Modified for the Chase Planner UI.
--   : Modified for condensed weapon/missile UI.
--   : Modified to add the upgrade details modal.
--   : Modified to revert to an older UI style.
--   : Modified for a mobile UI fix.
+-   : **New file.** The single source of truth for all  data fetching and processing.
+-   : Rewritten to merge curated variant data with live stats, images, and locations from CStone.
+-   : Endpoints for components, weapons, and missiles rewritten to use CStone data.
+-   : Modified to pre-cache all necessary CStone data in memory on startup.
+-   : Completely rewritten to match the user's new layout design.
+-   : Added sorting functionality.
+-   , , : Modified to replace boat icons with spaceship icons.
 
 **Areas that need refactoring**:
--   The entire data-fetching layer of the backend needs to be refactored to use  as the single source of truth, deprecating the existing curated dictionaries and calls to .
+-   The core ship/vehicle data endpoints (, ) still need to be updated to pull their main stats from the CStone API to fully complete the data migration.
 
 **key api endpoints**
--   , , , : These are the key endpoints that will need to be rebuilt to serve data from the new primary source.
--   : New endpoint for the chase planner.
--   : Enhanced to return full item details.
+-   , , , , : **Completed.** Now serving accurate data from CStone.
+-   : **Completed.** New endpoint to fetch parsed location data.
+-   , : **Pending Overhaul.** These endpoints serve the list of ships and ship details, but their core stats are not yet from CStone.
 
 **Critical Info for New Agent**
--   **STOP ALL OTHER WORK.** Your one and only priority is to address the user's request for data accuracy. All feature development is on hold until the data backend is completely overhauled to use .
--   Your first step is to thoroughly investigate  for an API. If none is found, assess the viability of scraping.
--   You MUST create a detailed migration plan and get user approval before writing any code to change the data sources. This change will be substantial and will touch many parts of the backend.
--   The massive data curation effort from the last session is now considered obsolete by the user. Do not try to merge or reconcile it; plan to replace it entirely.
+-   The user is happy with the progress on data accuracy. The most critical, time-consuming parts (components, weapons, gear) are done.
+-   **Your top priority (P0) is to finish the data migration by updating the core ship and vehicle data.** The user's original request was to fix the data for Ships themselves, which has not been done yet. You must modify the  and  endpoints to source their primary statistics from the CStone API, similar to how components and weapons were handled.
+-   After completing the ship data migration, proceed to the Upcoming Tasks in order: P1 (Price Tracking) and then P2 (RSI Import).
+-   The user has repeatedly stated THE FRONTEND MUST NOT CHANGE except for specific requests. Do not make any unsolicited UI changes.
 
 **documents and test reports created in this job**
--   /app/memory/PRD.md (Updated)
--   /app/test_reports/iteration_9.json
--   /app/test_reports/iteration_10.json
--   /app/test_reports/iteration_11.json
+-   /app/memory/PRD.md (Should be updated)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.   - **PENDING (This is the current P0 task)**
-2.   - User was asked to check the reverted Components page.
-3.   - User clarified the scope of the UI revert request.
-4.   - **COMPLETED** (Only for Components page, user asked to leave dashboard).
-5.   - **COMPLETED**.
-6.   - **COMPLETED**.
-7.   - **COMPLETED**.
-8.  User provided deployment logs. - The agent correctly identified no code changes were needed.
-9.   - **COMPLETED**.
-10.  - **COMPLETED**, but subsequently invalidated by the user's new data source mandate.
+1.   - **PENDING**: User approved moving to the next planned tasks.
+2.   - **RESOLVED**: Agent removed all wiki dependencies for gear/armor images and data.
+3.   - **RESOLVED**: Agent implemented a robust, performant, and accurate location-fetching system from CStone for all gear.
+4.   - **RESOLVED**: Agent updated the dashboard layout to a two-column design.
+5.   - **RESOLVED**: Agent redesigned the fleet items on the dashboard to be compact horizontal rows.
+6.   - **RESOLVED**: Agent replaced all boat icons and confirmed the RSI Galaxy is in the ship list.
+7.   - **RESOLVED**: Agent began the multi-step process of redesigning the dashboard to match the user's screenshot.
+8.   - **RESOLVED**: This kicked off the final part of the gear/armor data overhaul.
+9.   - User message to proceed.
+10.  - This was from a much earlier session in the history and is no longer relevant.
 
 **Project Health Check:**
--   **Broken**: The core data is considered broken/inaccurate by the user, pending a complete overhaul.
--   **Mocked**: No mocked components. The system uses live data, which is the source of the issue.
+-   **Broken**: Partially. The core ship/vehicle data is still outdated.
+-   **Mocked**: None.
 
 **3rd Party Integrations**
--   **starcitizen.tools API**: Current data source. **To be deprecated.**
--   **cstone.space API**: Current data source for some gear. **To be deprecated.**
--   **finder.cstone.space**: **The new mandated primary source of truth for all data.**
+-   **finder.cstone.space**: The primary source of truth for all game data, accessed via a reverse-engineered API.
+-   **starcitizen.tools API**: Deprecated.
+-   **cstone.space API**: Deprecated.
 
 **Testing status**
--   **Testing agent used after significant changes**: YES. It was used multiple times and passed successfully on features that are now pending data correction.
+-   **Testing agent used after significant changes**: NO
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: []
--   **Known regressions**: The entire dataset is considered a regression by the user.
+-   **Known regressions**: The core ship/vehicle data is now the main point of inaccuracy.
 
 **Credentials to test flow:**
 -   Create a new user via the registration page. Use any username and password (e.g., , ).
 
 **What agent forgot to execute**
--   The agent was redirected by the user's urgent data accuracy request. The immediate task is not something forgotten, but rather the starting point for the next agent: continue the investigation of .</analysis>
+-   The agent did not complete the data migration for the **ships and vehicles themselves**. While components, weapons, and gear were updated, the main ship stats (like speed, hull, etc.) served by  are still from the old data source. This is the last remaining piece of the P0 Data Accuracy task.</analysis>

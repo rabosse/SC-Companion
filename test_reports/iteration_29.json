@@ -1,0 +1,59 @@
+{
+  "summary": "Iteration 29: P0 Ship & Vehicle Data Migration from CStone verified. All 13 backend tests passed (100%). Frontend UI working correctly - ships list displays CStone images and prices, ship detail page shows technical specs from Wiki API and purchase locations from CStone.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Ships list", "issues": ["React duplicate key warnings for ships with same name (Gladius Pirate, Hammerhead 2949 BIS, etc.) - cosmetic, does not affect functionality. Pre-existing from iteration 28."]}
+    ]
+  },
+  "passed_tests": [
+    "Backend: /api/ships returns 'cstone+live' source with 204 ships",
+    "Backend: Ships have CStone fields - cstone_id, cstone_image, sold_in_game, rentable, role",
+    "Backend: Ships have purchase_details with per-location prices from CStone (56 ships have location data)",
+    "Backend: Ships have Wiki API specs - max_speed, crew_min, crew_max, health, shield_hp, hardpoints, quantum",
+    "Backend: Avenger Titan has sold_in_game=true, cstone_id, price_auec=1,290,366, purchase_locations",
+    "Backend: /api/vehicles returns 'cstone+live' source with 12 ground vehicles",
+    "Backend: Vehicles have CStone data fields",
+    "Backend: /api/item-locations/{item_id} returns CStone purchase locations",
+    "Backend: /api/components returns 'cstone' source with 270 components",
+    "Backend: /api/weapons returns 'cstone' source with 146 weapons",
+    "Backend: /api/missiles returns 'cstone' source with 65 missiles",
+    "Backend: Register and login endpoints working with username (not email)",
+    "Frontend: Login page loads and authenticates correctly",
+    "Frontend: Ships page displays ship cards with images and prices",
+    "Frontend: Ship cards show CStone prices (1,508,220 aUEC for Avenger Stalker)",
+    "Frontend: Ship detail page loads with technical specifications",
+    "Frontend: Ship detail shows Wiki API specs - SCM Speed, Shield HP, Mass, etc.",
+    "Frontend: Purchase locations section displayed on ship detail page",
+    "Frontend: Search filtering works (searched 'Avenger', found 4 variants)"
+  ],
+  "test_report_links": [
+    "/app/backend/tests/test_iteration29_cstone_migration.py",
+    "/app/test_reports/pytest/pytest_iteration29.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "React duplicate key warning: Ships with identical names cause duplicate keys in list rendering. Consider using unique ship ID instead of name for React keys (pre-existing issue from iteration 28).",
+    "CStone data integration working correctly - ship purchase locations are fetched via background task on startup and cached"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration29_cstone_migration.py"
+  ],
+  "success_rate": {
+    "backend": "100% (13/13 tests passed)",
+    "frontend": "100% (All UI flows verified)"
+  },
+  "test_credentials": {
+    "username": "testpilot_cstone29",
+    "password": "password123"
+  },
+  "seed_data_creation": "Created multiple test users for backend tests: cstone_test_pilot_29, cstone_ships_test_29, cstone_vehicles_test_29, etc.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 29 verified P0 Ship & Vehicle Data Migration from CStone (finder.cstone.space). Ships now have CStone fields: cstone_id, cstone_image, sold_in_game, rentable, role, purchase_details with per-location prices. Wiki API provides: max_speed, crew_min, crew_max, health, shield_hp, hardpoints, quantum. 56 out of 204 ships have purchase_details populated (background task fetches locations for sold ships). All endpoints (/api/ships, /api/vehicles, /api/components, /api/weapons, /api/missiles, /api/item-locations) return CStone data with correct source indicators."
+}

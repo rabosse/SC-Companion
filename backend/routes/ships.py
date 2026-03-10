@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends
 import re
+import logging
 
 from deps import get_current_user
 from ship_data_enhancer import enhance_ship_data, get_vehicle_image, get_ship_image
@@ -10,9 +11,13 @@ from cstone_api import (
     get_ship_weapons as cstone_ship_weapons,
     get_missiles_list as cstone_missiles,
     get_item_locations,
+    get_cached_locations,
     prefetch_cstone_data,
+    build_ship_lookup,
+    get_ship_shops,
 )
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["ships"])
 
 # Suffixes that indicate a variant (cosmetic/edition) of a base ship
@@ -74,32 +79,105 @@ def _dedupe_and_group_variants(ships):
     return result
 
 
+def _merge_cstone_into_ship(ship: dict, cstone_entry: dict) -> dict:
+    """Merge CStone shop data into a ship record from the Wiki API.
+    CStone provides: image, purchase locations/prices, focus, description, sold/rent status.
+    Wiki provides: speed, crew, cargo, mass, health, hardpoints, quantum data.
+    """
+    if not cstone_entry:
+        return ship
+
+    # CStone image is primary
+    cstone_img = cstone_entry.get("image", "")
+    if cstone_img:
+        ship["cstone_image"] = cstone_img
+        # Use CStone image as primary if wiki image is missing
+        if not ship.get("image"):
+            ship["image"] = cstone_img
+
+    # CStone item ID for location lookups
+    ship["cstone_id"] = cstone_entry.get("id", "")
+
+    # Purchase data from CStone (replaces hardcoded ship_purchases.py)
+    cstone_locations = get_cached_locations(cstone_entry.get("id", ""))
+    if cstone_locations:
+        ship["purchase_locations"] = [loc["location"] for loc in cstone_locations]
+        # Best price from CStone
+        prices = [loc["price"] for loc in cstone_locations if loc.get("price", 0) > 0]
+        if prices:
+            ship["price_auec"] = min(prices)
+        ship["purchase_details"] = cstone_locations
+
+    # CStone focus/role overrides if available
+    cstone_focus = cstone_entry.get("focus", "")
+    if cstone_focus:
+        ship["role"] = cstone_focus
+
+    # CStone description if more detailed
+    cstone_desc = cstone_entry.get("description", "")
+    if cstone_desc and len(cstone_desc) > len(ship.get("description", "")):
+        ship["description"] = cstone_desc
+
+    # Sold/rentable status from CStone
+    ship["sold_in_game"] = cstone_entry.get("sold", False)
+    ship["rentable"] = cstone_entry.get("rentable", False)
+
+    return ship
+
+
 @router.get("/ships")
 async def get_ships(user_id: str = Depends(get_current_user)):
+    await prefetch_cstone_data()
+
+    # Build CStone ship lookup by display name
+    cstone_lookup = build_ship_lookup()
+
     live_vehicles = await fetch_live_vehicles()
     if live_vehicles:
         ships = [v for v in live_vehicles if not v.get("is_ground_vehicle")]
         for s in ships:
+            # Wiki image
             img = get_ship_image(s["name"])
             if img:
                 s["image"] = img
+
+            # Hardcoded purchase data as fallback
             pinfo = get_purchase_info(s["name"])
             s["price_auec"] = pinfo["price_auec"]
             s["purchase_locations"] = pinfo["dealers"]
             s["price_usd"] = s.get("msrp", 0)
             s["pledge_url"] = s.get("pledge_url", "")
+
+            # Merge CStone data (overrides purchase data with live CStone data)
+            name_lower = s["name"].lower().strip()
+            cstone_entry = cstone_lookup.get(name_lower)
+            if not cstone_entry:
+                # Try partial matching for common mismatches
+                for key, entry in cstone_lookup.items():
+                    if key in name_lower or name_lower in key:
+                        cstone_entry = entry
+                        break
+            _merge_cstone_into_ship(s, cstone_entry)
+
         ships = _dedupe_and_group_variants(ships)
-        return {"success": True, "data": ships, "source": "live"}
+        return {"success": True, "data": ships, "source": "cstone+live"}
+
     ships = enhance_ship_data(_get_comprehensive_ship_list())
     for s in ships:
         pinfo = get_purchase_info(s["name"])
         s["price_auec"] = pinfo["price_auec"]
         s["purchase_locations"] = pinfo["dealers"]
-    return {"success": True, "data": ships, "source": "mock"}
+        name_lower = s["name"].lower().strip()
+        cstone_entry = cstone_lookup.get(name_lower)
+        _merge_cstone_into_ship(s, cstone_entry)
+    return {"success": True, "data": ships, "source": "cstone+mock"}
 
 
 @router.get("/vehicles")
 async def get_vehicles(user_id: str = Depends(get_current_user)):
+    await prefetch_cstone_data()
+    cstone_lookup = build_ship_lookup()
+
     live_vehicles = await fetch_live_vehicles()
     if live_vehicles:
         ground = [v for v in live_vehicles if v.get("is_ground_vehicle")]
@@ -110,9 +188,18 @@ async def get_vehicles(user_id: str = Depends(get_current_user)):
             pinfo = get_purchase_info(v["name"])
             v["price_auec"] = pinfo["price_auec"]
             v["purchase_locations"] = pinfo["dealers"]
+            # Merge CStone data
+            name_lower = v["name"].lower().strip()
+            cstone_entry = cstone_lookup.get(name_lower)
+            if not cstone_entry:
+                for key, entry in cstone_lookup.items():
+                    if key in name_lower or name_lower in key:
+                        cstone_entry = entry
+                        break
+            _merge_cstone_into_ship(v, cstone_entry)
         if ground:
             ground = _dedupe_and_group_variants(ground)
-            return {"success": True, "data": ground, "source": "live"}
+            return {"success": True, "data": ground, "source": "cstone+live"}
     mock_vehicles = [
         {"id": "cyclone", "name": "Cyclone", "manufacturer": "Tumbril", "type": "Ground", "crew": "2", "image": get_vehicle_image("Cyclone")},
         {"id": "nox", "name": "Nox", "manufacturer": "Aopoa", "type": "Hover", "crew": "1", "image": get_vehicle_image("Nox")},

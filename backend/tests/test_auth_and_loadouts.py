@@ -8,7 +8,7 @@ import requests
 import os
 import uuid
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://cstone-fleet.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://fleet-manager-394.preview.emergentagent.com')
 
 # New test credentials (username + password)
 TEST_USERNAME = "testpilot"
