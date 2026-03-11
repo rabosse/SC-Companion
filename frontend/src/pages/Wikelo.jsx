@@ -1,10 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
+import { useAuth } from '../App';
 import { Search, X, Shield, Crosshair, Rocket, Coins, Wrench, Package, ChevronRight, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const CAT_CONFIG = {
   Vehicles: { color: '#00D4FF', icon: Rocket, label: 'Vehicles' },
@@ -15,6 +14,7 @@ const CAT_CONFIG = {
 };
 
 const Wikelo = () => {
+  const { API } = useAuth();
   const [contracts, setContracts] = useState([]);
   const [categories, setCategories] = useState({});
   const [info, setInfo] = useState(null);
@@ -23,6 +23,7 @@ const Wikelo = () => {
   const [search, setSearch] = useState('');
   const [showInactive, setShowInactive] = useState(true);
   const [selectedContract, setSelectedContract] = useState(null);
+  const [shipImages, setShipImages] = useState({});
 
   useEffect(() => {
     const load = async () => {
@@ -34,6 +35,20 @@ const Wikelo = () => {
         setContracts(cRes.data.data || []);
         setCategories(cRes.data.categories || {});
         setInfo(iRes.data.data || null);
+        // Fetch ship images for vehicle reward matching
+        try {
+          const sRes = await axios.get(`${API}/ships`);
+          const vRes = await axios.get(`${API}/vehicles`);
+          const all = [...(sRes.data.data || []), ...(vRes.data.data || [])];
+          const imgMap = {};
+          all.forEach(s => {
+            if (s.image) {
+              imgMap[s.name.toLowerCase()] = s.image;
+              imgMap[s.id] = s.image;
+            }
+          });
+          setShipImages(imgMap);
+        } catch {}
       } catch { toast.error('Failed to load Wikelo data'); }
       finally { setLoading(false); }
     };
@@ -127,7 +142,7 @@ const Wikelo = () => {
       {/* Contract Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.map((contract, i) => (
-          <ContractCard key={contract.id} contract={contract} index={i} onClick={() => setSelectedContract(contract)} />
+          <ContractCard key={contract.id} contract={contract} index={i} onClick={() => setSelectedContract(contract)} shipImages={shipImages} />
         ))}
       </div>
 
@@ -138,16 +153,28 @@ const Wikelo = () => {
       {/* Detail Modal */}
       <AnimatePresence>
         {selectedContract && (
-          <ContractModal contract={selectedContract} onClose={() => setSelectedContract(null)} />
+          <ContractModal contract={selectedContract} onClose={() => setSelectedContract(null)} shipImages={shipImages} />
         )}
       </AnimatePresence>
     </div>
   );
 };
 
-const ContractCard = ({ contract, index, onClick }) => {
+const ContractCard = ({ contract, index, onClick, shipImages }) => {
   const cfg = CAT_CONFIG[contract.category] || {};
   const color = cfg.color || '#888';
+  // Resolve image: use contract image first, then try matching reward ship name
+  let displayImage = contract.image;
+  if (!displayImage && contract.category === 'Vehicles' && contract.reward?.length > 0) {
+    const rewardName = contract.reward[0].toLowerCase();
+    displayImage = shipImages[rewardName];
+    if (!displayImage) {
+      // Try partial match
+      const keys = Object.keys(shipImages);
+      const match = keys.find(k => rewardName.includes(k) || k.includes(rewardName));
+      if (match) displayImage = shipImages[match];
+    }
+  }
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
@@ -157,9 +184,9 @@ const ContractCard = ({ contract, index, onClick }) => {
       className="glass-panel rounded-xl p-0 overflow-hidden cursor-pointer group hover:border-white/20 transition-all"
     >
       {/* Image or colored header */}
-      {contract.image ? (
+      {displayImage ? (
         <div className="h-36 bg-black/40 flex items-center justify-center overflow-hidden">
-          <img src={contract.image} alt={contract.name}
+          <img src={displayImage} alt={contract.name}
             className="h-full w-full object-contain group-hover:scale-105 transition-transform duration-300"
             onError={e => { e.target.style.display = 'none'; }} />
         </div>
@@ -203,9 +230,19 @@ const ContractCard = ({ contract, index, onClick }) => {
   );
 };
 
-const ContractModal = ({ contract, onClose }) => {
+const ContractModal = ({ contract, onClose, shipImages }) => {
   const cfg = CAT_CONFIG[contract.category] || {};
   const color = cfg.color || '#888';
+  let modalImage = contract.image;
+  if (!modalImage && contract.category === 'Vehicles' && contract.reward?.length > 0) {
+    const rewardName = contract.reward[0].toLowerCase();
+    modalImage = shipImages[rewardName];
+    if (!modalImage) {
+      const keys = Object.keys(shipImages);
+      const match = keys.find(k => rewardName.includes(k) || k.includes(rewardName));
+      if (match) modalImage = shipImages[match];
+    }
+  }
   return (
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -219,9 +256,9 @@ const ContractModal = ({ contract, onClose }) => {
         className="w-full max-w-lg bg-gray-900 border border-white/10 rounded-2xl overflow-hidden max-h-[85vh] flex flex-col"
       >
         {/* Header */}
-        {contract.image && (
+        {modalImage && (
           <div className="h-44 bg-black/60 flex items-center justify-center">
-            <img src={contract.image} alt={contract.name} className="h-full object-contain" />
+            <img src={modalImage} alt={contract.name} className="h-full object-contain" />
           </div>
         )}
         <div className="p-6 overflow-y-auto flex-1">

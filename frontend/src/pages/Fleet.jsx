@@ -94,14 +94,25 @@ const Fleet = () => {
           </h1>
           <p className="text-gray-400">{fleet.length} ships in your collection</p>
         </div>
-        <button
-          onClick={() => setShowImport(true)}
-          data-testid="quick-import-btn"
-          className="btn-origin flex items-center gap-2"
-        >
-          <Plus className="w-5 h-5" />
-          Quick Import
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setShowImport(true)}
+            data-testid="quick-import-btn"
+            className="btn-origin flex items-center gap-2"
+          >
+            <Plus className="w-5 h-5" />
+            Quick Import
+          </button>
+          <Link to="/ships">
+            <button
+              data-testid="add-ships-btn"
+              className="flex items-center gap-2 px-6 py-3 border border-cyan-500/30 text-cyan-500 rounded-xl hover:bg-cyan-500/10 transition-all font-semibold"
+            >
+              <Search className="w-5 h-5" />
+              Browse &amp; Add
+            </button>
+          </Link>
+        </div>
       </div>
 
       {fleet.length > 0 && (
