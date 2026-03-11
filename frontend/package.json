@@ -58,7 +58,7 @@
     "zod": "^3.24.4"
   },
   "scripts": {
-    "start": "if [ \"$ENABLE_HEALTH_CHECK\" = \"true\" ] && [ -d build ]; then npx serve -s build -l 3000; else craco start; fi",
+    "start": "node start.js",
     "build": "craco build",
     "test": "craco test"
   },
