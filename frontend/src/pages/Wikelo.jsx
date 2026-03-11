@@ -24,6 +24,7 @@ const Wikelo = () => {
   const [showInactive, setShowInactive] = useState(true);
   const [selectedContract, setSelectedContract] = useState(null);
   const [shipImages, setShipImages] = useState({});
+  const [shipData, setShipData] = useState({});
 
   useEffect(() => {
     const load = async () => {
@@ -35,19 +36,24 @@ const Wikelo = () => {
         setContracts(cRes.data.data || []);
         setCategories(cRes.data.categories || {});
         setInfo(iRes.data.data || null);
-        // Fetch ship images for vehicle reward matching
+        // Fetch ship data for vehicle reward matching
         try {
           const sRes = await axios.get(`${API}/ships`);
           const vRes = await axios.get(`${API}/vehicles`);
           const all = [...(sRes.data.data || []), ...(vRes.data.data || [])];
           const imgMap = {};
+          const dataMap = {};
           all.forEach(s => {
+            const key = s.name.toLowerCase();
             if (s.image) {
-              imgMap[s.name.toLowerCase()] = s.image;
+              imgMap[key] = s.image;
               imgMap[s.id] = s.image;
             }
+            dataMap[key] = s;
+            dataMap[s.id] = s;
           });
           setShipImages(imgMap);
+          setShipData(dataMap);
         } catch {}
       } catch { toast.error('Failed to load Wikelo data'); }
       finally { setLoading(false); }
@@ -153,7 +159,7 @@ const Wikelo = () => {
       {/* Detail Modal */}
       <AnimatePresence>
         {selectedContract && (
-          <ContractModal contract={selectedContract} onClose={() => setSelectedContract(null)} shipImages={shipImages} />
+          <ContractModal contract={selectedContract} onClose={() => setSelectedContract(null)} shipImages={shipImages} shipData={shipData} />
         )}
       </AnimatePresence>
     </div>
@@ -230,7 +236,19 @@ const ContractCard = ({ contract, index, onClick, shipImages }) => {
   );
 };
 
-const ContractModal = ({ contract, onClose, shipImages }) => {
+const resolveShip = (contract, shipData) => {
+  if (contract.category !== 'Vehicles' || !contract.reward?.length) return null;
+  const rewardName = contract.reward[0].toLowerCase();
+  let ship = shipData[rewardName];
+  if (!ship) {
+    const keys = Object.keys(shipData);
+    const match = keys.find(k => rewardName.includes(k) || k.includes(rewardName));
+    if (match) ship = shipData[match];
+  }
+  return ship || null;
+};
+
+const ContractModal = ({ contract, onClose, shipImages, shipData }) => {
   const cfg = CAT_CONFIG[contract.category] || {};
   const color = cfg.color || '#888';
   let modalImage = contract.image;
@@ -243,6 +261,7 @@ const ContractModal = ({ contract, onClose, shipImages }) => {
       if (match) modalImage = shipImages[match];
     }
   }
+  const ship = resolveShip(contract, shipData);
   return (
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -267,7 +286,7 @@ const ContractModal = ({ contract, onClose, shipImages }) => {
               <h2 className="text-xl font-bold text-white" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
                 {contract.name}
               </h2>
-              <div className="flex gap-2 mt-1">
+              <div className="flex gap-2 mt-1 flex-wrap">
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase" style={{ backgroundColor: `${color}20`, color, border: `1px solid ${color}40` }}>
                   {contract.category}
                 </span>
@@ -299,6 +318,52 @@ const ContractModal = ({ contract, onClose, shipImages }) => {
             </div>
           </div>
 
+          {/* Vehicle Stats */}
+          {ship && (
+            <div className="mb-5" data-testid="vehicle-stats-section">
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Vehicle Stats</h3>
+              <div className="grid grid-cols-2 gap-2">
+                <StatCell label="Manufacturer" value={ship.manufacturer} />
+                <StatCell label="Role" value={ship.role} />
+                <StatCell label="Size" value={ship.size} />
+                <StatCell label="Crew" value={ship.crew_min === ship.crew_max ? `${ship.crew_max}` : `${ship.crew_min}-${ship.crew_max}`} />
+                <StatCell label="Cargo" value={`${ship.cargo || 0} SCU`} />
+                <StatCell label="Speed" value={`${ship.max_speed || '—'} m/s`} />
+                <StatCell label="Boost" value={`${ship.max_speed_boost || '—'} m/s`} />
+                <StatCell label="Health" value={ship.health ? ship.health.toLocaleString() : '—'} />
+                <StatCell label="Shield HP" value={ship.shield_hp ? ship.shield_hp.toLocaleString() : '—'} />
+                <StatCell label="Armor" value={ship.armor || '—'} />
+                {ship.quantum && (
+                  <>
+                    <StatCell label="QD Speed" value={`${(ship.quantum.speed_kms / 1000).toFixed(0)}k km/s`} />
+                    <StatCell label="QD Range" value={`${ship.quantum.range_mkm} Mkm`} />
+                  </>
+                )}
+                {ship.price_auec > 0 && <StatCell label="Price (aUEC)" value={ship.price_auec.toLocaleString()} highlight />}
+                {ship.price_usd > 0 && <StatCell label="Price (USD)" value={`$${ship.price_usd}`} />}
+              </div>
+              {ship.hardpoints && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {ship.hardpoints.weapons?.length > 0 && (
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-red-500/10 text-red-400 border border-red-500/20">
+                      Weapons: {ship.hardpoints.weapons.map(w => `S${w}`).join(', ')}
+                    </span>
+                  )}
+                  {ship.hardpoints.missiles?.length > 0 && (
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20">
+                      Missiles: {ship.hardpoints.missiles.map(m => `S${m}`).join(', ')}
+                    </span>
+                  )}
+                  {ship.hardpoints.shield && (
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                      Shields: {ship.hardpoints.shield.count}x S{ship.hardpoints.shield.size}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Items Needed Section */}
           <div>
             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
@@ -318,5 +383,12 @@ const ContractModal = ({ contract, onClose, shipImages }) => {
     </motion.div>
   );
 };
+
+const StatCell = ({ label, value, highlight }) => (
+  <div className="bg-white/5 rounded-lg px-3 py-1.5 border border-white/5">
+    <span className="text-[10px] text-gray-500 block">{label}</span>
+    <span className={`text-xs font-bold ${highlight ? 'text-amber-400' : 'text-white'}`}>{value || '—'}</span>
+  </div>
+);
 
 export default Wikelo;
