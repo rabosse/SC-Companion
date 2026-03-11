@@ -51,7 +51,6 @@ class _DBProxy:
         return _get_db()[name]
 
 
-client = property(lambda self: _get_client())
 db = _DBProxy()
 
 security = HTTPBearer()
