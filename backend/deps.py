@@ -9,18 +9,50 @@ from pathlib import Path
 from dotenv import load_dotenv
 import os
 import uuid
+import logging
+
+logger = logging.getLogger(__name__)
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(
-    mongo_url,
-    serverSelectionTimeoutMS=10000,
-    connectTimeoutMS=10000,
-    socketTimeoutMS=30000,
-)
-db = client[os.environ['DB_NAME']]
+# Lazy MongoDB connection - don't resolve DNS at import time
+# This prevents crashes when using mongodb+srv:// (Atlas) if DNS is slow
+_client = None
+_db = None
+
+
+def _get_client():
+    global _client
+    if _client is None:
+        mongo_url = os.environ['MONGO_URL']
+        _client = AsyncIOMotorClient(
+            mongo_url,
+            serverSelectionTimeoutMS=10000,
+            connectTimeoutMS=10000,
+            socketTimeoutMS=30000,
+        )
+    return _client
+
+
+def _get_db():
+    global _db
+    if _db is None:
+        _db = _get_client()[os.environ['DB_NAME']]
+    return _db
+
+
+# Proxy object so existing code using `db.collection` still works
+class _DBProxy:
+    def __getattr__(self, name):
+        return getattr(_get_db(), name)
+
+    def __getitem__(self, name):
+        return _get_db()[name]
+
+
+client = property(lambda self: _get_client())
+db = _DBProxy()
 
 security = HTTPBearer()
 

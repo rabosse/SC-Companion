@@ -3,7 +3,7 @@ from starlette.middleware.cors import CORSMiddleware
 import os
 import logging
 
-from deps import client
+from deps import _get_client
 from ship_data_enhancer import fetch_all_wiki_images
 from live_api import prefetch_all
 from cstone_api import prefetch_cstone_data
@@ -118,4 +118,6 @@ async def startup_event():
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
-    client.close()
+    c = _get_client()
+    if c:
+        c.close()
