@@ -50,11 +50,16 @@ const Dashboard = () => {
   }, [fleet, allVehicles]);
 
   const filteredFleet = useMemo(() => {
+    const SIZE_ORDER = { snub: 0, small: 1, medium: 2, large: 3, capital: 4 };
     let items = fleetShips;
     if (fleetFilter === 'ships') items = items.filter(f => f.details && f.details.type !== 'ground');
     if (fleetFilter === 'land') items = items.filter(f => f.details && f.details.type === 'ground');
-    if (fleetSort === 'name') items = [...items].sort((a, b) => (a.ship_name || '').localeCompare(b.ship_name || ''));
-    if (fleetSort === 'size') items = [...items].sort((a, b) => (a.details?.length || 0) - (b.details?.length || 0));
+    items = [...items];
+    if (fleetSort === 'name') items.sort((a, b) => (a.ship_name || '').localeCompare(b.ship_name || ''));
+    if (fleetSort === 'size') items.sort((a, b) => (SIZE_ORDER[(a.details?.size || '').toLowerCase()] ?? 99) - (SIZE_ORDER[(b.details?.size || '').toLowerCase()] ?? 99));
+    if (fleetSort === 'type') items.sort((a, b) => (a.details?.role || 'zzz').localeCompare(b.details?.role || 'zzz'));
+    if (fleetSort === 'manufacturer') items.sort((a, b) => (a.manufacturer || 'zzz').localeCompare(b.manufacturer || 'zzz'));
+    if (fleetSort === 'cargo') items.sort((a, b) => (b.details?.cargo || 0) - (a.details?.cargo || 0));
     return items;
   }, [fleetShips, fleetFilter, fleetSort]);
 
@@ -126,6 +131,9 @@ const Dashboard = () => {
               className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-white font-semibold focus:outline-none focus:border-cyan-500">
               <option value="name" className="bg-gray-900">Name</option>
               <option value="size" className="bg-gray-900">Size</option>
+              <option value="type" className="bg-gray-900">Type</option>
+              <option value="manufacturer" className="bg-gray-900">Manufacturer</option>
+              <option value="cargo" className="bg-gray-900">Storage (SCU)</option>
             </select>
           </div>
 
@@ -254,7 +262,11 @@ const FleetCard = ({ fs, index }) => {
             )}
           </div>
           {isCustom && <p className="text-[10px] text-gray-600 -mt-0.5">{fs.ship_name}</p>}
-          <p className="text-xs text-gray-500 mb-1">{fs.manufacturer}</p>
+          <div className="flex items-center gap-2 mb-1">
+            <p className="text-xs text-gray-500">{fs.manufacturer}</p>
+            {fs.details?.role && <span className="text-[9px] text-gray-600">· {fs.details.role}</span>}
+            {fs.details?.cargo > 0 && <span className="text-[9px] text-amber-500/70">· {fs.details.cargo} SCU</span>}
+          </div>
 
           {/* Compact component + weapon line */}
           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px]">
