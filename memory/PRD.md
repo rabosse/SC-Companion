@@ -73,6 +73,13 @@ Build a full-stack "Star Citizen Fleet Manager" application allowing players to 
 - Automated snapshot on server startup
 - Tested 100% (21/21 backend, all frontend flows)
 
+### Dashboard Fleet Filters (March 2026) - COMPLETE
+- 4 individual category filter dropdowns: Size, Type, Manufacturer, Storage (SCU)
+- Dynamically populated from user's fleet data
+- Combined filtering supported (e.g. Small + Aegis Dynamics)
+- Clear Filters button when any filter active
+- Fleet cards show role and SCU inline
+
 ### Dashboard Redesign (March 2026) - COMPLETE
 - Simplified fleet stats, quick actions, ship cards with filters/sort
 
