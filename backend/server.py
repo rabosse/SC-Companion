@@ -35,6 +35,11 @@ async def health_check():
     return {"status": "ok"}
 
 
+@app.get("/health")
+async def health_check_root():
+    return {"status": "ok"}
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
