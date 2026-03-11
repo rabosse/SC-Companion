@@ -15,7 +15,10 @@ const Dashboard = () => {
   const [communityCount, setCommunityCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [fleetFilter, setFleetFilter] = useState('all');
-  const [fleetSort, setFleetSort] = useState('name');
+  const [filterSize, setFilterSize] = useState('all');
+  const [filterType, setFilterType] = useState('all');
+  const [filterMfg, setFilterMfg] = useState('all');
+  const [filterCargo, setFilterCargo] = useState('all');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -49,19 +52,34 @@ const Dashboard = () => {
     return fleet.map(f => ({ ...f, details: lookup[f.ship_id] }));
   }, [fleet, allVehicles]);
 
+  // Derive unique filter options from fleet data
+  const filterOptions = useMemo(() => {
+    const sizes = new Set(), types = new Set(), mfgs = new Set();
+    fleetShips.forEach(f => {
+      if (f.details?.size) sizes.add(f.details.size);
+      if (f.details?.role) types.add(f.details.role);
+      if (f.manufacturer) mfgs.add(f.manufacturer);
+    });
+    const sizeOrder = ['Snub', 'Small', 'Medium', 'Large', 'Capital'];
+    return {
+      sizes: [...sizes].sort((a, b) => sizeOrder.indexOf(a) - sizeOrder.indexOf(b)),
+      types: [...types].sort(),
+      mfgs: [...mfgs].sort(),
+    };
+  }, [fleetShips]);
+
   const filteredFleet = useMemo(() => {
-    const SIZE_ORDER = { snub: 0, small: 1, medium: 2, large: 3, capital: 4 };
     let items = fleetShips;
     if (fleetFilter === 'ships') items = items.filter(f => f.details && f.details.type !== 'ground');
     if (fleetFilter === 'land') items = items.filter(f => f.details && f.details.type === 'ground');
-    items = [...items];
-    if (fleetSort === 'name') items.sort((a, b) => (a.ship_name || '').localeCompare(b.ship_name || ''));
-    if (fleetSort === 'size') items.sort((a, b) => (SIZE_ORDER[(a.details?.size || '').toLowerCase()] ?? 99) - (SIZE_ORDER[(b.details?.size || '').toLowerCase()] ?? 99));
-    if (fleetSort === 'type') items.sort((a, b) => (a.details?.role || 'zzz').localeCompare(b.details?.role || 'zzz'));
-    if (fleetSort === 'manufacturer') items.sort((a, b) => (a.manufacturer || 'zzz').localeCompare(b.manufacturer || 'zzz'));
-    if (fleetSort === 'cargo') items.sort((a, b) => (b.details?.cargo || 0) - (a.details?.cargo || 0));
+    if (filterSize !== 'all') items = items.filter(f => f.details?.size === filterSize);
+    if (filterType !== 'all') items = items.filter(f => f.details?.role === filterType);
+    if (filterMfg !== 'all') items = items.filter(f => f.manufacturer === filterMfg);
+    if (filterCargo === 'has') items = items.filter(f => (f.details?.cargo || 0) > 0);
+    if (filterCargo === 'none') items = items.filter(f => !(f.details?.cargo > 0));
+    items = [...items].sort((a, b) => (a.ship_name || '').localeCompare(b.ship_name || ''));
     return items;
-  }, [fleetShips, fleetFilter, fleetSort]);
+  }, [fleetShips, fleetFilter, filterSize, filterType, filterMfg, filterCargo]);
 
   const fleetStats = useMemo(() => {
     const mfgCount = {};
@@ -117,24 +135,48 @@ const Dashboard = () => {
             </Link>
           </div>
 
-          {/* Filter tabs + Sort */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex gap-2" data-testid="fleet-filter-tabs">
-              {['all', 'ships', 'land'].map(f => (
-                <button key={f} onClick={() => setFleetFilter(f)} data-testid={`fleet-filter-${f}`}
-                  className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase transition-all ${fleetFilter === f ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'bg-white/5 text-gray-500 border border-white/10 hover:text-gray-300'}`}>
-                  {f === 'all' ? 'All' : f === 'ships' ? 'Ships' : 'Land'}
+          {/* Filter tabs + Category Filters */}
+          <div className="flex flex-col gap-3 mb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex gap-2" data-testid="fleet-filter-tabs">
+                {['all', 'ships', 'land'].map(f => (
+                  <button key={f} onClick={() => setFleetFilter(f)} data-testid={`fleet-filter-${f}`}
+                    className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase transition-all ${fleetFilter === f ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'bg-white/5 text-gray-500 border border-white/10 hover:text-gray-300'}`}>
+                    {f === 'all' ? 'All' : f === 'ships' ? 'Ships' : 'Land'}
+                  </button>
+                ))}
+              </div>
+              {(filterSize !== 'all' || filterType !== 'all' || filterMfg !== 'all' || filterCargo !== 'all') && (
+                <button onClick={() => { setFilterSize('all'); setFilterType('all'); setFilterMfg('all'); setFilterCargo('all'); }}
+                  data-testid="clear-filters-btn"
+                  className="text-xs text-cyan-500 hover:text-cyan-400 transition-colors">
+                  Clear Filters
                 </button>
-              ))}
+              )}
             </div>
-            <select value={fleetSort} onChange={e => setFleetSort(e.target.value)} data-testid="fleet-sort"
-              className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-white font-semibold focus:outline-none focus:border-cyan-500">
-              <option value="name" className="bg-gray-900">Name</option>
-              <option value="size" className="bg-gray-900">Size</option>
-              <option value="type" className="bg-gray-900">Type</option>
-              <option value="manufacturer" className="bg-gray-900">Manufacturer</option>
-              <option value="cargo" className="bg-gray-900">Storage (SCU)</option>
-            </select>
+            <div className="flex flex-wrap gap-2">
+              <select value={filterSize} onChange={e => setFilterSize(e.target.value)} data-testid="filter-size"
+                className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-white font-semibold focus:outline-none focus:border-cyan-500">
+                <option value="all" className="bg-gray-900">Size: All</option>
+                {filterOptions.sizes.map(s => <option key={s} value={s} className="bg-gray-900">{s}</option>)}
+              </select>
+              <select value={filterType} onChange={e => setFilterType(e.target.value)} data-testid="filter-type"
+                className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-white font-semibold focus:outline-none focus:border-cyan-500">
+                <option value="all" className="bg-gray-900">Type: All</option>
+                {filterOptions.types.map(t => <option key={t} value={t} className="bg-gray-900">{t}</option>)}
+              </select>
+              <select value={filterMfg} onChange={e => setFilterMfg(e.target.value)} data-testid="filter-manufacturer"
+                className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-white font-semibold focus:outline-none focus:border-cyan-500">
+                <option value="all" className="bg-gray-900">Manufacturer: All</option>
+                {filterOptions.mfgs.map(m => <option key={m} value={m} className="bg-gray-900">{m}</option>)}
+              </select>
+              <select value={filterCargo} onChange={e => setFilterCargo(e.target.value)} data-testid="filter-cargo"
+                className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-white font-semibold focus:outline-none focus:border-cyan-500">
+                <option value="all" className="bg-gray-900">Storage: All</option>
+                <option value="has" className="bg-gray-900">Has Cargo</option>
+                <option value="none" className="bg-gray-900">No Cargo</option>
+              </select>
+            </div>
           </div>
 
           {/* Fleet List */}

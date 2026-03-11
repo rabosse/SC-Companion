@@ -1,0 +1,55 @@
+{
+  "summary": "Iteration 32: Dashboard Fleet Filter Dropdowns - All 16 test cases passed (100%). Verified 4 filter dropdowns (Size, Type, Manufacturer, Storage), individual filtering, combined filtering, Clear Filters button, fleet tab integration, and fleet card role/SCU display.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "passed_tests": [
+    "Dashboard has 4 filter dropdowns: Size, Type, Manufacturer, Storage with correct data-testids",
+    "Size dropdown populated with actual fleet sizes: Small, Medium, Large, Capital",
+    "Type dropdown populated with actual fleet roles: Interdiction, Light Fighter, Transport, Light Freight, Heavy Gunship, Heavy Salvage, etc.",
+    "Manufacturer dropdown populated with: Aegis Dynamics, Drake Interplanetary, Anvil Aerospace, MISC, RSI",
+    "Storage dropdown has 3 options: All, Has Cargo, No Cargo",
+    "Size: Small filter correctly shows 4 ships (Avenger Stalker, Avenger Titan, Eclipse, Gladius)",
+    "Size: Medium filter correctly shows 2 ships (Cutlass Black, Freelancer)",
+    "Size: Large filter correctly shows 4 ships (Carrack, Caterpillar, Constellation Andromeda, Hammerhead)",
+    "Size: Capital filter correctly shows 1 ship (Reclaimer)",
+    "Type: Interdiction filter correctly shows Avenger Stalker",
+    "Type: Light Fighter filter correctly shows Gladius",
+    "Type: Transport filter correctly shows Caterpillar",
+    "Manufacturer: Aegis Dynamics filter correctly shows 6 ships",
+    "Manufacturer: Drake Interplanetary filter correctly shows 2 ships",
+    "Storage: Has Cargo filter correctly shows 9 ships with cargo > 0",
+    "Storage: No Cargo filter correctly shows 3 ships (Eclipse, Gladius, Hornet F7C)",
+    "Combined filters work: Small + Aegis = 4 ships, Medium + Drake = 1 ship",
+    "Clear Filters button appears when any filter is active",
+    "Clear Filters button resets all 4 filters to 'all' and disappears",
+    "Fleet filter tabs (All/Ships/Land) work alongside category filters",
+    "Fleet cards display role text (e.g., 'Interdiction', 'Light Freight') after manufacturer",
+    "Fleet cards display SCU value (e.g., '12 SCU', '456 SCU') for ships with cargo",
+    "Dashboard stats, quick actions, manufacturer sidebar, loadouts section unaffected by filter changes"
+  ],
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Minor: Console shows hydration warning about span inside select/option - cosmetic only, not affecting functionality"
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (frontend-only testing)",
+    "frontend": "100% (All 16 features verified)"
+  },
+  "test_credentials": {
+    "username": "chasetest",
+    "password": "Test123!"
+  },
+  "seed_data_creation": "No new seed data - used existing user fleet (12 ships)",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 32 verified Dashboard filter dropdowns feature. All 4 dropdowns (Size, Type, Manufacturer, Storage) dynamically populated from user fleet data. Filters work individually and in combination. Clear Filters button appears/hides correctly. Fleet tabs (All/Ships/Land) compatible with category filters. Fleet cards show role and SCU inline. data-testids: filter-size, filter-type, filter-manufacturer, filter-cargo, clear-filters-btn, fleet-filter-all/ships/land."
+}
