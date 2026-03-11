@@ -73,19 +73,42 @@ async def _prefetch_ship_locations():
 
 @app.on_event("startup")
 async def startup_event():
-    # Prefetch CStone data first (primary source of truth)
-    await prefetch_cstone_data()
-    # Prefetch legacy API for ship catalog data (names, specs, images)
-    await prefetch_all()
-    from live_api import _vehicles_cache
-    all_names = [v["name"] for v in _vehicles_cache if v.get("name")]
-    await fetch_all_wiki_images(ship_names=all_names)
-    from routes.prices import _take_snapshot
-    await _take_snapshot()
-    # Pre-fetch CStone purchase locations for gear and ships (background)
     import asyncio
-    asyncio.create_task(_prefetch_gear_locations())
-    asyncio.create_task(_prefetch_ship_locations())
+
+    async def _background_prefetch():
+        """Run all prefetch operations in the background so the app starts immediately."""
+        try:
+            await prefetch_cstone_data()
+            logger.info("CStone data prefetched")
+        except Exception as e:
+            logger.error(f"Failed to prefetch CStone data: {e}")
+
+        try:
+            await prefetch_all()
+            logger.info("Live API data prefetched")
+        except Exception as e:
+            logger.error(f"Failed to prefetch live API data: {e}")
+
+        try:
+            from live_api import _vehicles_cache
+            all_names = [v["name"] for v in _vehicles_cache if v.get("name")]
+            await fetch_all_wiki_images(ship_names=all_names)
+            logger.info("Wiki images prefetched")
+        except Exception as e:
+            logger.error(f"Failed to prefetch wiki images: {e}")
+
+        try:
+            from routes.prices import _take_snapshot
+            await _take_snapshot()
+            logger.info("Price snapshot taken")
+        except Exception as e:
+            logger.error(f"Failed to take price snapshot: {e}")
+
+        await _prefetch_gear_locations()
+        await _prefetch_ship_locations()
+
+    # Run all prefetch in background so the server starts immediately
+    asyncio.create_task(_background_prefetch())
 
 
 @app.on_event("shutdown")
