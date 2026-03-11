@@ -20,6 +20,73 @@ from cstone_api import (
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["ships"])
 
+# Ships from starcitizen.tools wiki that are not yet in the live API
+# These are non-flight-ready (in concept, active production, etc.)
+_WIKI_MISSING_SHIPS = [
+    {"id": "arrastra", "name": "Arrastra", "manufacturer": "Roberts Space Industries", "size": "Large", "length": 124, "cargo": 0, "role": "Mining / Refining", "production_state": "In concept", "flight_ready": False},
+    {"id": "crucible", "name": "Crucible", "manufacturer": "Anvil Aerospace", "size": "Large", "length": 90, "cargo": 230, "role": "Heavy Repair", "production_state": "In concept", "flight_ready": False},
+    {"id": "e1-spirit", "name": "E1 Spirit", "manufacturer": "Crusader Industries", "size": "Medium", "length": 46.5, "cargo": 0, "role": "Passenger", "production_state": "Active production", "flight_ready": False},
+    {"id": "endeavor", "name": "Endeavor", "manufacturer": "Musashi Industrial and Starflight Concern", "size": "Capital", "length": 200, "cargo": 500, "role": "Heavy Science", "production_state": "In concept", "flight_ready": False},
+    {"id": "expanse", "name": "Expanse", "manufacturer": "Musashi Industrial and Starflight Concern", "size": "Medium", "length": 35.5, "cargo": 0, "role": "Refinery", "production_state": "In concept", "flight_ready": False},
+    {"id": "genesis-starliner", "name": "Genesis Starliner", "manufacturer": "Crusader Industries", "size": "Large", "length": 85, "cargo": 0, "role": "Passenger", "production_state": "In concept", "flight_ready": False},
+    {"id": "hull-b", "name": "Hull B", "manufacturer": "Musashi Industrial and Starflight Concern", "size": "Medium", "length": 49, "cargo": 384, "role": "Medium Freighter", "production_state": "Active production", "flight_ready": False},
+    {"id": "hull-d", "name": "Hull D", "manufacturer": "Musashi Industrial and Starflight Concern", "size": "Capital", "length": 209, "cargo": 20736, "role": "Heavy Freight", "production_state": "In concept", "flight_ready": False},
+    {"id": "hull-e", "name": "Hull E", "manufacturer": "Musashi Industrial and Starflight Concern", "size": "Capital", "length": 372, "cargo": 98304, "role": "Heavy Freight", "production_state": "In concept", "flight_ready": False},
+    {"id": "ironclad", "name": "Ironclad", "manufacturer": "Drake Interplanetary", "size": "Large", "length": 120, "cargo": 432, "role": "Armored Freight", "production_state": "Active production", "flight_ready": False},
+    {"id": "ironclad-assault", "name": "Ironclad Assault", "manufacturer": "Drake Interplanetary", "size": "Large", "length": 120, "cargo": 0, "role": "Combined Arms Platform", "production_state": "Active production", "flight_ready": False},
+    {"id": "kraken", "name": "Kraken", "manufacturer": "Drake Interplanetary", "size": "Capital", "length": 270, "cargo": 3792, "role": "Light Carrier", "production_state": "Active production", "flight_ready": False},
+    {"id": "kraken-privateer", "name": "Kraken Privateer", "manufacturer": "Drake Interplanetary", "size": "Capital", "length": 270, "cargo": 3792, "role": "Multi-role / Light Carrier", "production_state": "In concept", "flight_ready": False},
+    {"id": "legionnaire", "name": "Legionnaire", "manufacturer": "Anvil Aerospace", "size": "Medium", "length": 32, "cargo": 0, "role": "Boarding", "production_state": "Active production", "flight_ready": False},
+    {"id": "liberator", "name": "Liberator", "manufacturer": "Anvil Aerospace", "size": "Large", "length": 119, "cargo": 400, "role": "Carrier / Vehicle Transport", "production_state": "Active production", "flight_ready": False},
+    {"id": "merchantman", "name": "Merchantman", "manufacturer": "Banu Souli", "size": "Capital", "length": 237, "cargo": 3584, "role": "Heavy Freight", "production_state": "In concept", "flight_ready": False},
+    {"id": "nautilus", "name": "Nautilus", "manufacturer": "Aegis Dynamics", "size": "Large", "length": 125, "cargo": 0, "role": "Minelayer", "production_state": "In concept", "flight_ready": False},
+    {"id": "odyssey-misc", "name": "Odyssey", "manufacturer": "Musashi Industrial and Starflight Concern", "size": "Large", "length": 140, "cargo": 252, "role": "Expedition", "production_state": "In concept", "flight_ready": False},
+    {"id": "orion", "name": "Orion", "manufacturer": "Roberts Space Industries", "size": "Capital", "length": 340, "cargo": 384, "role": "Heavy Mining", "production_state": "In concept", "flight_ready": False},
+    {"id": "pioneer", "name": "Pioneer", "manufacturer": "Consolidated Outland", "size": "Capital", "length": 247, "cargo": 500, "role": "Heavy Construction", "production_state": "Active production", "flight_ready": False},
+    {"id": "railen", "name": "Railen", "manufacturer": "Gatac Manufacture", "size": "Medium", "length": 54, "cargo": 256, "role": "Medium Freight", "production_state": "Active production", "flight_ready": False},
+    {"id": "zeus-mk-ii-mr", "name": "Zeus Mk II MR", "manufacturer": "Roberts Space Industries", "size": "Medium", "length": 46, "cargo": 0, "role": "Interdiction", "production_state": "Active production", "flight_ready": False},
+]
+
+# Known ground vehicles/hoverbikes/utility that should NOT appear in /api/ships
+_GROUND_VEHICLE_NAMES = {
+    "ballista", "ballista dunestalker", "ballista snowblind",
+    "centurion",
+    "spartan",
+    "nox", "nox kue",
+    "atls", "atls cool metal color", "atls geo", "atls geo ikti",
+    "atls ikti", "atls ikti rad", "atls orange line", "atls snowland color",
+    "srv",
+    "hoverquad",
+    "dragonfly", "dragonfly black", "dragonfly yellowjacket",
+    "golem", "golem ox",
+    "mule",
+    "mdc", "mtc",
+    "ptv", "stv",
+    "roc", "roc-ds",
+    "x1", "x1 force", "x1 velocity",
+    "power suit",
+    "lynx",
+    "cyclone", "cyclone aa", "cyclone mt", "cyclone rc", "cyclone rn", "cyclone tr",
+    "ursa", "ursa rover", "ursa fortuna", "ursa medivac",
+    "nova", "nova tank",
+    "storm", "storm aa",
+}
+
+
+def _is_ground_vehicle(ship: dict) -> bool:
+    """Check if a vehicle is a ground vehicle by name or API flag."""
+    if ship.get("is_ground_vehicle"):
+        return True
+    name = ship.get("name", "").lower().strip()
+    if name in _GROUND_VEHICLE_NAMES:
+        return True
+    # Check if name starts with any known ground vehicle name
+    for gv in _GROUND_VEHICLE_NAMES:
+        if name.startswith(gv + " ") or name.startswith(gv + "-"):
+            return True
+    return False
+
+
 # Suffixes that indicate a variant (cosmetic/edition) of a base ship
 _VARIANT_SUFFIXES = [
     r"\s+PYAM Exec$",
@@ -62,6 +129,14 @@ _VARIANT_SUFFIXES = [
 
 def _get_variant_base(name):
     """Return the base name for variant grouping."""
+    # Explicit role-variant grouping: map variant names to their base ship
+    _ROLE_VARIANT_MAP = {
+        "Avenger Stalker": "Avenger Titan",
+        "Avenger Warlock": "Avenger Titan",
+    }
+    if name in _ROLE_VARIANT_MAP:
+        return _ROLE_VARIANT_MAP[name]
+
     base = name
     for pattern in _VARIANT_SUFFIXES:
         base = re.sub(pattern, "", base, flags=re.IGNORECASE).strip()
@@ -173,6 +248,42 @@ def _merge_cstone_into_ship(ship: dict, cstone_entry: dict) -> dict:
     return ship
 
 
+def _inject_missing_wiki_ships(ships: list) -> list:
+    """Add non-flight-ready ships from starcitizen.tools that are missing from the live API."""
+    existing_names = {s["name"].lower().strip() for s in ships}
+    for ms in _WIKI_MISSING_SHIPS:
+        if ms["name"].lower().strip() not in existing_names:
+            # Determine size class from length
+            length = ms.get("length", 0)
+            if length <= 15:
+                size_class = "Snub"
+            elif length <= 30:
+                size_class = "Small"
+            elif length <= 60:
+                size_class = "Medium"
+            elif length <= 150:
+                size_class = "Large"
+            else:
+                size_class = "Capital"
+            ships.append({
+                "id": ms["id"],
+                "name": ms["name"],
+                "manufacturer": ms["manufacturer"],
+                "size": ms.get("size", size_class),
+                "length": length,
+                "cargo": ms.get("cargo", 0),
+                "crew": f"{ms.get('min_crew', 1)}",
+                "role": ms.get("role", "Multi-role"),
+                "image": get_ship_image(ms["name"]) or "",
+                "price_auec": 0,
+                "purchase_locations": [],
+                "flight_ready": ms.get("flight_ready", False),
+                "production_state": ms.get("production_state", "In concept"),
+                "variants": [],
+            })
+    return ships
+
+
 @router.get("/ships")
 async def get_ships(user_id: str = Depends(get_current_user)):
     await prefetch_cstone_data()
@@ -182,8 +293,12 @@ async def get_ships(user_id: str = Depends(get_current_user)):
 
     live_vehicles = await fetch_live_vehicles()
     if live_vehicles:
-        ships = [v for v in live_vehicles if not v.get("is_ground_vehicle")]
+        ships = [v for v in live_vehicles if not _is_ground_vehicle(v)]
         for s in ships:
+            # Mark all live API ships as flight ready
+            s["flight_ready"] = True
+            s["production_state"] = "Flight ready"
+
             # Wiki image
             img = get_ship_image(s["name"])
             if img:
@@ -207,17 +322,22 @@ async def get_ships(user_id: str = Depends(get_current_user)):
                         break
             _merge_cstone_into_ship(s, cstone_entry)
 
+        # Inject non-flight-ready ships from wiki
+        ships = _inject_missing_wiki_ships(ships)
         ships = _dedupe_and_group_variants(ships)
         return {"success": True, "data": ships, "source": "cstone+live"}
 
     ships = enhance_ship_data(_get_comprehensive_ship_list())
     for s in ships:
+        s["flight_ready"] = True
+        s["production_state"] = "Flight ready"
         pinfo = get_purchase_info(s["name"])
         s["price_auec"] = pinfo["price_auec"]
         s["purchase_locations"] = pinfo["dealers"]
         name_lower = s["name"].lower().strip()
         cstone_entry = cstone_lookup.get(name_lower)
         _merge_cstone_into_ship(s, cstone_entry)
+    ships = _inject_missing_wiki_ships(ships)
     return {"success": True, "data": ships, "source": "cstone+mock"}
 
 

@@ -1,0 +1,74 @@
+{
+  "summary": "Iteration 33: Wiki Ships, Flight Ready Filter, Avenger Variants - All 17 backend tests + 14 frontend tests passed (100%). Verified no ground vehicles in /api/ships, Avenger variants grouped correctly under Titan, flight_ready flag on all ships, all new filter dropdowns working.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Ships page filters", "issues": ["Minor React hydration warnings for span inside select/option - cosmetic only, functionality unaffected"]}
+    ]
+  },
+  "passed_tests": [
+    "BACKEND: No ground vehicles in /api/ships (Ballista, Nox, Dragonfly, Cyclone, Ursa all excluded)",
+    "BACKEND: Avenger Titan is base ship with variants array containing Stalker, Warlock, Renegade",
+    "BACKEND: Avenger Stalker and Avenger Warlock NOT standalone ships (properly grouped as variants)",
+    "BACKEND: Live API ships have flight_ready=true (Aurora MR, Avenger Titan, Cutlass Black, etc.)",
+    "BACKEND: Wiki ships have flight_ready=false (Endeavor, Kraken, Merchantman, Orion)",
+    "BACKEND: All 180 ships have flight_ready field",
+    "BACKEND: Ship count is 180 (no duplicates, within expected range 150-220)",
+    "BACKEND: At least 10 wiki ships present (22 added from starcitizen.tools)",
+    "BACKEND: Ground vehicles exist in /api/vehicles endpoint (Cyclone, Ursa, Nox)",
+    "FRONTEND: Ships page loads with 180 ships",
+    "FRONTEND: Flight Ready toggle has 3 buttons (All, Flight Ready, Not Flight Ready)",
+    "FRONTEND: 'Not Flight Ready' filter shows 22 ships with amber badge",
+    "FRONTEND: 'Flight Ready' filter shows 158 ships without badge",
+    "FRONTEND: Size filter dropdown has options: Snub, Small, Medium, Large, Capital",
+    "FRONTEND: Role/Type filter dropdown has 70 role options",
+    "FRONTEND: Cargo filter dropdown has options: All, Has Cargo, No Cargo",
+    "FRONTEND: Clear Filters button appears when filters active and resets all filters",
+    "FRONTEND: Avenger Titan card has variant dropdown with Stalker, Warlock, Renegade",
+    "FRONTEND: Search works - 'Carrack' shows 1 result",
+    "FRONTEND: Combined filters work - Capital + Not Flight Ready shows 8 ships",
+    "FRONTEND: Manufacturer filter works - Drake Interplanetary shows 15 ships",
+    "FRONTEND: Role filter works - Light Fighter shows 14 ships",
+    "FRONTEND: Cargo filters work - Has Cargo: 115 ships, No Cargo: 65 ships"
+  ],
+  "test_report_links": [
+    "/app/backend/tests/test_iteration33_ships_wiki.py",
+    "/app/test_reports/pytest/pytest_iteration33_ships_wiki.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Code properly excludes ground vehicles using _GROUND_VEHICLE_NAMES set and _is_ground_vehicle() function",
+    "Avenger variant mapping correctly implemented in _ROLE_VARIANT_MAP",
+    "_WIKI_MISSING_SHIPS contains 22 non-flight-ready ships with flight_ready=False",
+    "Frontend Ships.jsx properly implements all new filters with correct data-testids"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration33_ships_wiki.py"
+  ],
+  "success_rate": {
+    "backend": "100% (17/17 tests passed)",
+    "frontend": "100% (All 14 feature verifications passed)"
+  },
+  "test_credentials": {
+    "username": "wikitest",
+    "password": "test123"
+  },
+  "seed_data_creation": "No new seed data - used 22 wiki ships injected by backend",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 33 verified Wiki Ships feature. 22 non-flight-ready ships added from starcitizen.tools wiki. Ground vehicles excluded from /api/ships. Avenger Stalker/Warlock/Renegade grouped under Avenger Titan base card. Ships page has 5 filter controls: Flight Ready toggle (3 buttons), Size dropdown, Role dropdown, Cargo dropdown, Manufacturer dropdown. Clear Filters button appears when any filter is active. data-testids: flight-ready-toggle, flight-filter-all/ready/not_ready, filter-size, filter-role, filter-cargo, manufacturer-filter, clear-all-filters, search-input, ship-count, not-flight-ready-{ship_id}.",
+  "feature_summary": {
+    "wiki_ships_added": 22,
+    "total_ships": 180,
+    "flight_ready_ships": 158,
+    "not_flight_ready_ships": 22,
+    "avenger_variants": ["Avenger Stalker", "Avenger Titan Renegade", "Avenger Warlock"],
+    "ground_vehicles_excluded": ["Ballista", "Nox", "Dragonfly", "Cyclone", "Ursa", "and more"],
+    "filters_implemented": ["Flight Ready toggle", "Size", "Role/Type", "Cargo/Storage", "Manufacturer", "Search"]
+  }
+}
