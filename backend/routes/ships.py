@@ -31,12 +31,32 @@ _VARIANT_SUFFIXES = [
     r"\s+Teach'?s?\s+Special$",
     r"\s+CitizenCon\s+\d+.*$",
     r"\s+2949\s+Best\s+In\s+Show.*$",
+    r"\s+2951\s+BIS$",
     r"\s+Carbon$",
     r"\s+Talus$",
     r"\s+Dunestalker$",
     r"\s+Snowblind$",
     r"\s+Savior\s+Special$",
     r"\s+Speedy\s+Special$",
+    r"\s+Dunlevy$",
+    r"\s+Valiant$",
+    r"\s+Renegade$",
+    r"\s+Expedition$",
+    r"\s+Antares$",
+    r"\s+GEO\s*IKTI$",
+    r"\s+GEO$",
+    r"\s+IKTI\s+Rad$",
+    r"\s+IKTI$",
+    r"\s+Cool\s+Metal\s+Color$",
+    r"\s+Orange\s+Line$",
+    r"\s+Snowland\s+Color$",
+    r"\s+OX$",
+    r"\s+Comet$",
+    r"\s+Raven$",
+    r"\s+Wildfire.*$",
+    r"\s+Heartseeker.*$",
+    r"\s+Scout$",
+    r"\s+Rambler$",
 ]
 
 
@@ -50,6 +70,7 @@ def _get_variant_base(name):
 
 def _dedupe_and_group_variants(ships):
     """Deduplicate ships by name and group variants under base ships."""
+    # Step 1: Deduplicate by name
     seen_names = set()
     unique = []
     for s in ships:
@@ -57,25 +78,52 @@ def _dedupe_and_group_variants(ships):
             seen_names.add(s["name"])
             unique.append(s)
 
-    base_map = {}
-    result = []
+    # Step 2: Separate base ships from variants, process bases first
+    bases = []
+    variants = []
     for s in unique:
         base_name = _get_variant_base(s["name"])
-        if base_name != s["name"] and base_name in base_map:
+        if base_name == s["name"]:
+            bases.append(s)
+        else:
+            variants.append(s)
+
+    # Step 3: Build result with base ships first
+    base_map = {}
+    result = []
+    for s in bases:
+        s["variants"] = []
+        base_map[s["name"]] = len(result)
+        result.append(s)
+
+    # Step 4: Assign variants to their base ships
+    for s in variants:
+        base_name = _get_variant_base(s["name"])
+        if base_name in base_map:
             idx = base_map[base_name]
-            if "variants" not in result[idx]:
-                result[idx]["variants"] = []
             result[idx]["variants"].append({
                 "name": s["name"],
                 "id": s["id"],
                 "image": s.get("image", ""),
             })
         else:
-            s["variants"] = s.get("variants", [])
+            # No base found — treat as standalone base
+            s["variants"] = []
             base_map[s["name"]] = len(result)
-            if base_name != s["name"]:
-                base_map[base_name] = len(result)
+            base_map[base_name] = len(result)
             result.append(s)
+
+    # Step 5: Deduplicate variants within each ship by name
+    for s in result:
+        if s.get("variants"):
+            seen = set()
+            deduped = []
+            for v in s["variants"]:
+                if v["name"] not in seen:
+                    seen.add(v["name"])
+                    deduped.append(v)
+            s["variants"] = deduped
+
     return result
 
 
