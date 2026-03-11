@@ -15,6 +15,7 @@ import CommunityLoadouts from './pages/CommunityLoadouts';
 import SharedLoadout from './pages/SharedLoadout';
 import RoutePlanner from './pages/RoutePlanner';
 import PersonalGear from './pages/PersonalGear';
+import Wikelo from './pages/Wikelo';
 import PriceTracker from './pages/PriceTracker';
 import Layout from './components/Layout';
 import { Toaster } from './components/ui/sonner';
@@ -92,6 +93,7 @@ function App() {
           <Route path="/community" element={<PrivateRoute><Layout><CommunityLoadouts /></Layout></PrivateRoute>} />
           <Route path="/routes" element={<PrivateRoute><Layout><RoutePlanner /></Layout></PrivateRoute>} />
           <Route path="/gear" element={<PrivateRoute><Layout><PersonalGear /></Layout></PrivateRoute>} />
+          <Route path="/wikelo" element={<PrivateRoute><Layout><Wikelo /></Layout></PrivateRoute>} />
           <Route path="/prices" element={<PrivateRoute><Layout><PriceTracker /></Layout></PrivateRoute>} />
           <Route path="/shared/:shareCode" element={<SharedLoadout />} />
         </Routes>

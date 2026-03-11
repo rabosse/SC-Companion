@@ -15,6 +15,7 @@ from routes.loadouts import router as loadouts_router
 from routes.starmap import router as starmap_router
 from routes.gear import router as gear_router
 from routes.prices import router as prices_router
+from routes.wikelo import router as wikelo_router
 
 app = FastAPI(title="Star Citizen Fleet Manager")
 
@@ -26,6 +27,7 @@ app.include_router(loadouts_router)
 app.include_router(starmap_router)
 app.include_router(gear_router)
 app.include_router(prices_router)
+app.include_router(wikelo_router)
 
 
 @app.get("/api/health")
