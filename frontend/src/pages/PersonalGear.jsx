@@ -21,6 +21,7 @@ const PersonalGear = () => {
   const [weapons, setWeapons] = useState([]);
   const [armor, setArmor] = useState([]);
   const [equipment, setEquipment] = useState([]);
+  const [rareItems, setRareItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('weapons');
   const [search, setSearch] = useState('');
@@ -30,14 +31,16 @@ const PersonalGear = () => {
   useEffect(() => {
     const fetch = async () => {
       try {
-        const [wRes, aRes, eRes] = await Promise.all([
+        const [wRes, aRes, eRes, rRes] = await Promise.all([
           axios.get(`${API}/gear/weapons`),
           axios.get(`${API}/gear/armor`),
           axios.get(`${API}/gear/equipment`),
+          axios.get(`${API}/gear/rare-items`).catch(() => ({ data: { data: [] } })),
         ]);
         setWeapons(wRes.data.data || []);
         setArmor(aRes.data.data || []);
         setEquipment(eRes.data.data || []);
+        setRareItems(rRes.data.data || []);
       } catch { toast.error('Failed to load gear data'); }
       finally { setLoading(false); }
     };
@@ -48,7 +51,18 @@ const PersonalGear = () => {
   const armorTypes = useMemo(() => [...new Set(armor.map(a => a.type))].sort(), [armor]);
   const equipTypes = useMemo(() => [...new Set(equipment.map(e => e.type))].sort(), [equipment]);
 
+  const rareTypes = useMemo(() => [...new Set(rareItems.map(r => r.type))].sort(), [rareItems]);
+
   const filteredItems = useMemo(() => {
+    if (activeTab === 'rare') {
+      let result = rareItems;
+      if (search) {
+        const q = search.toLowerCase();
+        result = result.filter(i => i.name.toLowerCase().includes(q) || i.manufacturer.toLowerCase().includes(q) || i.loot_locations?.some(l => l.toLowerCase().includes(q)));
+      }
+      if (filterType !== 'all') result = result.filter(i => i.type === filterType || i.category === filterType);
+      return result;
+    }
     const items = activeTab === 'weapons' ? weapons : activeTab === 'armor' ? armor : equipment;
     let result = items;
     if (search) {
@@ -57,9 +71,9 @@ const PersonalGear = () => {
     }
     if (filterType !== 'all') result = result.filter(i => i.type === filterType);
     return result;
-  }, [activeTab, weapons, armor, equipment, search, filterType]);
+  }, [activeTab, weapons, armor, equipment, rareItems, search, filterType]);
 
-  const types = activeTab === 'weapons' ? weaponTypes : activeTab === 'armor' ? armorTypes : equipTypes;
+  const types = activeTab === 'weapons' ? weaponTypes : activeTab === 'armor' ? armorTypes : activeTab === 'rare' ? rareTypes : equipTypes;
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-[60vh]">
@@ -90,6 +104,10 @@ const PersonalGear = () => {
           className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm uppercase transition-all ${activeTab === 'equipment' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'}`}>
           <Package className="w-4 h-4" /> Equipment ({equipment.length})
         </button>
+        <button onClick={() => { setActiveTab('rare'); setFilterType('all'); setSearch(''); }} data-testid="tab-rare"
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm uppercase transition-all ${activeTab === 'rare' ? 'bg-red-500/20 text-red-400 border border-red-500/30 ring-1 ring-red-500/20' : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'}`}>
+          <MapPin className="w-4 h-4" /> Rare Items ({rareItems.filter(r => r.loot_only).length})
+        </button>
       </div>
 
       {/* Filters */}
@@ -115,7 +133,9 @@ const PersonalGear = () => {
       {/* Items Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredItems.map((item, i) => (
-          activeTab === 'armor'
+          activeTab === 'rare'
+            ? <RareItemCard key={item.id} item={item} index={i} onClick={() => setSelectedItem({ ...item, _kind: item.category })} />
+            : activeTab === 'armor'
             ? <ArmorCard key={item.id} armor={item} index={i} onClick={() => setSelectedItem({ ...item, _kind: 'armor' })} />
             : activeTab === 'weapons'
             ? <WeaponCard key={item.id} weapon={item} index={i} onClick={() => setSelectedItem({ ...item, _kind: 'weapon' })} />
@@ -540,6 +560,66 @@ const EquipmentCard = ({ item, index, onClick }) => {
           </motion.div>
         )}
       </AnimatePresence>
+    </motion.div>
+  );
+};
+
+
+const RareItemCard = ({ item, index, onClick }) => {
+  const color = TYPE_COLORS[item.type] || '#888';
+  const catColor = item.category === 'weapon' ? '#FF0055' : item.category === 'armor' ? '#00D4FF' : '#F59E0B';
+  return (
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(index * 0.04, 0.5) }}
+      className="glass-panel rounded-2xl overflow-hidden group cursor-pointer" data-testid={`rare-${item.id}`}
+      onClick={onClick}>
+      <div className="relative h-44 overflow-hidden bg-[#0c0c16]">
+        {item.image ? (
+          <img src={item.image} alt={item.name} loading="lazy"
+            className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <MapPin className="w-14 h-14 text-gray-700" />
+          </div>
+        )}
+        <div className="absolute top-3 left-3 flex items-center gap-2">
+          <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase backdrop-blur-md"
+            style={{ background: `${color}30`, color, border: `1px solid ${color}40` }}>
+            {item.type}
+          </span>
+          <span className="px-2 py-1 rounded-lg text-[10px] font-bold uppercase backdrop-blur-md"
+            style={{ background: `${catColor}20`, color: catColor, border: `1px solid ${catColor}30` }}>
+            {item.category}
+          </span>
+        </div>
+        {item.loot_only && (
+          <div className="absolute top-3 right-3">
+            <span className="px-2 py-1 rounded-lg text-[10px] font-bold uppercase backdrop-blur-md bg-red-500/30 text-red-400 border border-red-500/40">
+              Loot Only
+            </span>
+          </div>
+        )}
+        <div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-[#0a0a12] to-transparent" />
+      </div>
+      <div className="p-4 -mt-2 relative">
+        <h3 className="text-lg font-bold text-white truncate" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{item.name}</h3>
+        <div className="text-xs text-gray-400">{item.manufacturer}</div>
+        {item.price_auec > 0 && (
+          <div className="text-xs font-bold text-amber-400 mt-0.5" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{item.price_auec.toLocaleString()} aUEC</div>
+        )}
+        <p className="text-[11px] text-gray-500 mt-2 line-clamp-2">{item.description}</p>
+        <div className="mt-3 space-y-1.5">
+          {item.loot_locations?.map((loc, i) => (
+            <div key={i} className="flex items-center gap-1.5 text-[11px] text-yellow-400">
+              <MapPin className="w-3 h-3 shrink-0" /> {loc}
+            </div>
+          ))}
+          {item.buy_locations?.length > 0 && item.buy_locations.map((loc, i) => (
+            <div key={`b${i}`} className="flex items-center gap-1.5 text-[11px] text-gray-300">
+              <Crosshair className="w-3 h-3 text-green-500 shrink-0" /> {loc}
+            </div>
+          ))}
+        </div>
+      </div>
     </motion.div>
   );
 };

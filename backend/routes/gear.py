@@ -269,3 +269,111 @@ async def get_equipment():
         if "loot_locations" not in item:
             item["loot_locations"] = []
     return {"success": True, "data": items}
+
+
+def _extract_loot_locations(locations: list) -> tuple:
+    """Split locations into buy and loot lists based on keywords."""
+    loot_keywords = ("loot", "rare", "boss", "drop")
+    buy, loot = [], []
+    for loc in locations:
+        if any(kw in loc.lower() for kw in loot_keywords):
+            loot.append(loc)
+        else:
+            buy.append(loc)
+    return buy, loot
+
+
+@router.get("/rare-items")
+async def get_rare_items():
+    """Return all loot-only / rare items across weapons, armor, and equipment."""
+    await _ensure_cstone_locations()
+
+    weapons = get_all_fps_weapons()
+    armor_sets = get_all_armor_sets()
+    equipment_items = get_all_equipment()
+
+    fps_lookup, armor_first, armor_first_sold = _build_cstone_lookups()
+
+    rare = []
+
+    # Rare weapons: explicit loot_locations OR loot keywords in locations
+    for w in weapons:
+        explicit_loot = w.get("loot_locations", [])
+        all_locs = w.get("locations", [])
+        buy_locs, inferred_loot = _extract_loot_locations(all_locs)
+        loot_locs = explicit_loot or inferred_loot
+        is_loot_only = w.get("price_auec", 0) == 0 and len(buy_locs) == 0
+        has_loot = len(loot_locs) > 0
+        if not has_loot:
+            continue
+        key = w["name"].lower().strip()
+        match = fps_lookup.get(key)
+        if not match:
+            for ck, cv in fps_lookup.items():
+                if key in ck or ck in key:
+                    match = cv
+                    break
+        image = _cstone_image(match.get("id")) if match else ""
+        rare.append({
+            "id": w["id"],
+            "name": w["name"],
+            "category": "weapon",
+            "type": w.get("type", ""),
+            "manufacturer": w.get("manufacturer", ""),
+            "description": w.get("description", ""),
+            "image": image,
+            "loot_locations": loot_locs,
+            "buy_locations": buy_locs,
+            "price_auec": w.get("price_auec", 0),
+            "loot_only": is_loot_only,
+        })
+
+    # Rare armor: loot-only sets (price 0, no purchase locations)
+    for s in armor_sets:
+        explicit_loot = s.get("loot_locations", [])
+        all_locs = s.get("locations", [])
+        buy_locs, inferred_loot = _extract_loot_locations(all_locs)
+        loot_locs = explicit_loot or inferred_loot
+        is_loot_only = s.get("price_auec", 0) == 0 and len(buy_locs) == 0
+        if not loot_locs:
+            continue
+        match = _find_match(s["name"], armor_first)
+        image = _cstone_image(match.get("id")) if match else ""
+        rare.append({
+            "id": s["id"],
+            "name": s["name"],
+            "category": "armor",
+            "type": s.get("type", ""),
+            "manufacturer": s.get("manufacturer", ""),
+            "description": s.get("description", ""),
+            "image": image,
+            "loot_locations": loot_locs,
+            "buy_locations": buy_locs,
+            "price_auec": s.get("price_auec", 0),
+            "loot_only": is_loot_only,
+        })
+
+    # Rare equipment
+    for item in equipment_items:
+        explicit_loot = item.get("loot_locations", [])
+        all_locs = item.get("locations", [])
+        buy_locs, inferred_loot = _extract_loot_locations(all_locs)
+        loot_locs = explicit_loot or inferred_loot
+        is_loot_only = item.get("price_auec", 0) == 0 and len(buy_locs) == 0
+        if not loot_locs:
+            continue
+        rare.append({
+            "id": item["id"],
+            "name": item["name"],
+            "category": "equipment",
+            "type": item.get("type", ""),
+            "manufacturer": item.get("manufacturer", ""),
+            "description": item.get("description", ""),
+            "image": item.get("image", ""),
+            "loot_locations": loot_locs,
+            "buy_locations": buy_locs,
+            "price_auec": item.get("price_auec", 0),
+            "loot_only": is_loot_only,
+        })
+
+    return {"success": True, "data": rare, "total": len(rare)}
