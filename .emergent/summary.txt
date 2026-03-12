@@ -1,0 +1,292 @@
+<analysis>**original_problem_statement:**
+The user wants to build a full-stack application called Star Citizen Fleet Manager. The core purpose is to allow players to track their ships and ground vehicles from the game Star Citizen.
+
+**PRODUCT REQUIREMENTS:**
+-   **Data Accuracy Mandate:** The primary source for all stats must be , supplemented by  for a complete vehicle list.
+-   User authentication (Username/Password) and the ability to manage a personal Fleet.
+-   Display ships, ground vehicles, components, and weapons with detailed information.
+-   Ship and vehicle pages must display correct, official images and handle variants properly, including non-flight-ready ships flagged accordingly.
+-   Implement a ship comparison tool.
+-   Implement a loadout builder with savable and shareable loadouts.
+-   Display fleet statistics on a dashboard with advanced sorting and filtering.
+-   Users must be able to add and remove an unlimited number of vehicles from their fleet.
+-   Components and Weapons pages should have filtering and sorting.
+-   Implement a Wikelo section detailing his contracts and required items.
+-   Display ship/vehicle purchase locations (in-game and RSI store).
+-   Implement a route planner (including chase and interdiction).
+-   Implement real-time price tracking for in-game items.
+
+**User's preferred language**: English
+
+**what currently exists?**
+The application is a full-stack React/FastAPI app with a MongoDB database, featuring user auth, fleet management, and detailed viewers for ships, gear, and weapons. The agent recently completed a major data-sourcing task, adding all missing ships (including non-flight-ready ones) and implementing advanced filtering and sorting on the main Ships page.
+
+Following this, the agent undertook an extensive and ultimately unsuccessful effort to debug a production deployment failure. After multiple attempts to fix blocking startup calls, memory usage, and health check configurations, the agent, with input from support subagents, concluded the issue is likely platform-related and advised the user to contact Emergent support.
+
+The user, frustrated with the deployment issues, pivoted to requesting new frontend features. The agent was implementing these when the session ended.
+
+**Last working item**:
+The agent was working on two user-requested frontend features: 1) A toggle on the Loadout Builder to filter by Fleet Ships Only, and 2) Fixing the Favorite Manufacturer display on the Dashboard and color-coordinating the fleet list. The implementation caused a compilation error, resulting in a blank Dashboard page.
+
+-   **Last item agent was working:** Debugging a frontend compilation error that appeared after modifying , , and .
+-   **Status:** BLOCKED
+-   **Agent Testing Done:** N
+-   **Which testing method agent to use?** Frontend testing agent or screenshot tool, after the compilation error is resolved.
+-   **User Testing Done:** N
+
+**All Pending/In progress Issue list**:
+-   **Issue 1: (P0) Frontend Compilation Error (HIGHEST PRIORITY)**
+    -   **Description:** The application's frontend is not rendering; the Dashboard page is blank. This occurred immediately after implementing the new Dashboard and Loadout Builder features.
+    -   **Attempted fixes:** The agent was about to check the browser console logs when the session ended.
+    -   **Next debug checklist:**
+        1.  Check frontend logs for compilation errors: ==> /var/log/supervisor/frontend.err.log <==
+(node:264) [DEP_WEBPACK_DEV_SERVER_ON_AFTER_SETUP_MIDDLEWARE] DeprecationWarning: 'onAfterSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:264) [DEP_WEBPACK_DEV_SERVER_ON_BEFORE_SETUP_MIDDLEWARE] DeprecationWarning: 'onBeforeSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+(node:82) [DEP_WEBPACK_DEV_SERVER_ON_AFTER_SETUP_MIDDLEWARE] DeprecationWarning: 'onAfterSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:82) [DEP_WEBPACK_DEV_SERVER_ON_BEFORE_SETUP_MIDDLEWARE] DeprecationWarning: 'onBeforeSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+(node:71) [DEP_WEBPACK_DEV_SERVER_ON_AFTER_SETUP_MIDDLEWARE] DeprecationWarning: 'onAfterSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:71) [DEP_WEBPACK_DEV_SERVER_ON_BEFORE_SETUP_MIDDLEWARE] DeprecationWarning: 'onBeforeSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+(node:2228) [DEP_WEBPACK_DEV_SERVER_ON_AFTER_SETUP_MIDDLEWARE] DeprecationWarning: 'onAfterSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:2228) [DEP_WEBPACK_DEV_SERVER_ON_BEFORE_SETUP_MIDDLEWARE] DeprecationWarning: 'onBeforeSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+(node:5781) [DEP_WEBPACK_DEV_SERVER_ON_AFTER_SETUP_MIDDLEWARE] DeprecationWarning: 'onAfterSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:5781) [DEP_WEBPACK_DEV_SERVER_ON_BEFORE_SETUP_MIDDLEWARE] DeprecationWarning: 'onBeforeSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+(node:6010) [DEP_WEBPACK_DEV_SERVER_ON_AFTER_SETUP_MIDDLEWARE] DeprecationWarning: 'onAfterSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:6010) [DEP_WEBPACK_DEV_SERVER_ON_BEFORE_SETUP_MIDDLEWARE] DeprecationWarning: 'onBeforeSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+(node:10771) [DEP_WEBPACK_DEV_SERVER_ON_AFTER_SETUP_MIDDLEWARE] DeprecationWarning: 'onAfterSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:10771) [DEP_WEBPACK_DEV_SERVER_ON_BEFORE_SETUP_MIDDLEWARE] DeprecationWarning: 'onBeforeSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+(node:11390) [DEP_WEBPACK_DEV_SERVER_ON_AFTER_SETUP_MIDDLEWARE] DeprecationWarning: 'onAfterSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:11390) [DEP_WEBPACK_DEV_SERVER_ON_BEFORE_SETUP_MIDDLEWARE] DeprecationWarning: 'onBeforeSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+(node:11630) [DEP_WEBPACK_DEV_SERVER_ON_AFTER_SETUP_MIDDLEWARE] DeprecationWarning: 'onAfterSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:11630) [DEP_WEBPACK_DEV_SERVER_ON_BEFORE_SETUP_MIDDLEWARE] DeprecationWarning: 'onBeforeSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+(node:12265) [DEP_WEBPACK_DEV_SERVER_ON_AFTER_SETUP_MIDDLEWARE] DeprecationWarning: 'onAfterSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:12265) [DEP_WEBPACK_DEV_SERVER_ON_BEFORE_SETUP_MIDDLEWARE] DeprecationWarning: 'onBeforeSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+(node:12398) [DEP_WEBPACK_DEV_SERVER_ON_AFTER_SETUP_MIDDLEWARE] DeprecationWarning: 'onAfterSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:12398) [DEP_WEBPACK_DEV_SERVER_ON_BEFORE_SETUP_MIDDLEWARE] DeprecationWarning: 'onBeforeSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+
+==> /var/log/supervisor/frontend.out.log <==
+ HTTP  2026-03-12 12:30:38 AM 10.208.138.75 GET /favicon.ico
+ HTTP  2026-03-12 12:30:38 AM 10.208.138.75 Returned 200 in 1 ms
+ HTTP  2026-03-12 12:30:39 AM 10.208.138.75 GET /
+ HTTP  2026-03-12 12:30:39 AM 10.208.138.75 Returned 200 in 0 ms
+ HTTP  2026-03-12 12:32:06 AM 10.208.138.76 GET /favicon.ico
+ HTTP  2026-03-12 12:32:06 AM 10.208.138.76 Returned 200 in 0 ms
+ HTTP  2026-03-12 12:32:07 AM 10.208.138.75 GET /favicon.ico
+ HTTP  2026-03-12 12:32:07 AM 10.208.138.75 Returned 200 in 1 ms
+ HTTP  2026-03-12 12:32:08 AM 10.208.138.75 GET /favicon.ico
+ HTTP  2026-03-12 12:32:08 AM 10.208.138.75 Returned 200 in 1 ms
+ HTTP  2026-03-12 12:32:11 AM 10.208.138.76 GET /favicon.ico
+ HTTP  2026-03-12 12:32:11 AM 10.208.138.76 Returned 200 in 0 ms
+ HTTP  2026-03-12 12:36:24 AM 10.208.138.76 GET /health
+ HTTP  2026-03-12 12:36:24 AM 10.208.138.76 Returned 200 in 1 ms
+ HTTP  2026-03-12 12:36:24 AM 10.208.138.76 GET /health
+ HTTP  2026-03-12 12:36:24 AM 10.208.138.76 Returned 200 in 0 ms
+ HTTP  2026-03-12 12:36:24 AM 10.208.138.75 GET /health
+ HTTP  2026-03-12 12:36:24 AM 10.208.138.75 Returned 200 in 0 ms
+ HTTP  2026-03-12 12:36:24 AM 10.208.138.75 GET /health
+ HTTP  2026-03-12 12:36:24 AM 10.208.138.75 Returned 200 in 1 ms
+ HTTP  2026-03-12 12:36:24 AM 10.208.138.75 GET /health
+ HTTP  2026-03-12 12:36:24 AM 10.208.138.75 Returned 200 in 0 ms
+ HTTP  2026-03-12 12:36:24 AM 10.208.138.76 GET /health
+ HTTP  2026-03-12 12:36:24 AM 10.208.138.76 Returned 200 in 1 ms
+ HTTP  2026-03-12 12:36:24 AM 10.208.138.76 GET /health
+ HTTP  2026-03-12 12:36:24 AM 10.208.138.76 Returned 200 in 1 ms
+ HTTP  2026-03-12 12:36:24 AM 10.208.138.75 GET /health
+ HTTP  2026-03-12 12:36:24 AM 10.208.138.75 Returned 200 in 0 ms
+ HTTP  2026-03-12 12:36:24 AM 10.208.138.76 GET /health
+ HTTP  2026-03-12 12:36:24 AM 10.208.138.76 Returned 200 in 0 ms
+ HTTP  2026-03-12 12:36:25 AM 10.208.138.76 GET /health
+ HTTP  2026-03-12 12:36:25 AM 10.208.138.76 Returned 200 in 0 ms
+ HTTP  2026-03-12 12:36:47 AM 10.208.138.75 GET /health
+ HTTP  2026-03-12 12:36:47 AM 10.208.138.75 Returned 200 in 1 ms
+ HTTP  2026-03-12 12:36:47 AM 10.208.138.75 GET /health
+ HTTP  2026-03-12 12:36:47 AM 10.208.138.75 Returned 200 in 0 ms
+ HTTP  2026-03-12 12:36:47 AM 10.208.138.75 GET /health
+ HTTP  2026-03-12 12:36:47 AM 10.208.138.75 Returned 200 in 0 ms
+ HTTP  2026-03-12 12:36:48 AM 10.208.138.76 GET /health
+ HTTP  2026-03-12 12:36:48 AM 10.208.138.76 Returned 200 in 0 ms
+ HTTP  2026-03-12 12:36:48 AM 10.208.138.75 GET /health
+ HTTP  2026-03-12 12:36:48 AM 10.208.138.75 Returned 200 in 1 ms
+ HTTP  2026-03-12 12:36:48 AM 10.208.138.76 GET /health
+ HTTP  2026-03-12 12:36:48 AM 10.208.138.76 Returned 200 in 0 ms
+ HTTP  2026-03-12 12:36:48 AM 10.208.138.76 GET /health
+ HTTP  2026-03-12 12:36:48 AM 10.208.138.76 Returned 200 in 1 ms
+ HTTP  2026-03-12 12:36:48 AM 10.208.138.75 GET /health
+ HTTP  2026-03-12 12:36:48 AM 10.208.138.75 Returned 200 in 1 ms
+ HTTP  2026-03-12 12:36:48 AM 10.208.138.76 GET /health
+ HTTP  2026-03-12 12:36:48 AM 10.208.138.76 Returned 200 in 1 ms
+ HTTP  2026-03-12 12:36:48 AM 10.208.138.75 GET /health
+ HTTP  2026-03-12 12:36:48 AM 10.208.138.75 Returned 200 in 1 ms
+yarn run v1.22.22
+$ node start.js
+[FRONTEND] Build exists, trying lightweight serve...
+ INFO  Accepting connections at http://localhost:3000
+ HTTP  2026-03-12 5:29:13 AM 10.208.138.75 GET /
+ HTTP  2026-03-12 5:29:13 AM 10.208.138.75 Returned 200 in 16 ms
+ HTTP  2026-03-12 5:29:13 AM 10.208.138.76 GET /static/css/main.a478b6b0.css
+ HTTP  2026-03-12 5:29:13 AM 10.208.138.76 Returned 200 in 3 ms
+ HTTP  2026-03-12 5:29:13 AM 10.208.138.76 GET /static/js/main.8819796d.js
+ HTTP  2026-03-12 5:29:13 AM 10.208.138.76 Returned 200 in 7 ms
+ HTTP  2026-03-12 5:29:13 AM 10.208.138.75 GET /
+ HTTP  2026-03-12 5:29:13 AM 10.208.138.75 Returned 200 in 2 ms
+ HTTP  2026-03-12 5:29:13 AM 10.208.138.75 GET /static/js/main.8819796d.js
+ HTTP  2026-03-12 5:29:13 AM 10.208.138.75 Returned 200 in 1 ms
+ HTTP  2026-03-12 5:29:13 AM 10.208.138.76 GET /static/css/main.a478b6b0.css
+ HTTP  2026-03-12 5:29:13 AM 10.208.138.76 Returned 200 in 0 ms
+ HTTP  2026-03-12 5:29:19 AM 10.208.138.76 GET /ships
+ HTTP  2026-03-12 5:29:19 AM 10.208.138.76 Returned 200 in 1 ms
+ HTTP  2026-03-12 5:29:19 AM 10.208.138.76 GET /static/js/main.8819796d.js
+ HTTP  2026-03-12 5:29:19 AM 10.208.138.76 Returned 200 in 1 ms
+ HTTP  2026-03-12 5:29:19 AM 10.208.138.75 GET /static/css/main.a478b6b0.css
+ HTTP  2026-03-12 5:29:19 AM 10.208.138.75 Returned 200 in 3 ms
+ HTTP  2026-03-12 5:29:28 AM 10.208.138.76 GET /dashboard
+ HTTP  2026-03-12 5:29:28 AM 10.208.138.76 Returned 200 in 1 ms
+ HTTP  2026-03-12 5:29:28 AM 10.208.138.75 GET /static/css/main.a478b6b0.css
+ HTTP  2026-03-12 5:29:28 AM 10.208.138.75 Returned 200 in 1 ms
+ HTTP  2026-03-12 5:29:28 AM 10.208.138.76 GET /static/js/main.8819796d.js
+ HTTP  2026-03-12 5:29:28 AM 10.208.138.76 Returned 200 in 1 ms
+ HTTP  2026-03-12 5:29:36 AM 10.208.138.76 GET /
+ HTTP  2026-03-12 5:29:36 AM 10.208.138.76 Returned 200 in 1 ms
+ HTTP  2026-03-12 5:29:37 AM 10.208.138.76 GET /?x_request_source=preview
+ HTTP  2026-03-12 5:29:37 AM 10.208.138.76 Returned 200 in 2 ms
+ HTTP  2026-03-12 5:29:37 AM 10.208.138.76 GET /static/css/main.a478b6b0.css
+ HTTP  2026-03-12 5:29:37 AM 10.208.138.76 Returned 200 in 0 ms
+ HTTP  2026-03-12 5:29:37 AM 10.208.138.76 GET /static/js/main.8819796d.js
+ HTTP  2026-03-12 5:29:37 AM 10.208.138.76 Returned 200 in 1 ms
+ HTTP  2026-03-12 5:29:44 AM 10.208.138.75 GET /
+ HTTP  2026-03-12 5:29:44 AM 10.208.138.75 Returned 200 in 1 ms
+ HTTP  2026-03-12 5:29:44 AM 10.208.138.75 GET /?x_request_source=preview
+ HTTP  2026-03-12 5:29:44 AM 10.208.138.75 Returned 200 in 0 ms
+ HTTP  2026-03-12 5:29:44 AM 10.208.138.76 GET /static/js/main.8819796d.js
+ HTTP  2026-03-12 5:29:44 AM 10.208.138.76 Returned 200 in 0 ms
+ HTTP  2026-03-12 5:29:44 AM 10.208.138.76 GET /static/css/main.a478b6b0.css
+ HTTP  2026-03-12 5:29:44 AM 10.208.138.76 Returned 200 in 1 ms
+yarn run v1.22.22
+$ node start.js
+[FRONTEND] Build exists, trying lightweight serve...
+ INFO  Accepting connections at http://localhost:3000.
+        2.  Review recent changes in , , and  for syntax errors, incorrect prop passing, or state management issues.
+    -   **Why fix this issue and what will be achieved with the fix?** This is a hard blocker. Fixing it will render the application usable again and allow for the verification of the two newly requested features.
+    -   **Status:** IN PROGRESS
+    -   **Is recurring issue?** N
+    -   **Should Test frontend/backend/both after fix?** Frontend
+    -   **Blocked on other issue:** No
+
+**In progress Task List**:
+-   **Task 1: (P0) Verify Loadout and Dashboard UI Changes**
+    -   **Where to resume:** After fixing the compilation error (Issue 1), verify that both new features are working as intended.
+    -   **What will be achieved with this?** The Loadout Builder will be more user-friendly for players with large fleets, and the Dashboard will provide a more visually intuitive overview of the user's fleet composition.
+    -   **Status:** IN PROGRESS (Blocked by Frontend Compilation Error)
+    -   **Should Test frontend/backend/both after fix?** Frontend
+    -   **Blocked on something:** Issue 1
+
+**Upcoming and Future Tasks**
+-   **Upcoming Tasks:**
+    -   (P1) **Full Application Re-validation:** After the current frontend fixes are verified, run the testing agent to ensure no regressions were introduced.
+-   **Future Tasks:**
+    -   (P2) **RSI Fleet Import:** Implement a tool to import a user's fleet from their RSI account.
+    -   (P3) **Rare Item Locations:** Add a section for rare armor and FPS weapon locations.
+    -   (P4) **Iconography Update:** Replace all boat icons with spaceship icons.
+
+**Completed work in this session**
+-   **Comprehensive Ship Database (DONE):** Added all missing ships from the official wiki, including 22 non-flight-ready concepts, to the  endpoint.
+-   **Ship Page Feature Overhaul (DONE):**
+    -   Added a Not Flight Ready badge to concept ships.
+    -   Fixed incorrect variant grouping for ships like the Avenger.
+    -   Filtered out all ground vehicles from the Ships page.
+    -   Added new filter dropdowns for **Flight Status, Size, Type, Manufacturer, and SCU** on .
+-   **Production Deployment Hardening (ATTEMPTED):** Made extensive code changes to improve production stability, including non-blocking startup, lazy database connections, and a memory-optimized frontend server script. Despite these fixes, the deployment issue persisted.
+
+**Earlier issues found/mentioned but not fixed**
+-   **Issue 1: Production Deployment Failure**
+    -   **Description:** The application fails to deploy to the production environment, consistently resulting in an HTTP 520 error and a container that never becomes ready.
+    -   **Debug checklist:** The previous agent concluded this is a platform-level resource issue (total dependency size is ~963MB) and cannot be solved with code changes alone. The user was advised to contact Emergent support.
+    -   **Why to solve this issue and what will be achieved with this?** This is critical for the project to go live.
+    -   **Should Test frontend/backend/both after fix:** Both
+    -   **Is recurring issue?** Y
+
+**Known issue recurrence from previous fork**
+-   None.
+
+**Code Architecture**
+
+
+**Key Technical Concepts**
+-   **Frontend**: React, Tailwind CSS, Shadcn UI
+-   **Backend**: FastAPI, Pydantic
+-   **Database**: MongoDB
+-   **Production Optimization**: Differentiating dev () vs. prod () builds, non-blocking startup tasks, lazy-loading database connections ().
+
+**key DB schema**
+-   **users**: 
+-   **saved_loadouts**: 
+
+**changes in tech stack**
+-   The  package was added to the frontend to provide a lightweight, low-memory web server for production builds.
+
+**All files of reference**
+-   : Recently modified and is the likely source of the current compilation error.
+-   : Also recently modified for the new toggle feature.
+-   : Modified to handle manufacturer color-coordination.
+-   : Contains significant changes for production hardening (non-blocking startup).
+-   : Contains the lazy-loading proxy for the MongoDB connection.
+-    & : Implement the logic to switch between the React dev server and the lightweight production  command.
+
+**Areas that need refactoring**:
+-   A temporary shell script  may exist in the root or frontend directory from a previous failed attempt at fixing the deployment. It should be deleted to avoid confusion.
+
+**key api endpoints**
+-   : Serves all ship data with advanced filtering logic.
+-   : A root-level health check endpoint added for the deployment environment.
+
+**Critical Info for New Agent**
+-   **User Frustration is High:** The user is extremely unhappy about the failed deployments and wasted credits. Do not attempt to re-address the deployment issue unless explicitly asked. Focus only on the user's last request.
+-   **Your immediate priority is to fix the frontend compilation error.** The app is currently broken.
+-   Once the error is fixed, verify the two new features (Loadout toggle, Dashboard colors) work correctly.
+-   The previous agent concluded the deployment failure is a **platform-level resource issue**, not a code issue. If the user brings it up again, gently reiterate this finding and the recommendation to contact Emergent support with their Job ID.
+
+**documents and test reports created in this job**
+-   /app/test_reports/iteration_5.json
+-   /app/memory/PRD.md
+
+**Last 10 User Messages and any pending HUMAN messages**
+10.  - **In Progress**: This is the current task, which is blocked by a compilation error.
+9.   (Agent Message) - **Acknowledged**: Agent relayed support's findings on the deployment failure.
+8.   - **Resolved**: User expressed extreme frustration. The agent escalated to the support subagent.
+7.   - **Resolved**: User's frustration mounted. The agent initiated another investigation.
+6.   - **Completed**: User instruction to proceed with deployment attempts.
+5.   - **Completed**: User repeatedly asked the agent to use the deployment tool, which failed to identify the root cause.
+4.   - **In Progress**: User first reported the deployment failure.
+3.   - **Completed**: User requested deployment after the ship data features were finished.
+2.   - **Completed**: User requested several improvements to the Ships page, all of which were implemented.
+1.   - **Completed**: User clarified requirements for variant grouping.
+
+**Project Health Check:**
+-   **Broken**: Production Deployment, Frontend Rendering.
+
+**3rd Party Integrations**
+-   **finder.cstone.space**: Used via API for pricing, store locations, and base item data.
+-   **starcitizen.tools API**: Used via API for detailed technical specifications and a complete vehicle list.
+
+**Testing status**
+-   **Testing agent used after significant changes**: YES
+-   **Troubleshoot agent used after agent stuck in loop**: YES
+-   **Test files created**: []
+-   **Known regressions**: The entire frontend is currently failing to compile/render.
+
+**Credentials to test flow:**
+-   Register a new user through the application's UI. Any username and password will work (e.g.,  / ).
+
+**What agent forgot to execute**
+-   The agent did not resolve the frontend compilation error before the session ended.
+-   The agent may have left an unused  file in the repository after choosing a different implementation strategy for the production startup script.</analysis>

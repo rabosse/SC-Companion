@@ -95,6 +95,17 @@ const Dashboard = () => {
     return { topManufacturers, uniqueMfgs, shipCount, vehicleCount };
   }, [fleetShips]);
 
+  // Assign colors to top manufacturers for use across the dashboard
+  const MFG_COLORS = ['#00D4FF', '#D4AF37', '#FF6B35', '#A855F7', '#00FF9D'];
+
+  const mfgColorMap = useMemo(() => {
+    const map = {};
+    fleetStats.topManufacturers.forEach(([mfg], i) => {
+      map[mfg] = MFG_COLORS[i] || '#888';
+    });
+    return map;
+  }, [fleetStats.topManufacturers]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]" data-testid="loading-indicator">
@@ -193,7 +204,7 @@ const Dashboard = () => {
           ) : (
             <div className="space-y-2">
               {filteredFleet.map((fs, i) => (
-                <FleetCard key={fs.id || i} fs={fs} index={i} />
+                <FleetCard key={fs.id || i} fs={fs} index={i} mfgColor={mfgColorMap[fs.manufacturer]} />
               ))}
             </div>
           )}
@@ -208,22 +219,52 @@ const Dashboard = () => {
               <p className="text-sm text-gray-500">Add ships to see stats</p>
             </div>
           ) : (
-            <div className="glass-panel rounded-2xl p-5 space-y-4" data-testid="manufacturer-breakdown">
-              {fleetStats.topManufacturers.map(([mfg, count]) => {
-                const pct = Math.round((count / fleet.length) * 100);
+            <div className="glass-panel rounded-2xl overflow-hidden" data-testid="manufacturer-breakdown">
+              {/* Top manufacturer hero */}
+              {fleetStats.topManufacturers.length > 0 && (() => {
+                const [topMfg, topCount] = fleetStats.topManufacturers[0];
+                const topColor = mfgColorMap[topMfg] || MFG_COLORS[0];
+                const topPct = Math.round((topCount / fleet.length) * 100);
                 return (
-                  <div key={mfg}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-bold text-white">{mfg.split(' ')[0]}</span>
-                      <span className="text-xs text-cyan-400 font-semibold">{pct}%</span>
+                  <div className="p-5 border-b border-white/5" style={{ background: `linear-gradient(135deg, ${topColor}10, transparent)` }} data-testid="favorite-mfg-hero">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Building2 className="w-5 h-5" style={{ color: topColor }} />
+                      <span className="text-xs font-bold uppercase tracking-wider" style={{ color: topColor }}>
+                        #1 Favorite
+                      </span>
                     </div>
-                    <p className="text-[10px] text-gray-600 mb-1">{count} ship{count !== 1 ? 's' : ''}</p>
-                    <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full" style={{ width: `${pct}%`, background: 'linear-gradient(90deg, #00D4FF, #D4AF37)' }} />
+                    <div className="text-xl font-bold text-white" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
+                      {topMfg}
+                    </div>
+                    <div className="text-xs text-gray-400 mt-1">
+                      {topCount} ship{topCount !== 1 ? 's' : ''} · {topPct}% of fleet
+                    </div>
+                    <div className="h-2 bg-white/5 rounded-full overflow-hidden mt-3">
+                      <div className="h-full rounded-full" style={{ width: `${topPct}%`, background: topColor }} />
                     </div>
                   </div>
                 );
-              })}
+              })()}
+
+              {/* Other manufacturers */}
+              <div className="p-5 space-y-4">
+                {fleetStats.topManufacturers.slice(1).map(([mfg, count], i) => {
+                  const pct = Math.round((count / fleet.length) * 100);
+                  const color = mfgColorMap[mfg] || '#888';
+                  return (
+                    <div key={mfg}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-bold" style={{ color }}>{mfg}</span>
+                        <span className="text-xs font-semibold" style={{ color }}>{pct}%</span>
+                      </div>
+                      <p className="text-[10px] text-gray-600 mb-1">{count} ship{count !== 1 ? 's' : ''}</p>
+                      <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 
@@ -267,11 +308,12 @@ const Dashboard = () => {
   );
 };
 
-const FleetCard = ({ fs, index }) => {
+const FleetCard = ({ fs, index, mfgColor }) => {
   const hp = fs.details?.hardpoints || {};
   const wpns = hp.weapons || [];
   const msls = hp.missiles || [];
   const isCustom = fs.custom_name && fs.custom_name !== fs.ship_name;
+  const nameColor = mfgColor || '#ffffff';
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(index * 0.04, 0.3) }}
@@ -289,7 +331,7 @@ const FleetCard = ({ fs, index }) => {
         {/* Details */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
-            <h3 className="text-sm font-bold text-white truncate" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
+            <h3 className="text-sm font-bold truncate" style={{ fontFamily: 'Rajdhani, sans-serif', color: nameColor }}>
               {isCustom ? fs.custom_name : fs.ship_name}
             </h3>
             {fs.details?.size && (
@@ -305,7 +347,7 @@ const FleetCard = ({ fs, index }) => {
           </div>
           {isCustom && <p className="text-[10px] text-gray-600 -mt-0.5">{fs.ship_name}</p>}
           <div className="flex items-center gap-2 mb-1">
-            <p className="text-xs text-gray-500">{fs.manufacturer}</p>
+            <p className="text-xs font-semibold" style={{ color: mfgColor ? `${mfgColor}99` : undefined }} data-testid="fleet-card-mfg">{fs.manufacturer}</p>
             {fs.details?.role && <span className="text-[9px] text-gray-600">· {fs.details.role}</span>}
             {fs.details?.cargo > 0 && <span className="text-[9px] text-amber-500/70">· {fs.details.cargo} SCU</span>}
           </div>

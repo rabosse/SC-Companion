@@ -17,6 +17,7 @@ const SLOT_TYPES = [
 const LoadoutBuilder = () => {
   const { API } = useAuth();
   const [ships, setShips] = useState([]);
+  const [fleetShipIds, setFleetShipIds] = useState(new Set());
   const [selectedShip, setSelectedShip] = useState(null);
   const [components, setComponents] = useState([]);
   const [weapons, setWeapons] = useState([]);
@@ -27,18 +28,22 @@ const LoadoutBuilder = () => {
   const [savedLoadouts, setSavedLoadouts] = useState([]);
   const [loadoutName, setLoadoutName] = useState('');
   const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [fleetOnly, setFleetOnly] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [shipsRes, compsRes, weaponsRes] = await Promise.all([
+        const [shipsRes, compsRes, weaponsRes, fleetRes] = await Promise.all([
           axios.get(`${API}/ships`),
           axios.get(`${API}/components`),
           axios.get(`${API}/weapons`),
+          axios.get(`${API}/fleet/my`),
         ]);
         setShips(shipsRes.data.data || []);
         setComponents(compsRes.data.data || []);
         setWeapons(weaponsRes.data.data || []);
+        const fleet = fleetRes.data.data || [];
+        setFleetShipIds(new Set(fleet.map(f => f.ship_id)));
       } catch {
         toast.error('Failed to load data');
       }
@@ -185,10 +190,14 @@ const LoadoutBuilder = () => {
   };
 
   const filteredShips = useMemo(() => {
-    if (!shipSearch) return ships;
+    let result = ships;
+    if (fleetOnly) {
+      result = result.filter(s => fleetShipIds.has(s.id));
+    }
+    if (!shipSearch) return result;
     const q = shipSearch.toLowerCase();
-    return ships.filter(s => s.name.toLowerCase().includes(q) || s.manufacturer.toLowerCase().includes(q));
-  }, [ships, shipSearch]);
+    return result.filter(s => s.name.toLowerCase().includes(q) || s.manufacturer.toLowerCase().includes(q));
+  }, [ships, shipSearch, fleetOnly, fleetShipIds]);
 
   // Calculate loadout total cost
   const totalCost = Object.values(loadout).reduce((sum, item) => sum + (item.cost_auec || 0), 0);
@@ -204,16 +213,44 @@ const LoadoutBuilder = () => {
           <p className="text-gray-400">Select a ship to customize its loadout. Only compatible parts will be shown.</p>
         </div>
 
-        <div className="relative max-w-lg">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-          <input
-            type="text"
-            value={shipSearch}
-            onChange={e => setShipSearch(e.target.value)}
-            placeholder="Search ships..."
-            data-testid="ship-search-input"
-            className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 transition-all"
-          />
+        <div className="flex items-center gap-4 max-w-lg">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+            <input
+              type="text"
+              value={shipSearch}
+              onChange={e => setShipSearch(e.target.value)}
+              placeholder="Search ships..."
+              data-testid="ship-search-input"
+              className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 transition-all"
+            />
+          </div>
+        </div>
+
+        {/* Fleet Toggle */}
+        <div className="flex gap-1.5" data-testid="fleet-toggle">
+          <button
+            onClick={() => setFleetOnly(false)}
+            data-testid="toggle-all-ships"
+            className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase transition-all ${
+              !fleetOnly
+                ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
+                : 'bg-white/5 text-gray-500 border border-white/10 hover:text-gray-300'
+            }`}
+          >
+            All Ships
+          </button>
+          <button
+            onClick={() => setFleetOnly(true)}
+            data-testid="toggle-fleet-only"
+            className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase transition-all ${
+              fleetOnly
+                ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
+                : 'bg-white/5 text-gray-500 border border-white/10 hover:text-gray-300'
+            }`}
+          >
+            My Fleet ({fleetShipIds.size})
+          </button>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
