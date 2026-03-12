@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../App';
 import axios from 'axios';
-import { Package, Crosshair, Anchor, Wrench, Building2, ArrowRight, Shield, Zap, Cpu, Snowflake, Rocket, Users, Globe, Car } from 'lucide-react';
+import { Package, Crosshair, Wrench, Building2, ArrowRight, Shield, Zap, Cpu, Snowflake, Rocket, Users, Globe, Car } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import SpaceshipIcon from '../components/SpaceshipIcon';
