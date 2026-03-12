@@ -22,8 +22,9 @@ Build a full-stack application called "Star Citizen Fleet Manager" for players t
 /app/backend/live_api.py        - Star Citizen Wiki API integration
 /app/backend/data_enhancers/cstone_api.py - CStone price/location data
 /app/frontend/src/pages/Ships.jsx      - Ship database with filters
-/app/frontend/src/pages/Dashboard.jsx  - Fleet dashboard with filters
+/app/frontend/src/pages/Dashboard.jsx  - Fleet dashboard with filters + manufacturer colors
 /app/frontend/src/pages/Fleet.jsx      - Fleet management
+/app/frontend/src/pages/LoadoutBuilder.jsx - Loadout builder with fleet toggle
 /app/frontend/src/pages/Wikelo.jsx     - Wikelo contracts
 /app/frontend/src/pages/PriceTracker.jsx - Price tracking
 ```
@@ -46,9 +47,15 @@ Build a full-stack application called "Star Citizen Fleet Manager" for players t
 - [x] Ships page sort/filter options (Size, Type/Role, Manufacturer, Cargo)
 - [x] Ground vehicles properly excluded from Ships section
 - [x] Avenger variants properly grouped (Stalker, Warlock, Renegade under Titan)
+- [x] Loadout Builder "Fleet Only" toggle (All Ships / My Fleet)
+- [x] Dashboard "Favorite Manufacturer" display with color-coded breakdown
+- [x] Fleet list color-coordination (ship names + manufacturer names match manufacturer color)
 
 ## Remaining/Backlog Tasks
 - [ ] (P1) Full re-validation of all features after data changes
 - [ ] (P2) RSI Fleet Import tool
 - [ ] (P3) Rare item locations (armor/FPS weapons)
 - [ ] (P4) Replace boat icons with spaceship icons
+
+## Known Issues
+- Production deployment fails (suspected platform-level resource issue, not code)
