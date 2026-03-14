@@ -20,12 +20,16 @@ Build a full-stack application called "Star Citizen Fleet Manager" for players t
 - [x] Components page with clickable detail modals, purchase locations, prices, **Radars included** (302 total)
 - [x] Weapons page with clickable detail modals, purchase locations, prices (146 weapons)
 - [x] Wikelo section, Route planner, Price tracking, Community loadouts
-- [x] Ship hardpoints fixed (Eclipse, Reclaimer, Talon Shrike, Liberator, Merchantman)
+- [x] Ship hardpoints fixed (Eclipse, Reclaimer, Talon Shrike, Liberator, Merchantman, all Constellation variants)
 - [x] Rare Item Locations tab on Gear page (86 items)
 - [x] Auto-logout axios interceptor for expired tokens
+- [x] **Shopping List with Visual Route Planner** - Cost breakdown, store groupings, SVG star map route with distances/travel times (2026-03-14)
 
 ## Remaining/Backlog Tasks
-- [ ] (P2) RSI Fleet Import tool
+- [ ] (P1) RSI Fleet Import tool
+- [ ] (P2) Wikelo Section enhancements (contracts & required items)
+- [ ] (P3) Chase/Interdiction Route Planner enhancements
+- [ ] (P4) Real-time Price Tracking
 - [ ] Fleet value estimator (total aUEC + pledge cost)
 
 ## Known Issues
