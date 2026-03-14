@@ -4,7 +4,7 @@ import logging
 
 from deps import get_current_user
 from ship_data_enhancer import enhance_ship_data, get_vehicle_image, get_ship_image
-from live_api import fetch_live_vehicles, fetch_live_weapons, fetch_live_components
+from live_api import fetch_live_vehicles, fetch_live_weapons, fetch_live_components, _get_curated_weapons
 from ship_purchases import get_purchase_info
 from cstone_api import (
     get_all_components as cstone_components,
@@ -265,6 +265,7 @@ def _inject_missing_wiki_ships(ships: list) -> list:
                 size_class = "Large"
             else:
                 size_class = "Capital"
+            weapon_sizes = _get_curated_weapons(ms["name"].lower().strip(), [])
             ships.append({
                 "id": ms["id"],
                 "name": ms["name"],
@@ -279,6 +280,7 @@ def _inject_missing_wiki_ships(ships: list) -> list:
                 "purchase_locations": [],
                 "flight_ready": ms.get("flight_ready", False),
                 "production_state": ms.get("production_state", "In concept"),
+                "hardpoints": {"weapons": weapon_sizes} if weapon_sizes else {},
                 "variants": [],
             })
     return ships
