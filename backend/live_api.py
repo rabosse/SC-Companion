@@ -104,10 +104,10 @@ _CURATED_HARDPOINTS = {
     "mantis": [3, 3],
     "scorpius": [4, 4, 3, 3],
     "scorpius antares": [4, 4, 3, 3],
-    "constellation andromeda": [5, 5, 4, 4],
-    "constellation aquila": [5, 5, 4, 4],
-    "constellation taurus": [5, 5, 4, 4],
-    "constellation phoenix": [5, 5, 4, 4],
+    "constellation andromeda": [5, 5, 5, 5, 3, 3, 3, 3],  # 4x S5 pilot + 2x S6 turrets (2x S3 each)
+    "constellation aquila": [5, 5, 5, 5, 3, 3, 3, 3],
+    "constellation taurus": [5, 5, 5, 5, 3, 3, 3, 3],
+    "constellation phoenix": [5, 5, 5, 5, 3, 3, 3, 3],
     "perseus": [7, 7, 5, 5],
     "polaris": [4, 4, 4, 4],
     "galaxy": [4, 4],
@@ -530,6 +530,11 @@ def _normalize_vehicle(v: dict) -> dict:
         "guardian qi": {"shield_size": 1, "shield_count": 2, "power_size": 1, "power_count": 1, "cooler_size": 1, "cooler_count": 1, "qd_size": 1, "qd_count": 1},
         # 600i BIS (large ship, not capital)
         "600i 2951 bis": {"shield_size": 3, "shield_count": 2, "power_size": 3, "power_count": 1, "cooler_size": 3, "cooler_count": 2, "qd_size": 3, "qd_count": 1},
+        # Constellation series (1x S3 shield, 2x S2 power, 2x S2 cooler, 1x S2 QD per starcitizen.tools)
+        "constellation andromeda": {"shield_size": 3, "shield_count": 1, "power_size": 2, "power_count": 2, "cooler_size": 2, "cooler_count": 2, "qd_size": 2, "qd_count": 1},
+        "constellation aquila": {"shield_size": 3, "shield_count": 1, "power_size": 2, "power_count": 2, "cooler_size": 2, "cooler_count": 2, "qd_size": 2, "qd_count": 1},
+        "constellation taurus": {"shield_size": 3, "shield_count": 1, "power_size": 2, "power_count": 2, "cooler_size": 2, "cooler_count": 2, "qd_size": 2, "qd_count": 1},
+        "constellation phoenix": {"shield_size": 3, "shield_count": 1, "power_size": 2, "power_count": 2, "cooler_size": 2, "cooler_count": 2, "qd_size": 2, "qd_count": 1},
     }
     comp_override = _COMPONENT_OVERRIDES.get(ship_name_lower, {})
 
