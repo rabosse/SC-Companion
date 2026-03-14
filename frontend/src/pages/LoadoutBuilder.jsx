@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useAuth } from '../App';
 import axios from 'axios';
-import { Search, X, Check, Shield, Zap, Cpu, Box, Crosshair, AlertTriangle, Save, Share2, List, PlusCircle, Trash2, Edit3, Loader2, MapPin, ShoppingCart, DollarSign } from 'lucide-react';
+import { Search, X, Check, Shield, Zap, Cpu, Box, Crosshair, AlertTriangle, Save, Share2, List, PlusCircle, Trash2, Edit3, Loader2, MapPin, ShoppingCart, DollarSign, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 import SpaceshipIcon from '../components/SpaceshipIcon';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -856,12 +856,54 @@ const MiniStat = ({ label, value }) => (
 );
 
 const ShoppingListModal = ({ data, onClose, API }) => {
-  const { shipName, items, byStore, total, loading, route } = data;
+  const { shipName, items, byStore, total, loading, route: initialRoute } = data;
   const itemsWithPrice = items.filter(i => i.cheapest);
   const itemsNoPrice = items.filter(i => !i.cheapest);
-  // Ensure byStore is an array (handles initial loading state where it's {})
   const byStoreArray = Array.isArray(byStore) ? byStore : [];
+
+  const [currentRoute, setCurrentRoute] = useState(initialRoute);
+  const [orderedStores, setOrderedStores] = useState(byStoreArray);
+  const [startLocations, setStartLocations] = useState([]);
+  const [selectedOrigin, setSelectedOrigin] = useState('');
+  const [routeLoading, setRouteLoading] = useState(false);
+
+  useEffect(() => {
+    axios.get(`${API}/routes/starting_locations`).then(res => {
+      if (res.data.success) setStartLocations(res.data.data || []);
+    }).catch(() => {});
+  }, [API]);
+
   const storeNames = byStoreArray.map(s => s.location);
+
+  const handleRouteClick = async () => {
+    setRouteLoading(true);
+    try {
+      const payload = { store_names: storeNames, qd_size: 1 };
+      if (selectedOrigin) payload.origin_id = selectedOrigin;
+      const res = await axios.post(`${API}/routes/shopping_trip`, payload);
+      if (res.data.success) {
+        const newRoute = res.data.data;
+        setCurrentRoute(newRoute);
+        // Reorder the store list to match the route's stop order
+        const stopOrder = newRoute.stops.map(s => s.location_name.toLowerCase());
+        const reordered = [...byStoreArray].sort((a, b) => {
+          const aIdx = stopOrder.findIndex(n => a.location.toLowerCase().includes(n) || n.includes(a.location.toLowerCase()));
+          const bIdx = stopOrder.findIndex(n => b.location.toLowerCase().includes(n) || n.includes(b.location.toLowerCase()));
+          return (aIdx === -1 ? 999 : aIdx) - (bIdx === -1 ? 999 : bIdx);
+        });
+        setOrderedStores(reordered);
+      }
+    } catch { /* keep previous route */ }
+    setRouteLoading(false);
+  };
+
+  // Group starting locations by system
+  const groupedLocations = startLocations.reduce((acc, loc) => {
+    const sys = loc.system.charAt(0).toUpperCase() + loc.system.slice(1);
+    if (!acc[sys]) acc[sys] = [];
+    acc[sys].push(loc);
+    return acc;
+  }, {});
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -902,22 +944,56 @@ const ShoppingListModal = ({ data, onClose, API }) => {
                 </div>
                 <div className="text-right">
                   <div className="text-xs text-gray-400">{itemsWithPrice.length} priced / {itemsNoPrice.length} unknown</div>
-                  <div className="text-xs text-gray-500">{byStoreArray.length} store{byStoreArray.length !== 1 ? 's' : ''} to visit</div>
+                  <div className="text-xs text-gray-500">{orderedStores.length} store{orderedStores.length !== 1 ? 's' : ''} to visit</div>
                 </div>
               </div>
             </div>
 
+            {/* Starting Location Picker */}
+            {storeNames.length > 0 && (
+              <div className="mb-4 rounded-xl border border-white/10 p-3 bg-white/[0.02] flex items-center gap-3">
+                <label className="text-[10px] text-gray-500 uppercase font-bold whitespace-nowrap">Start From</label>
+                <select
+                  value={selectedOrigin}
+                  onChange={e => setSelectedOrigin(e.target.value)}
+                  data-testid="start-location-picker"
+                  className="flex-1 text-xs bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-white focus:border-cyan-500/50 focus:outline-none appearance-none cursor-pointer"
+                  style={{ fontFamily: 'Rajdhani, sans-serif' }}
+                >
+                  <option value="" className="bg-[#0f1729] text-gray-400">Auto (nearest store first)</option>
+                  {Object.entries(groupedLocations).map(([system, locs]) => (
+                    <optgroup key={system} label={system} className="bg-[#0f1729]">
+                      {locs.map(loc => (
+                        <option key={loc.id} value={loc.id} className="bg-[#0f1729] text-white">
+                          {loc.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+                <button
+                  onClick={handleRouteClick}
+                  disabled={routeLoading}
+                  data-testid="route-button"
+                  className="px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/30 hover:border-cyan-400/50 disabled:opacity-50"
+                  style={{ fontFamily: 'Rajdhani, sans-serif' }}
+                >
+                  {routeLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Route'}
+                </button>
+              </div>
+            )}
+
             {/* Visual Route Map */}
-            {route && route.stops?.length > 0 && <ShoppingRouteMap route={route} API={API} storeNames={storeNames} />}
+            {currentRoute && currentRoute.stops?.length > 0 && <ShoppingRouteMap route={currentRoute} />}
 
             {/* By Store - Shopping Route */}
-            {byStoreArray.length > 0 && (
+            {orderedStores.length > 0 && (
               <div className="mb-6">
                 <h3 className="text-xs text-gray-500 uppercase font-bold mb-3 flex items-center gap-2">
-                  <MapPin className="w-3.5 h-3.5" /> Shopping Route (fewest stops)
+                  <MapPin className="w-3.5 h-3.5" /> Shopping Route {currentRoute?.origin ? `from ${currentRoute.origin.name}` : '(fewest stops)'}
                 </h3>
                 <div className="space-y-3">
-                  {byStoreArray.map((store, si) => (
+                  {orderedStores.map((store, si) => (
                     <div key={si} className="rounded-xl border border-white/10 overflow-hidden" data-testid={`store-${si}`}>
                       <div className="flex items-center justify-between px-4 py-2.5 bg-white/[0.03]">
                         <div className="flex items-center gap-2">
@@ -978,47 +1054,83 @@ const ShoppingListModal = ({ data, onClose, API }) => {
 };
 
 
-const ShoppingRouteMap = ({ route: initialRoute, API, storeNames }) => {
-  const [route, setRoute] = useState(initialRoute);
-  const [startLocations, setStartLocations] = useState([]);
-  const [selectedOrigin, setSelectedOrigin] = useState('');
-  const [routeLoading, setRouteLoading] = useState(false);
-
-  useEffect(() => {
-    axios.get(`${API}/routes/starting_locations`).then(res => {
-      if (res.data.success) setStartLocations(res.data.data || []);
-    }).catch(() => {});
-  }, [API]);
-
-  useEffect(() => { setRoute(initialRoute); }, [initialRoute]);
-
-  const handleOriginChange = async (originId) => {
-    setSelectedOrigin(originId);
-    setRouteLoading(true);
-    try {
-      const payload = { store_names: storeNames, qd_size: 1 };
-      if (originId) payload.origin_id = originId;
-      const res = await axios.post(`${API}/routes/shopping_trip`, payload);
-      if (res.data.success) setRoute(res.data.data);
-    } catch { /* keep previous route */ }
-    setRouteLoading(false);
-  };
-
+const ShoppingRouteMap = ({ route }) => {
   const { stops, legs, context_locations, total_distance_mkm, total_travel_time_s, origin } = route;
+  const svgRef = useRef(null);
+  const containerRef = useRef(null);
+  const isPanning = useRef(false);
+  const panStart = useRef({ x: 0, y: 0 });
+
   const allPoints = [
     ...stops.map(s => ({ x: s.map_x, y: s.map_y })),
     ...(context_locations || []).map(c => ({ x: c.map_x, y: c.map_y })),
     ...(origin ? [{ x: origin.map_x, y: origin.map_y }] : []),
   ];
-  if (allPoints.length === 0) return null;
 
   const padding = 50;
-  const minX = Math.min(...allPoints.map(p => p.x)) - padding;
-  const maxX = Math.max(...allPoints.map(p => p.x)) + padding;
-  const minY = Math.min(...allPoints.map(p => p.y)) - padding;
-  const maxY = Math.max(...allPoints.map(p => p.y)) + padding;
-  const vw = maxX - minX;
-  const vh = maxY - minY;
+  const baseMinX = allPoints.length ? Math.min(...allPoints.map(p => p.x)) - padding : -200;
+  const baseMaxX = allPoints.length ? Math.max(...allPoints.map(p => p.x)) + padding : 200;
+  const baseMinY = allPoints.length ? Math.min(...allPoints.map(p => p.y)) - padding : -200;
+  const baseMaxY = allPoints.length ? Math.max(...allPoints.map(p => p.y)) + padding : 200;
+  const baseW = baseMaxX - baseMinX;
+  const baseH = baseMaxY - baseMinY;
+  const baseCx = baseMinX + baseW / 2;
+  const baseCy = baseMinY + baseH / 2;
+
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+
+  // Reset zoom/pan when route changes
+  useEffect(() => { setZoom(1); setPan({ x: 0, y: 0 }); }, [route]);
+
+  const vbW = baseW / zoom;
+  const vbH = baseH / zoom;
+  const vbX = baseCx - vbW / 2 + pan.x;
+  const vbY = baseCy - vbH / 2 + pan.y;
+
+  const handleWheel = useCallback((e) => {
+    e.preventDefault();
+    setZoom(z => {
+      const delta = e.deltaY > 0 ? 0.85 : 1.18;
+      return Math.max(0.5, Math.min(8, z * delta));
+    });
+  }, []);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => el.removeEventListener('wheel', handleWheel);
+  }, [handleWheel]);
+
+  const handleMouseDown = (e) => {
+    if (e.button !== 0) return;
+    isPanning.current = true;
+    panStart.current = { x: e.clientX, y: e.clientY };
+    e.currentTarget.style.cursor = 'grabbing';
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isPanning.current || !containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const scaleX = vbW / rect.width;
+    const scaleY = vbH / rect.height;
+    const dx = (e.clientX - panStart.current.x) * scaleX;
+    const dy = (e.clientY - panStart.current.y) * scaleY;
+    setPan(p => ({ x: p.x - dx, y: p.y - dy }));
+    panStart.current = { x: e.clientX, y: e.clientY };
+  };
+
+  const handleMouseUp = (e) => {
+    isPanning.current = false;
+    if (e.currentTarget) e.currentTarget.style.cursor = 'grab';
+  };
+
+  const zoomIn = () => setZoom(z => Math.min(8, z * 1.4));
+  const zoomOut = () => setZoom(z => Math.max(0.5, z / 1.4));
+  const resetView = () => { setZoom(1); setPan({ x: 0, y: 0 }); };
+
+  if (allPoints.length === 0) return null;
 
   const formatTime = (s) => {
     if (s < 60) return `${s}s`;
@@ -1029,13 +1141,8 @@ const ShoppingRouteMap = ({ route: initialRoute, API, storeNames }) => {
 
   const stopColors = ['#00D4FF', '#FFAE00', '#00FF9D', '#FF6B9D', '#A855F7', '#F97316'];
 
-  // Group starting locations by system for the dropdown
-  const groupedLocations = startLocations.reduce((acc, loc) => {
-    const sys = loc.system.charAt(0).toUpperCase() + loc.system.slice(1);
-    if (!acc[sys]) acc[sys] = [];
-    acc[sys].push(loc);
-    return acc;
-  }, {});
+  // Scale text/markers inversely with zoom so they stay readable
+  const s = 1 / Math.sqrt(zoom);
 
   return (
     <div className="mb-6 rounded-xl border border-white/10 overflow-hidden" data-testid="shopping-route-map">
@@ -1050,40 +1157,53 @@ const ShoppingRouteMap = ({ route: initialRoute, API, storeNames }) => {
         </div>
       </div>
 
-      {/* Starting Location Picker */}
-      <div className="px-4 py-2 bg-white/[0.02] border-b border-white/5 flex items-center gap-3">
-        <label className="text-[10px] text-gray-500 uppercase font-bold whitespace-nowrap">Start From</label>
-        <select
-          value={selectedOrigin}
-          onChange={e => handleOriginChange(e.target.value)}
-          data-testid="start-location-picker"
-          className="flex-1 text-xs bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-white focus:border-cyan-500/50 focus:outline-none appearance-none cursor-pointer"
-          style={{ fontFamily: 'Rajdhani, sans-serif' }}
-        >
-          <option value="" className="bg-[#0f1729] text-gray-400">Auto (nearest store first)</option>
-          {Object.entries(groupedLocations).map(([system, locs]) => (
-            <optgroup key={system} label={system} className="bg-[#0f1729]">
-              {locs.map(loc => (
-                <option key={loc.id} value={loc.id} className="bg-[#0f1729] text-white">
-                  {loc.name}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
-        {routeLoading && <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400 shrink-0" />}
-      </div>
+      <div
+        ref={containerRef}
+        className="relative bg-[#0a0e1a] select-none"
+        style={{ minHeight: 280, cursor: 'grab' }}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+      >
+        {/* Zoom controls */}
+        <div className="absolute top-2 right-2 z-10 flex flex-col gap-1" data-testid="zoom-controls">
+          <button onClick={zoomIn} data-testid="zoom-in-btn"
+            className="w-7 h-7 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all">
+            <ZoomIn className="w-3.5 h-3.5" />
+          </button>
+          <button onClick={zoomOut} data-testid="zoom-out-btn"
+            className="w-7 h-7 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all">
+            <ZoomOut className="w-3.5 h-3.5" />
+          </button>
+          <button onClick={resetView} data-testid="zoom-reset-btn"
+            className="w-7 h-7 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all">
+            <Maximize2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
 
-      <div className="relative bg-[#0a0e1a]" style={{ minHeight: 220 }}>
-        <svg viewBox={`${minX} ${minY} ${vw} ${vh}`} className="w-full" style={{ height: 220 }}
-          preserveAspectRatio="xMidYMid meet" data-testid="shopping-route-svg">
+        {/* Zoom level indicator */}
+        {zoom !== 1 && (
+          <div className="absolute bottom-2 left-2 z-10 text-[10px] text-gray-600 bg-black/40 px-2 py-0.5 rounded" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
+            {Math.round(zoom * 100)}%
+          </div>
+        )}
+
+        <svg
+          ref={svgRef}
+          viewBox={`${vbX} ${vbY} ${vbW} ${vbH}`}
+          className="w-full"
+          style={{ height: 280 }}
+          preserveAspectRatio="xMidYMid meet"
+          data-testid="shopping-route-svg"
+        >
           <defs>
             <radialGradient id="starGlow">
               <stop offset="0%" stopColor="#FFE4A0" stopOpacity="0.25" />
               <stop offset="100%" stopColor="#FFE4A0" stopOpacity="0" />
             </radialGradient>
             <filter id="routeGlow">
-              <feGaussianBlur stdDeviation="1.5" result="blur" />
+              <feGaussianBlur stdDeviation={1.5 * s} result="blur" />
               <feMerge>
                 <feMergeNode in="blur" />
                 <feMergeNode in="SourceGraphic" />
@@ -1092,19 +1212,19 @@ const ShoppingRouteMap = ({ route: initialRoute, API, storeNames }) => {
           </defs>
 
           {/* Star glow at origin */}
-          <circle cx={0} cy={0} r={18} fill="url(#starGlow)" />
-          <circle cx={0} cy={0} r={3} fill="#FFE4A0" opacity={0.6} />
+          <circle cx={0} cy={0} r={18 * s} fill="url(#starGlow)" />
+          <circle cx={0} cy={0} r={3 * s} fill="#FFE4A0" opacity={0.6} />
 
           {/* Context locations (planets, cities as faint dots) */}
           {(context_locations || []).map((loc, i) => (
             <g key={`ctx-${i}`}>
               <circle cx={loc.map_x} cy={loc.map_y}
-                r={loc.type === 'planet' ? 4 : 2}
+                r={(loc.type === 'planet' ? 4 : 2) * s}
                 fill={loc.type === 'planet' ? 'rgba(100,140,180,0.3)' : 'rgba(100,140,180,0.15)'}
-                stroke="rgba(100,140,180,0.15)" strokeWidth={0.5} />
-              <text x={loc.map_x} y={loc.map_y + (loc.type === 'planet' ? 9 : 6)}
+                stroke="rgba(100,140,180,0.15)" strokeWidth={0.5 * s} />
+              <text x={loc.map_x} y={loc.map_y + (loc.type === 'planet' ? 9 : 6) * s}
                 textAnchor="middle" fill="rgba(150,180,210,0.3)"
-                fontSize={loc.type === 'planet' ? 5 : 3.5} fontFamily="Rajdhani, sans-serif">
+                fontSize={(loc.type === 'planet' ? 5 : 3.5) * s} fontFamily="Rajdhani, sans-serif">
                 {loc.name}
               </text>
             </g>
@@ -1118,14 +1238,14 @@ const ShoppingRouteMap = ({ route: initialRoute, API, storeNames }) => {
             return (
               <g key={`leg-${i}`}>
                 <line x1={leg.from_x} y1={leg.from_y} x2={leg.to_x} y2={leg.to_y}
-                  stroke={isFromOrigin ? '#22D3EE' : '#00D4FF'} strokeWidth={1.5} opacity={0.15} filter="url(#routeGlow)" />
+                  stroke={isFromOrigin ? '#22D3EE' : '#00D4FF'} strokeWidth={1.5 * s} opacity={0.15} filter="url(#routeGlow)" />
                 <line x1={leg.from_x} y1={leg.from_y} x2={leg.to_x} y2={leg.to_y}
-                  stroke={isFromOrigin ? '#22D3EE' : '#00D4FF'} strokeWidth={0.8} strokeDasharray="4,3" opacity={0.7} />
-                <rect x={mx - 16} y={my - 5} width={32} height={10} rx={2}
-                  fill="#0a0e1a" fillOpacity={0.85} stroke="rgba(0,212,255,0.2)" strokeWidth={0.3} />
-                <text x={mx} y={my + 2} textAnchor="middle" fill="#6B9DC8"
-                  fontSize={3.5} fontFamily="Rajdhani, sans-serif">
-                  {leg.distance_mkm} Mkm  {formatTime(leg.travel_time_s)}
+                  stroke={isFromOrigin ? '#22D3EE' : '#00D4FF'} strokeWidth={0.8 * s} strokeDasharray={`${4 * s},${3 * s}`} opacity={0.7} />
+                <rect x={mx - 18 * s} y={my - 5 * s} width={36 * s} height={10 * s} rx={2 * s}
+                  fill="#0a0e1a" fillOpacity={0.85} stroke="rgba(0,212,255,0.2)" strokeWidth={0.3 * s} />
+                <text x={mx} y={my + 2.5 * s} textAnchor="middle" fill="#6B9DC8"
+                  fontSize={3.8 * s} fontFamily="Rajdhani, sans-serif">
+                  {leg.distance_mkm} Mkm · {formatTime(leg.travel_time_s)}
                 </text>
               </g>
             );
@@ -1134,20 +1254,20 @@ const ShoppingRouteMap = ({ route: initialRoute, API, storeNames }) => {
           {/* Origin marker (distinct from shopping stops) */}
           {origin && (
             <g>
-              <circle cx={origin.map_x} cy={origin.map_y} r={8} fill="none"
-                stroke="#22D3EE" strokeWidth={0.5} opacity={0.4}>
-                <animate attributeName="r" from="5" to="12" dur="2.5s" repeatCount="indefinite" />
+              <circle cx={origin.map_x} cy={origin.map_y} r={8 * s} fill="none"
+                stroke="#22D3EE" strokeWidth={0.5 * s} opacity={0.4}>
+                <animate attributeName="r" from={5 * s} to={12 * s} dur="2.5s" repeatCount="indefinite" />
                 <animate attributeName="opacity" from="0.5" to="0" dur="2.5s" repeatCount="indefinite" />
               </circle>
               <polygon
-                points={`${origin.map_x},${origin.map_y - 6} ${origin.map_x + 4},${origin.map_y + 2} ${origin.map_x - 4},${origin.map_y + 2}`}
-                fill="#0a0e1a" stroke="#22D3EE" strokeWidth={1} />
-              <text x={origin.map_x} y={origin.map_y - 9} textAnchor="middle"
-                fill="#22D3EE" fontSize={4} fontWeight="700" fontFamily="Rajdhani, sans-serif">
+                points={`${origin.map_x},${origin.map_y - 6 * s} ${origin.map_x + 4 * s},${origin.map_y + 2 * s} ${origin.map_x - 4 * s},${origin.map_y + 2 * s}`}
+                fill="#0a0e1a" stroke="#22D3EE" strokeWidth={1 * s} />
+              <text x={origin.map_x} y={origin.map_y - 9 * s} textAnchor="middle"
+                fill="#22D3EE" fontSize={4 * s} fontWeight="700" fontFamily="Rajdhani, sans-serif">
                 START
               </text>
-              <text x={origin.map_x} y={origin.map_y + 9} textAnchor="middle"
-                fill="#22D3EE" fontSize={3.5} opacity={0.7} fontFamily="Rajdhani, sans-serif">
+              <text x={origin.map_x} y={origin.map_y + 9 * s} textAnchor="middle"
+                fill="#22D3EE" fontSize={3.5 * s} opacity={0.7} fontFamily="Rajdhani, sans-serif">
                 {origin.name}
               </text>
             </g>
@@ -1158,20 +1278,20 @@ const ShoppingRouteMap = ({ route: initialRoute, API, storeNames }) => {
             const color = stopColors[i % stopColors.length];
             return (
               <g key={`stop-${i}`}>
-                <circle cx={stop.map_x} cy={stop.map_y} r={7} fill="none"
-                  stroke={color} strokeWidth={0.4} opacity={0.3}>
-                  <animate attributeName="r" from="5" to="10" dur="2s" repeatCount="indefinite" />
+                <circle cx={stop.map_x} cy={stop.map_y} r={7 * s} fill="none"
+                  stroke={color} strokeWidth={0.4 * s} opacity={0.3}>
+                  <animate attributeName="r" from={5 * s} to={10 * s} dur="2s" repeatCount="indefinite" />
                   <animate attributeName="opacity" from="0.4" to="0" dur="2s" repeatCount="indefinite" />
                 </circle>
-                <circle cx={stop.map_x} cy={stop.map_y} r={5} fill={color} opacity={0.1} />
-                <circle cx={stop.map_x} cy={stop.map_y} r={3.5}
-                  fill="#0a0e1a" stroke={color} strokeWidth={1.2} />
-                <text x={stop.map_x} y={stop.map_y + 1.5} textAnchor="middle"
-                  fill={color} fontSize={4} fontWeight="bold" fontFamily="Rajdhani, sans-serif">
+                <circle cx={stop.map_x} cy={stop.map_y} r={5 * s} fill={color} opacity={0.1} />
+                <circle cx={stop.map_x} cy={stop.map_y} r={3.5 * s}
+                  fill="#0a0e1a" stroke={color} strokeWidth={1.2 * s} />
+                <text x={stop.map_x} y={stop.map_y + 1.5 * s} textAnchor="middle"
+                  fill={color} fontSize={4 * s} fontWeight="bold" fontFamily="Rajdhani, sans-serif">
                   {stop.order}
                 </text>
-                <text x={stop.map_x} y={stop.map_y - 7} textAnchor="middle"
-                  fill="#E0E8F0" fontSize={4.5} fontWeight="600" fontFamily="Rajdhani, sans-serif">
+                <text x={stop.map_x} y={stop.map_y - 7 * s} textAnchor="middle"
+                  fill="#E0E8F0" fontSize={4.5 * s} fontWeight="600" fontFamily="Rajdhani, sans-serif">
                   {stop.location_name}
                 </text>
               </g>
