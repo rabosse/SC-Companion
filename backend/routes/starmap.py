@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from star_systems import get_all_locations, get_systems, calculate_route, calculate_interdiction, calculate_chase, calculate_chase_advanced, plan_shopping_trip, QD_SPEEDS, QD_FUEL_DEFAULTS
+from star_systems import get_all_locations, get_systems, calculate_route, calculate_interdiction, calculate_chase, calculate_chase_advanced, plan_shopping_trip, get_starting_locations, QD_SPEEDS, QD_FUEL_DEFAULTS
 
 router = APIRouter(prefix="/api/routes", tags=["starmap"])
 
@@ -80,6 +80,13 @@ async def calculate_chase_advanced_route(data: ChaseAdvancedRequest):
 class ShoppingTripRequest(BaseModel):
     store_names: list
     qd_size: int = 1
+    origin_id: str = None
+
+
+@router.get("/starting_locations")
+async def get_start_locations():
+    """Get all dockable locations suitable as starting points."""
+    return {"success": True, "data": get_starting_locations()}
 
 
 @router.post("/shopping_trip")
@@ -87,7 +94,7 @@ async def plan_shopping_route(data: ShoppingTripRequest):
     """Plan an optimized multi-stop shopping route on the star map."""
     if not data.store_names:
         raise HTTPException(status_code=400, detail="No store names provided")
-    result = plan_shopping_trip(data.store_names, data.qd_size)
+    result = plan_shopping_trip(data.store_names, data.qd_size, data.origin_id)
     if "error" in result:
         raise HTTPException(status_code=400, detail=result["error"])
     return {"success": True, "data": result}

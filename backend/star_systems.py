@@ -905,16 +905,40 @@ def _resolve_store_to_location(store_name: str):
     return None
 
 
-def plan_shopping_trip(store_names: list, qd_size: int = 1):
+def get_starting_locations():
+    """Return dockable locations suitable as starting points for a shopping trip."""
+    dockable_types = {"city", "station", "rest_stop"}
+    results = []
+    for loc in LOCATIONS:
+        if loc["type"] in dockable_types:
+            results.append({
+                "id": loc["id"],
+                "name": loc["name"],
+                "system": loc["system"],
+                "type": loc["type"],
+            })
+    results.sort(key=lambda x: (x["system"], x["type"] != "city", x["name"]))
+    return results
+
+
+def plan_shopping_trip(store_names: list, qd_size: int = 1, origin_id: str = None):
     """
     Given a list of store names from CStone, resolve them to map locations
     and compute an efficient multi-stop route using nearest-neighbor heuristic.
+    If origin_id is provided, use that location as the starting point.
     Returns ordered stops with coordinates, legs with distances and travel times.
     """
     speed_kms = QD_SPEEDS.get(qd_size, QD_SPEEDS.get(1, 165000))
 
+    # Resolve origin if provided
+    origin_loc = None
+    if origin_id:
+        origin_loc = _loc_by_id.get(origin_id)
+
     # Deduplicate and resolve stores to locations
     seen_ids = set()
+    if origin_loc:
+        seen_ids.add(origin_loc["id"])
     stops = []
     unresolved = []
     for store in store_names:
@@ -922,13 +946,17 @@ def plan_shopping_trip(store_names: list, qd_size: int = 1):
         if loc and loc["id"] not in seen_ids:
             seen_ids.add(loc["id"])
             stops.append({"store_name": store, "location": loc})
+        elif loc and loc["id"] == (origin_loc["id"] if origin_loc else None):
+            # Store resolves to the origin — still include it as a shopping stop
+            stops.append({"store_name": store, "location": loc})
         elif not loc:
             unresolved.append(store)
 
     if len(stops) < 1:
         return {"error": "Could not resolve any store locations to the star map"}
 
-    if len(stops) == 1:
+    # If only 1 stop and no origin, simple result
+    if len(stops) == 1 and not origin_loc:
         loc = stops[0]["location"]
         return {
             "stops": [{
@@ -940,6 +968,7 @@ def plan_shopping_trip(store_names: list, qd_size: int = 1):
                 "map_x": loc["map_x"],
                 "map_y": loc["map_y"],
                 "type": loc.get("type", ""),
+                "is_origin": False,
             }],
             "legs": [],
             "total_distance_mkm": 0,
@@ -947,13 +976,37 @@ def plan_shopping_trip(store_names: list, qd_size: int = 1):
             "qd_size": qd_size,
             "qd_speed_kms": speed_kms,
             "unresolved_stores": unresolved,
+            "origin": None,
             "systems": SYSTEMS,
             "context_locations": _get_context_locations([s["location"] for s in stops]),
         }
 
-    # Nearest-neighbor greedy route (start from the first resolved stop)
-    remaining = list(range(len(stops)))
-    ordered = [remaining.pop(0)]
+    # Build the greedy nearest-neighbor route
+    # If origin is provided, start from origin; otherwise start from first store
+    if origin_loc:
+        # Start routing from origin — find nearest store to origin first
+        remaining = list(range(len(stops)))
+        ordered = []
+        current_loc = origin_loc
+        while remaining:
+            best_idx = None
+            best_dist = float("inf")
+            for idx in remaining:
+                candidate = stops[idx]["location"]
+                dist = _distance_mkm(current_loc, candidate)
+                if dist is not None and dist < best_dist:
+                    best_dist = dist
+                    best_idx = idx
+            if best_idx is not None:
+                ordered.append(best_idx)
+                remaining.remove(best_idx)
+                current_loc = stops[best_idx]["location"]
+            else:
+                ordered.append(remaining.pop(0))
+                current_loc = stops[ordered[-1]]["location"]
+    else:
+        remaining = list(range(len(stops)))
+        ordered = [remaining.pop(0)]
 
     while remaining:
         current = stops[ordered[-1]]["location"]
@@ -979,6 +1032,40 @@ def plan_shopping_trip(store_names: list, qd_size: int = 1):
     total_dist = 0
     total_time = 0
 
+    # If origin provided, add it as the starting point
+    origin_result = None
+    if origin_loc:
+        origin_result = {
+            "id": origin_loc["id"],
+            "name": origin_loc["name"],
+            "system": origin_loc["system"],
+            "map_x": origin_loc["map_x"],
+            "map_y": origin_loc["map_y"],
+            "type": origin_loc.get("type", ""),
+        }
+        # Add leg from origin to first stop
+        first_stop_loc = ordered_stops[0]["location"]
+        dist = _distance_mkm(origin_loc, first_stop_loc)
+        if dist is None:
+            dist = 50.0
+        travel_km = dist * 1_000_000
+        travel_s = round(travel_km / speed_kms) if speed_kms > 0 else 0
+        spool_s = 8
+        legs.append({
+            "from_name": origin_loc["name"],
+            "from_id": origin_loc["id"],
+            "from_x": origin_loc["map_x"],
+            "from_y": origin_loc["map_y"],
+            "to_name": first_stop_loc["name"],
+            "to_id": first_stop_loc["id"],
+            "to_x": first_stop_loc["map_x"],
+            "to_y": first_stop_loc["map_y"],
+            "distance_mkm": round(dist, 2),
+            "travel_time_s": travel_s + spool_s,
+        })
+        total_dist += dist
+        total_time += travel_s + spool_s
+
     for i, stop in enumerate(ordered_stops):
         loc = stop["location"]
         result_stops.append({
@@ -990,6 +1077,7 @@ def plan_shopping_trip(store_names: list, qd_size: int = 1):
             "map_x": loc["map_x"],
             "map_y": loc["map_y"],
             "type": loc.get("type", ""),
+            "is_origin": False,
         })
 
         if i > 0:
@@ -1016,6 +1104,10 @@ def plan_shopping_trip(store_names: list, qd_size: int = 1):
             total_dist += dist
             total_time += travel_s + spool_s
 
+    all_route_locs = [s["location"] for s in ordered_stops]
+    if origin_loc:
+        all_route_locs = [origin_loc] + all_route_locs
+
     return {
         "stops": result_stops,
         "legs": legs,
@@ -1024,8 +1116,9 @@ def plan_shopping_trip(store_names: list, qd_size: int = 1):
         "qd_size": qd_size,
         "qd_speed_kms": speed_kms,
         "unresolved_stores": unresolved,
+        "origin": origin_result,
         "systems": SYSTEMS,
-        "context_locations": _get_context_locations([s["location"] for s in ordered_stops]),
+        "context_locations": _get_context_locations(all_route_locs),
     }
 
 
