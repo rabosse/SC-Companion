@@ -24,7 +24,8 @@ Build a full-stack application called "Star Citizen Fleet Manager" for players t
 - [x] Rare Item Locations tab on Gear page (86 items)
 - [x] Auto-logout axios interceptor for expired tokens
 - [x] **Shopping List with Visual Route Planner** - Cost breakdown, store groupings, SVG star map route with distances/travel times (2026-03-14)
-- [x] **Starting Location Picker** - Dropdown with 36 dockable locations grouped by system; recalculates optimal route from chosen origin; START marker on map (2026-03-14)
+- [x] **Starting Location Picker** - Dropdown with 36 dockable locations grouped by system + Route button that updates BOTH map and store list (2026-03-14)
+- [x] **Zoomable/Pannable Route Map** - Scroll wheel zoom, click-drag pan, zoom in/out/reset buttons, zoom level indicator, markers scale inversely to stay readable (2026-03-14)
 
 ## Remaining/Backlog Tasks
 - [ ] (P1) RSI Fleet Import tool
