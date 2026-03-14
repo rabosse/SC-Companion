@@ -53,6 +53,20 @@ function App() {
       axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
     }
     setAuthLoading(false);
+
+    // Auto-logout on expired/invalid token
+    const interceptor = axios.interceptors.response.use(
+      (res) => res,
+      (err) => {
+        if (err.response?.status === 401 && localStorage.getItem('token')) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          window.location.reload();
+        }
+        return Promise.reject(err);
+      }
+    );
+    return () => axios.interceptors.response.eject(interceptor);
   }, []);
 
   const login = async (username, password) => {
