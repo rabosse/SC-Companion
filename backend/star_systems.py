@@ -873,6 +873,13 @@ _STORE_TO_LOCATION = {
     "levski": "levski-city",
     "ruin station": "ruin-station",
     "bloom": "pyro-bloom-settlement",
+    "ashland": "pyro-bloom-settlement",
+    "ignis": "pyro-bloom-settlement",
+    "pyro v": "pyro-v",
+    "pyro": "ruin-station",
+    "checkmate": "checkmate-station",
+    "gaspar": "ruin-station",
+    "stanton": "port-olisar",
 }
 
 # Build a reverse lookup of location names (lowercase) -> id
@@ -883,16 +890,34 @@ def _resolve_store_to_location(store_name: str):
     """Map a CStone store name like 'Centermass @ Area 18' to a LOCATIONS entry."""
     name_lower = store_name.lower().strip()
 
-    # Direct name match
+    # Handle hierarchical CStone format: "Stanton > ArcCorp > Area 18 > TDD > shop_terminal"
+    segments = [s.strip().lower() for s in name_lower.split(">") if s.strip()]
+
+    # Try each segment individually (most specific first, reversed)
+    for seg in reversed(segments):
+        if seg in ("shop_terminal", "admin", "cargo"):
+            continue  # skip generic segments
+        if seg in _loc_by_name_lower:
+            return _loc_by_id[_loc_by_name_lower[seg]]
+        for keyword, loc_id in _STORE_TO_LOCATION.items():
+            if keyword in seg or seg in keyword:
+                loc = _loc_by_id.get(loc_id)
+                if loc:
+                    return loc
+        for loc in LOCATIONS:
+            if loc["name"].lower() in seg or seg in loc["name"].lower():
+                return loc
+
+    # Direct name match on full string
     if name_lower in _loc_by_name_lower:
         return _loc_by_id[_loc_by_name_lower[name_lower]]
 
-    # Check our curated mapping (substring match)
+    # Check our curated mapping (substring match on full string)
     for keyword, loc_id in _STORE_TO_LOCATION.items():
         if keyword in name_lower:
             return _loc_by_id.get(loc_id)
 
-    # Fuzzy: check if any location name is contained in the store name
+    # Fuzzy: check if any location name is contained in the full store name
     for loc in LOCATIONS:
         if loc["name"].lower() in name_lower:
             return loc
