@@ -385,13 +385,45 @@ async def get_vehicles(user_id: str = Depends(get_current_user)):
 async def get_components(user_id: str = Depends(get_current_user)):
     await prefetch_cstone_data()
     data = cstone_components()
-    if data:
-        return {"success": True, "data": data, "source": "cstone"}
-    # Fallback to old API
+    # Add radars from live API (CStone doesn't have them)
     live = await fetch_live_components()
+    radars = [c for c in (live or []) if c.get("type") == "Radar"]
+    if data:
+        combined = data + radars
+        return {"success": True, "data": combined, "source": "cstone"}
     if live:
         return {"success": True, "data": live, "source": "live"}
     return {"success": True, "data": _get_comprehensive_components_list(), "source": "mock"}
+
+
+@router.get("/components/{item_id}")
+async def get_component_detail(item_id: str, user_id: str = Depends(get_current_user)):
+    """Get detailed component data including purchase locations from CStone."""
+    await prefetch_cstone_data()
+    all_comps = cstone_components()
+    live = await fetch_live_components()
+    radars = [c for c in (live or []) if c.get("type") == "Radar"]
+    all_comps = (all_comps or []) + radars
+
+    comp = next((c for c in all_comps if c["id"] == item_id), None)
+    if not comp:
+        return {"success": False, "data": None}
+    locations = await get_item_locations(item_id)
+    result = {**comp, "locations": locations}
+    return {"success": True, "data": result}
+
+
+@router.get("/weapons/{item_id}")
+async def get_weapon_detail(item_id: str, user_id: str = Depends(get_current_user)):
+    """Get detailed weapon data including purchase locations from CStone."""
+    await prefetch_cstone_data()
+    all_weapons = cstone_ship_weapons() or []
+    weapon = next((w for w in all_weapons if w["id"] == item_id), None)
+    if not weapon:
+        return {"success": False, "data": None}
+    locations = await get_item_locations(item_id)
+    result = {**weapon, "locations": locations}
+    return {"success": True, "data": result}
 
 
 @router.get("/weapons")

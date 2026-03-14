@@ -44,7 +44,7 @@ _CURATED_HARDPOINTS = {
     "avenger titan renegade": [4, 3, 3],
     "avenger stalker": [4, 3, 3],
     "avenger warlock": [4, 3, 3],
-    "eclipse": [],
+    "eclipse": [9, 9, 9],  # 3x S9 torpedo pylons
     "vanguard warden": [5, 2, 2, 2, 2],
     "vanguard sentinel": [5, 2, 2, 2, 2],
     "vanguard harbinger": [5, 2, 2, 2, 2],
@@ -53,7 +53,7 @@ _CURATED_HARDPOINTS = {
     "retaliator bomber": [2, 2],
     "redeemer": [4, 4, 3, 3],
     "hammerhead": [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
-    "reclaimer": [],
+    "reclaimer": [5, 5],  # 2x S5 remote turrets
     "idris-p": [5, 5, 5, 5, 5, 5],
     "idris-m": [7, 5, 5, 5, 5, 5, 5],
     "javelin": [6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 5, 5],
@@ -91,7 +91,7 @@ _CURATED_HARDPOINTS = {
     "valkyrie": [4, 4, 2, 2, 2, 2],
     "carrack": [4, 4, 4, 4],
     "carrack expedition": [4, 4, 4, 4],
-    "liberator": [],
+    "liberator": [5, 5, 4, 4],  # 2x S5 remote + 2x S4 manned turrets
     "ballista": [4, 4, 4, 4, 2, 2],
     "centurion": [4, 4, 4, 4, 3],
     "spartan": [2, 2],
@@ -188,7 +188,7 @@ _CURATED_HARDPOINTS = {
     "prowler": [4, 4, 3, 3],
     "prowler utility": [4, 4, 3, 3],
     "talon": [3, 3],
-    "talon shrike": [],
+    "talon shrike": [5, 5],  # 2x S5 missile pylons
     "esperia stinger": [5],
     # === Aopoa / Alien ===
     "nox": [],
@@ -199,7 +199,7 @@ _CURATED_HARDPOINTS = {
     "syulen": [3, 3],
     # === Banu ===
     "defender": [3, 3, 2, 2],
-    "merchantman": [5, 5, 4, 4, 3, 3, 3, 3],
+    "merchantman": [7, 7, 5, 5, 4, 4, 4, 4],  # 2x S7 front + 2x S5 turret + 4x S4 turrets
     # === Argo ===
     "raft": [],
     "mole": [],

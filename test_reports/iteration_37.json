@@ -1,0 +1,80 @@
+{
+  "summary": "P4 Features testing complete - Hardpoint fixes, clickable weapon/component cards, and Radar type addition. 12/14 backend tests passed (2 xfail for known wiki-injected ships bug). Frontend 100% pass - all weapons and components features working correctly.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/ships", "issue": "Liberator and Merchantman (wiki-injected ships) have empty hardpoints - should have [5,5,4,4] and [7,7,5,5,4,4,4,4] respectively. The _inject_missing_wiki_ships function doesn't use _CURATED_HARDPOINTS from live_api.py", "priority": "MEDIUM"}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "passed_tests": [
+    "BACKEND: /api/components returns 302 components (73 Cooler, 76 Power, 57 Quantum, 64 Shield, 32 Radar) - PASS",
+    "BACKEND: Radar type included in components list - PASS",
+    "BACKEND: /api/components/{id} detail endpoint returns locations with prices - PASS",
+    "BACKEND: /api/weapons/{id} detail endpoint returns locations with prices and stats - PASS",
+    "BACKEND: /api/ships returns 180 ships - PASS",
+    "BACKEND: Eclipse hardpoints = [9,9,9] - PASS (3x S9 torpedo pylons)",
+    "BACKEND: Reclaimer hardpoints = [5,5] - PASS (2x S5 remote turrets)",
+    "BACKEND: Talon Shrike hardpoints = [5,5] - PASS (2x S5 missile pylons)",
+    "BACKEND: Liberator hardpoints - XFAIL (wiki-injected ships missing hardpoints)",
+    "BACKEND: Merchantman hardpoints - XFAIL (wiki-injected ships missing hardpoints)",
+    "BACKEND: /api/weapons returns 146 weapons with type/size for filtering - PASS",
+    "FRONTEND: Weapons page loads with 146 weapon cards - PASS",
+    "FRONTEND: Weapon cards are clickable - clicking opens detail modal - PASS",
+    "FRONTEND: Weapon detail modal shows name, manufacturer, type/size/grade badges - PASS",
+    "FRONTEND: Weapon detail modal shows full stats (Alpha Damage, DPS, Fire Rate, Range, Ammo Speed, Max Ammo, Power Draw) - PASS",
+    "FRONTEND: Weapon detail modal shows description - PASS",
+    "FRONTEND: Weapon detail modal shows purchase locations with prices - PASS",
+    "FRONTEND: Best weapon price highlighted in green (22,287 aUEC) - PASS",
+    "FRONTEND: Weapon filters work (type, size, search) - PASS",
+    "FRONTEND: Components page loads with 302 components - PASS",
+    "FRONTEND: Radar type appears in type filter dropdown - PASS",
+    "FRONTEND: Filtering by Radar type shows 32 radar components with Radio icon - PASS",
+    "FRONTEND: Component cards are clickable - clicking opens detail modal - PASS",
+    "FRONTEND: Component detail modal shows name, manufacturer, type/size/grade/class badges - PASS",
+    "FRONTEND: Component detail modal shows full stats and description - PASS",
+    "FRONTEND: Component detail modal shows purchase locations (for sold items) - PASS",
+    "FRONTEND: Component filters work (type, size, grade, class, availability, sort, search) - PASS"
+  ],
+  "test_report_links": [
+    "/app/backend/tests/test_iteration37_p4_features.py",
+    "/app/test_reports/pytest/pytest_iteration37.xml"
+  ],
+  "action_items": [
+    "FIX: Update _inject_missing_wiki_ships() in /app/backend/routes/ships.py to include hardpoint data from _CURATED_HARDPOINTS in live_api.py for wiki-injected ships like Liberator and Merchantman"
+  ],
+  "critical_code_review_comments": [
+    "Wiki-injected ships (Liberator, Merchantman, etc.) don't receive hardpoint data because _inject_missing_wiki_ships() creates ship objects without checking _CURATED_HARDPOINTS",
+    "The hardpoint data exists in live_api.py _CURATED_HARDPOINTS dict but is only applied to ships from the live API via _normalize_vehicle()",
+    "Consider adding a helper to apply curated hardpoints to wiki-injected ships during injection"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration37_p4_features.py"
+  ],
+  "success_rate": {
+    "backend": "86% (12/14 passed, 2 xfail for known wiki-ship hardpoint bug)",
+    "frontend": "100% (All features working correctly)"
+  },
+  "test_credentials": {
+    "username": "newpilot",
+    "password": "test1234"
+  },
+  "seed_data_creation": "None - used existing data",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "P4 features verified: 1) Components now include Radar type (32 radars out of 302 total). 2) Ship hardpoints fixed for Eclipse [9,9,9], Reclaimer [5,5], Talon Shrike [5,5] - but Liberator and Merchantman still have empty hardpoints (wiki-injected ships issue). 3) Weapon/Component cards are clickable with detail modals showing SCtools data including purchase locations and prices. 4) Best prices highlighted in green. All filters working on both pages.",
+  "feature_verification": {
+    "components_total": 302,
+    "components_by_type": {"Cooler": 73, "Power": 76, "Quantum": 57, "Shield": 64, "Radar": 32},
+    "weapons_total": 146,
+    "hardpoints_fixed": ["Eclipse [9,9,9]", "Reclaimer [5,5]", "Talon Shrike [5,5]"],
+    "hardpoints_still_broken": ["Liberator (should be [5,5,4,4])", "Merchantman (should be [7,7,5,5,4,4,4,4])"],
+    "weapon_modal_features": ["name", "manufacturer", "type/size/grade badges", "alpha_damage", "dps", "fire_rate", "range", "ammo_speed", "max_ammo", "power_draw", "description", "purchase_locations"],
+    "component_modal_features": ["name", "manufacturer", "type/size/grade/class badges", "stats", "description", "purchase_locations"],
+    "best_price_highlighted": true
+  }
+}
