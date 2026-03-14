@@ -25,7 +25,8 @@ Build a full-stack application called "Star Citizen Fleet Manager" for players t
 - [x] Shopping List with Visual Route Planner + Starting Location Picker + Zoomable Map
 - [x] Complete Hardpoint Overhaul (200+ ships from Fleetyards API)
 - [x] Hierarchical Store Location Resolver (Pyro support)
-- [x] **Component Class & Grade Tags in Loadout Builder** - Military (red), Stealth (purple), Industrial (orange), Competition (green), Civilian (gray) + Grade A/B/C/D badges on every component in the equip panel (2026-03-14)
+- [x] Component Class & Grade Tags in Loadout Builder
+- [x] **Class & Grade Filter Buttons** - Toggle filters for Military/Stealth/Industrial/Competition/Civilian + Grade A/B/C/D in equip panel. Clear button when filters active. (2026-03-14)
 
 ## Remaining/Backlog Tasks
 - [ ] (P1) RSI Fleet Import tool

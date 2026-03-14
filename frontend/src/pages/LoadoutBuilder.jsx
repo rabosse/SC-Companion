@@ -25,6 +25,8 @@ const LoadoutBuilder = () => {
   const [activeSlot, setActiveSlot] = useState(null);
   const [shipSearch, setShipSearch] = useState('');
   const [itemSearch, setItemSearch] = useState('');
+  const [classFilter, setClassFilter] = useState('');
+  const [gradeFilter, setGradeFilter] = useState('');
   const [savedLoadouts, setSavedLoadouts] = useState([]);
   const [allLoadouts, setAllLoadouts] = useState([]);
   const [loadoutName, setLoadoutName] = useState('');
@@ -164,6 +166,8 @@ const LoadoutBuilder = () => {
         const wSize = parseInt(w.size) || 0;
         if (wSize > slot.maxSize || wSize <= 0) return false;
         if (q && !w.name.toLowerCase().includes(q) && !w.manufacturer.toLowerCase().includes(q)) return false;
+        if (classFilter && (w.item_class || '') !== classFilter) return false;
+        if (gradeFilter && (w.grade || '') !== gradeFilter) return false;
         return true;
       });
     } else {
@@ -172,6 +176,8 @@ const LoadoutBuilder = () => {
         if (cSize !== slot.maxSize) return false;
         if (c.type !== slot.componentType) return false;
         if (q && !c.name.toLowerCase().includes(q) && !c.manufacturer.toLowerCase().includes(q)) return false;
+        if (classFilter && (c.item_class || '') !== classFilter) return false;
+        if (gradeFilter && (c.grade || '') !== gradeFilter) return false;
         return true;
       });
     }
@@ -650,7 +656,7 @@ const LoadoutBuilder = () => {
       {/* Item Selector Modal */}
       <AnimatePresence>
         {activeSlot && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={e => { if (e.target === e.currentTarget) { setActiveSlot(null); setItemSearch(''); } }}>
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={e => { if (e.target === e.currentTarget) { setActiveSlot(null); setItemSearch(''); setClassFilter(''); setGradeFilter(''); } }}>
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
               className="glass-panel rounded-3xl max-w-3xl w-full max-h-[80vh] overflow-hidden" data-testid="item-selector-modal">
               <div className="p-6 border-b border-white/10 space-y-3">
@@ -663,7 +669,7 @@ const LoadoutBuilder = () => {
                       {activeSlot.type === 'weapon' ? `Only weapons size ${activeSlot.maxSize} or smaller` : `Only size ${activeSlot.maxSize} ${activeSlot.componentType} components`}
                     </p>
                   </div>
-                  <button onClick={() => { setActiveSlot(null); setItemSearch(''); }} className="p-2 hover:bg-white/10 rounded-lg"><X className="w-6 h-6 text-gray-400" /></button>
+                  <button onClick={() => { setActiveSlot(null); setItemSearch(''); setClassFilter(''); setGradeFilter(''); }} className="p-2 hover:bg-white/10 rounded-lg"><X className="w-6 h-6 text-gray-400" /></button>
                 </div>
                 <div className="relative">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
@@ -671,6 +677,45 @@ const LoadoutBuilder = () => {
                     placeholder="Search compatible items..." data-testid="item-search-input"
                     className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 transition-all"
                     autoFocus />
+                </div>
+                {/* Class & Grade Filters */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[10px] text-gray-600 uppercase font-bold">Class</span>
+                  {['Military', 'Stealth', 'Industrial', 'Competition', 'Civilian'].map(cls => (
+                    <button key={cls} onClick={() => setClassFilter(f => f === cls ? '' : cls)}
+                      data-testid={`filter-class-${cls.toLowerCase()}`}
+                      className={`text-[10px] px-2 py-1 rounded-md border font-semibold transition-all ${
+                        classFilter === cls
+                          ? cls === 'Military' ? 'border-red-500/60 bg-red-500/20 text-red-300'
+                            : cls === 'Stealth' ? 'border-purple-500/60 bg-purple-500/20 text-purple-300'
+                            : cls === 'Industrial' ? 'border-orange-500/60 bg-orange-500/20 text-orange-300'
+                            : cls === 'Competition' ? 'border-green-500/60 bg-green-500/20 text-green-300'
+                            : 'border-gray-500/60 bg-gray-500/20 text-gray-300'
+                          : 'border-white/10 bg-white/[0.03] text-gray-500 hover:text-gray-300 hover:bg-white/[0.06]'
+                      }`}>
+                      {cls}
+                    </button>
+                  ))}
+                  <span className="text-white/10 mx-1">|</span>
+                  <span className="text-[10px] text-gray-600 uppercase font-bold">Grade</span>
+                  {['A', 'B', 'C', 'D'].map(g => (
+                    <button key={g} onClick={() => setGradeFilter(f => f === g ? '' : g)}
+                      data-testid={`filter-grade-${g.toLowerCase()}`}
+                      className={`text-[10px] w-6 h-6 rounded-md border font-bold transition-all flex items-center justify-center ${
+                        gradeFilter === g
+                          ? 'border-yellow-500/60 bg-yellow-500/20 text-yellow-300'
+                          : 'border-white/10 bg-white/[0.03] text-gray-500 hover:text-gray-300 hover:bg-white/[0.06]'
+                      }`}>
+                      {g}
+                    </button>
+                  ))}
+                  {(classFilter || gradeFilter) && (
+                    <button onClick={() => { setClassFilter(''); setGradeFilter(''); }}
+                      data-testid="filter-clear-all"
+                      className="text-[10px] px-2 py-1 rounded-md border border-white/10 text-gray-500 hover:text-white hover:bg-white/10 transition-all ml-1">
+                      Clear
+                    </button>
+                  )}
                 </div>
               </div>
               <div className="p-4 overflow-y-auto max-h-[55vh]">
