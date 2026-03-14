@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../App';
 import axios from 'axios';
-import { Search, X, Check, Shield, Zap, Cpu, Box, Crosshair, AlertTriangle, Save, Share2, List, PlusCircle, Trash2, Edit3, Loader2 } from 'lucide-react';
+import { Search, X, Check, Shield, Zap, Cpu, Box, Crosshair, AlertTriangle, Save, Share2, List, PlusCircle, Trash2, Edit3, Loader2, MapPin } from 'lucide-react';
 import SpaceshipIcon from '../components/SpaceshipIcon';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -32,6 +32,8 @@ const LoadoutBuilder = () => {
   const [fleetOnly, setFleetOnly] = useState(false);
   const [editingLoadoutId, setEditingLoadoutId] = useState(null);
   const [dataLoading, setDataLoading] = useState(true);
+  const [inspectItem, setInspectItem] = useState(null);
+  const [inspectLoading, setInspectLoading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -61,6 +63,18 @@ const LoadoutBuilder = () => {
       const res = await axios.get(`${API}/loadouts/my/all`);
       setAllLoadouts(res.data.data || []);
     } catch { /* ignore */ }
+  };
+
+  const inspectSlotItem = async (slotId, item) => {
+    setInspectItem(item);
+    setInspectLoading(true);
+    const isWeapon = slotId.startsWith('weapon_');
+    const endpoint = isWeapon ? `${API}/weapons/${item.id}` : `${API}/components/${item.id}`;
+    try {
+      const res = await axios.get(endpoint);
+      if (res.data.success && res.data.data) setInspectItem(res.data.data);
+    } catch { /* keep base item data */ }
+    finally { setInspectLoading(false); }
   };
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -281,12 +295,13 @@ const LoadoutBuilder = () => {
                               )}
                             </div>
                             <div className="flex flex-wrap gap-1.5 mt-1.5">
-                              {Object.entries(saved.slots || {}).slice(0, 6).map(([slotId, item]) => (
-                                <span key={slotId} className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-gray-400">{item.name}</span>
+                              {Object.entries(saved.slots || {}).map(([slotId, item]) => (
+                                <button key={slotId} onClick={(e) => { e.stopPropagation(); inspectSlotItem(slotId, item); }}
+                                  data-testid={`inspect-${saved.id}-${slotId}`}
+                                  className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-gray-400 hover:bg-cyan-500/15 hover:text-cyan-400 transition-colors cursor-pointer">
+                                  {item.name}
+                                </button>
                               ))}
-                              {Object.keys(saved.slots || {}).length > 6 && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-gray-500">+{Object.keys(saved.slots).length - 6} more</span>
-                              )}
                             </div>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
@@ -315,6 +330,11 @@ const LoadoutBuilder = () => {
             })}
           </div>
         )}
+
+        {/* Item Inspect Popup */}
+        <AnimatePresence>
+          {inspectItem && <ItemDetailPopup item={inspectItem} loading={inspectLoading} onClose={() => setInspectItem(null)} />}
+        </AnimatePresence>
       </div>
     );
   }
@@ -506,7 +526,7 @@ const LoadoutBuilder = () => {
                 </h3>
                 <div className="space-y-2">
                   {slots.map(slot => (
-                    <SlotRow key={slot.id} slot={slot} item={loadout[slot.id]} onSelect={() => { setActiveSlot(slot); setItemSearch(''); }} onRemove={() => removeItem(slot.id)} />
+                    <SlotRow key={slot.id} slot={slot} item={loadout[slot.id]} onSelect={() => { setActiveSlot(slot); setItemSearch(''); }} onRemove={() => removeItem(slot.id)} onInspect={() => loadout[slot.id] && inspectSlotItem(slot.id, loadout[slot.id])} />
                   ))}
                 </div>
               </div>
@@ -620,11 +640,16 @@ const LoadoutBuilder = () => {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Item Inspect Popup */}
+      <AnimatePresence>
+        {inspectItem && <ItemDetailPopup item={inspectItem} loading={inspectLoading} onClose={() => setInspectItem(null)} />}
+      </AnimatePresence>
     </div>
   );
 };
 
-const SlotRow = ({ slot, item, onSelect, onRemove }) => (
+const SlotRow = ({ slot, item, onSelect, onRemove, onInspect }) => (
   <div className="glass-panel rounded-xl p-4 flex items-center justify-between gap-3 group" data-testid={`slot-${slot.id}`}>
     <div className="flex items-center gap-3 min-w-0 flex-1">
       <slot.icon className="w-5 h-5 shrink-0" style={{ color: slot.color }} />
@@ -638,7 +663,8 @@ const SlotRow = ({ slot, item, onSelect, onRemove }) => (
         {item ? (
           <div className="flex items-center gap-2 mt-0.5">
             <Check className="w-3 h-3 text-green-500 shrink-0" />
-            <span className="text-sm text-white font-semibold truncate">{item.name}</span>
+            <button onClick={onInspect} data-testid={`inspect-slot-${slot.id}`}
+              className="text-sm text-white font-semibold truncate hover:text-cyan-400 transition-colors cursor-pointer">{item.name}</button>
             {item.cost_auec > 0 && <span className="text-xs text-yellow-400 shrink-0">{item.cost_auec.toLocaleString()} aUEC</span>}
           </div>
         ) : (
@@ -656,6 +682,100 @@ const SlotRow = ({ slot, item, onSelect, onRemove }) => (
         {item ? 'Change' : 'Equip'}
       </button>
     </div>
+  </div>
+);
+
+const ItemDetailPopup = ({ item, loading, onClose }) => {
+  const locations = item.locations || [];
+  const bestPrice = locations.filter(l => l.price > 0).sort((a, b) => a.price - b.price)[0];
+  const isWeapon = item.type && (item.alpha_damage > 0 || item.dps > 0 || item.fire_rate > 0);
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+      onClick={onClose} data-testid="item-detail-popup">
+      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+        className="glass-panel rounded-2xl max-w-xl w-full max-h-[80vh] overflow-y-auto p-6"
+        onClick={e => e.stopPropagation()}>
+        <div className="flex items-start justify-between mb-5">
+          <div>
+            <h2 className="text-2xl font-bold text-white" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{item.name}</h2>
+            <p className="text-sm text-gray-400">{item.manufacturer}</p>
+          </div>
+          <button onClick={onClose} data-testid="close-item-detail"
+            className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-all">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="flex flex-wrap gap-2 mb-5">
+          {item.type && <span className="px-3 py-1 rounded-lg text-xs font-bold border border-cyan-500/30 bg-cyan-500/20 text-cyan-400">{item.type}</span>}
+          {item.size && <span className="px-3 py-1 rounded-lg text-xs font-bold border border-cyan-500/30 bg-cyan-500/20 text-cyan-400">Size {item.size}</span>}
+          {item.grade && <span className="px-3 py-1 rounded-lg text-xs font-bold border border-amber-500/30 bg-amber-500/20 text-amber-400">Grade {item.grade}</span>}
+          {item.item_class && <span className="px-3 py-1 rounded-lg text-xs font-bold border border-purple-500/30 bg-purple-500/20 text-purple-400">{item.item_class}</span>}
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 mb-5">
+          {isWeapon ? (
+            <>
+              {item.alpha_damage > 0 && <MiniStat label="Alpha DMG" value={Number(item.alpha_damage).toFixed(1)} />}
+              {item.dps > 0 && <MiniStat label="DPS" value={Number(item.dps).toFixed(1)} />}
+              {item.fire_rate > 0 && <MiniStat label="Fire Rate" value={`${item.fire_rate} RPM`} />}
+              {item.range > 0 && <MiniStat label="Range" value={`${Number(item.range).toLocaleString()} m`} />}
+              {item.ammo_speed > 0 && <MiniStat label="Ammo Speed" value={`${Number(item.ammo_speed).toLocaleString()} m/s`} />}
+              {item.max_ammo > 0 && <MiniStat label="Max Ammo" value={Number(item.max_ammo).toLocaleString()} />}
+            </>
+          ) : (
+            <>
+              {item.output > 0 && <MiniStat label={item.type === 'Shield' ? 'Shield HP' : item.type === 'Power' ? 'Power Gen' : item.type === 'Cooler' ? 'Cooling' : 'Output'} value={Number(item.output).toLocaleString()} />}
+              {item.rate > 0 && <MiniStat label={item.type === 'Shield' ? 'Regen Rate' : 'Rate'} value={Number(item.rate).toLocaleString()} />}
+              {item.speed > 0 && <MiniStat label="QT Speed" value={`${Number(item.speed).toLocaleString()} m/s`} />}
+              {item.durability > 0 && <MiniStat label="Durability" value={`${Number(item.durability).toLocaleString()} HP`} />}
+              {item.power_draw > 0 && <MiniStat label="Power Draw" value={item.power_draw} />}
+            </>
+          )}
+        </div>
+
+        {item.description && (
+          <div className="mb-5">
+            <h3 className="text-xs text-gray-500 uppercase font-bold mb-1.5">Description</h3>
+            <p className="text-sm text-gray-300 leading-relaxed">{item.description.replace(/\\n/g, ' ').replace(/\n/g, ' ')}</p>
+          </div>
+        )}
+
+        <div>
+          <h3 className="text-xs text-gray-500 uppercase font-bold mb-2.5 flex items-center gap-2">
+            <MapPin className="w-3.5 h-3.5" /> Purchase Locations
+            {loading && <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400" />}
+          </h3>
+          {locations.length > 0 ? (
+            <div className="space-y-1.5 max-h-48 overflow-y-auto">
+              {locations.map((loc, i) => (
+                <div key={i} className={`flex items-center justify-between text-sm p-2 rounded-lg ${bestPrice && loc.price === bestPrice.price ? 'bg-green-500/10 border border-green-500/20' : 'bg-white/5'}`}>
+                  <span className="text-gray-300 flex-1 mr-3 text-xs">{loc.location}</span>
+                  {loc.price > 0 && (
+                    <span className={`font-bold text-xs whitespace-nowrap ${bestPrice && loc.price === bestPrice.price ? 'text-green-400' : 'text-yellow-400'}`}
+                      style={{ fontFamily: 'Rajdhani, sans-serif' }}>
+                      {loc.price.toLocaleString()} aUEC
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500 italic">{loading ? 'Fetching locations...' : 'No purchase locations available'}</p>
+          )}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+const MiniStat = ({ label, value }) => (
+  <div className="bg-white/5 rounded-lg p-2.5 text-center">
+    <div className="text-[10px] text-gray-500 uppercase font-semibold mb-0.5">{label}</div>
+    <div className="text-sm font-bold text-white" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{value}</div>
   </div>
 );
 
