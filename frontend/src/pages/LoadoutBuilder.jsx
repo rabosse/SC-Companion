@@ -121,7 +121,17 @@ const LoadoutBuilder = () => {
     // Sort stores by number of items (most items first = fewest stops)
     const sortedStores = Object.values(byStore).sort((a, b) => b.items.length - a.items.length);
 
-    setShoppingList({ shipName, items: results, byStore: sortedStores, total, loading: false });
+    // Fetch visual route from backend
+    let routeData = null;
+    const storeNames = sortedStores.map(s => s.location);
+    if (storeNames.length >= 1) {
+      try {
+        const routeRes = await axios.post(`${API}/routes/shopping_trip`, { store_names: storeNames, qd_size: 1 });
+        if (routeRes.data.success) routeData = routeRes.data.data;
+      } catch { /* route is optional enhancement */ }
+    }
+
+    setShoppingList({ shipName, items: results, byStore: sortedStores, total, loading: false, route: routeData });
     setShoppingLoading(false);
   };
 
@@ -846,7 +856,7 @@ const MiniStat = ({ label, value }) => (
 );
 
 const ShoppingListModal = ({ data, onClose }) => {
-  const { shipName, items, byStore, total, loading } = data;
+  const { shipName, items, byStore, total, loading, route } = data;
   const itemsWithPrice = items.filter(i => i.cheapest);
   const itemsNoPrice = items.filter(i => !i.cheapest);
 
@@ -893,6 +903,9 @@ const ShoppingListModal = ({ data, onClose }) => {
                 </div>
               </div>
             </div>
+
+            {/* Visual Route Map */}
+            {route && route.stops?.length > 0 && <ShoppingRouteMap route={route} />}
 
             {/* By Store - Shopping Route */}
             {byStore.length > 0 && (
@@ -958,6 +971,138 @@ const ShoppingListModal = ({ data, onClose }) => {
         )}
       </motion.div>
     </motion.div>
+  );
+};
+
+
+const ShoppingRouteMap = ({ route }) => {
+  const { stops, legs, context_locations, total_distance_mkm, total_travel_time_s } = route;
+  const allPoints = [
+    ...stops.map(s => ({ x: s.map_x, y: s.map_y })),
+    ...(context_locations || []).map(c => ({ x: c.map_x, y: c.map_y })),
+  ];
+  if (allPoints.length === 0) return null;
+
+  const padding = 50;
+  const minX = Math.min(...allPoints.map(p => p.x)) - padding;
+  const maxX = Math.max(...allPoints.map(p => p.x)) + padding;
+  const minY = Math.min(...allPoints.map(p => p.y)) - padding;
+  const maxY = Math.max(...allPoints.map(p => p.y)) + padding;
+  const vw = maxX - minX;
+  const vh = maxY - minY;
+
+  const formatTime = (s) => {
+    if (s < 60) return `${s}s`;
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return sec > 0 ? `${m}m ${sec}s` : `${m}m`;
+  };
+
+  const stopColors = ['#00D4FF', '#FFAE00', '#00FF9D', '#FF6B9D', '#A855F7', '#F97316'];
+
+  return (
+    <div className="mb-6 rounded-xl border border-white/10 overflow-hidden" data-testid="shopping-route-map">
+      <div className="px-4 py-2.5 bg-white/[0.03] border-b border-white/5 flex items-center justify-between">
+        <h3 className="text-xs text-gray-500 uppercase font-bold flex items-center gap-2">
+          <MapPin className="w-3.5 h-3.5" /> Visual Route Map
+        </h3>
+        <div className="flex items-center gap-4 text-[10px] text-gray-500">
+          <span>{total_distance_mkm} Mkm total</span>
+          <span>{formatTime(total_travel_time_s)} travel</span>
+          <span>{stops.length} stop{stops.length !== 1 ? 's' : ''}</span>
+        </div>
+      </div>
+      <div className="relative bg-[#0a0e1a]" style={{ minHeight: 220 }}>
+        <svg viewBox={`${minX} ${minY} ${vw} ${vh}`} className="w-full" style={{ height: 220 }}
+          preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <radialGradient id="starGlow">
+              <stop offset="0%" stopColor="#FFE4A0" stopOpacity="0.25" />
+              <stop offset="100%" stopColor="#FFE4A0" stopOpacity="0" />
+            </radialGradient>
+            <filter id="routeGlow">
+              <feGaussianBlur stdDeviation="1.5" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+
+          {/* Star glow at origin */}
+          <circle cx={0} cy={0} r={18} fill="url(#starGlow)" />
+          <circle cx={0} cy={0} r={3} fill="#FFE4A0" opacity={0.6} />
+
+          {/* Context locations (planets, cities as faint dots) */}
+          {(context_locations || []).map((loc, i) => (
+            <g key={`ctx-${i}`}>
+              <circle cx={loc.map_x} cy={loc.map_y}
+                r={loc.type === 'planet' ? 4 : 2}
+                fill={loc.type === 'planet' ? 'rgba(100,140,180,0.3)' : 'rgba(100,140,180,0.15)'}
+                stroke="rgba(100,140,180,0.15)" strokeWidth={0.5} />
+              <text x={loc.map_x} y={loc.map_y + (loc.type === 'planet' ? 9 : 6)}
+                textAnchor="middle" fill="rgba(150,180,210,0.3)"
+                fontSize={loc.type === 'planet' ? 5 : 3.5} fontFamily="Rajdhani, sans-serif">
+                {loc.name}
+              </text>
+            </g>
+          ))}
+
+          {/* Route legs (lines between stops) */}
+          {legs.map((leg, i) => {
+            const mx = (leg.from_x + leg.to_x) / 2;
+            const my = (leg.from_y + leg.to_y) / 2;
+            return (
+              <g key={`leg-${i}`}>
+                {/* Glow line */}
+                <line x1={leg.from_x} y1={leg.from_y} x2={leg.to_x} y2={leg.to_y}
+                  stroke="#00D4FF" strokeWidth={1.5} opacity={0.15} filter="url(#routeGlow)" />
+                {/* Main dashed line */}
+                <line x1={leg.from_x} y1={leg.from_y} x2={leg.to_x} y2={leg.to_y}
+                  stroke="#00D4FF" strokeWidth={0.8} strokeDasharray="4,3" opacity={0.7} />
+                {/* Distance/time label */}
+                <rect x={mx - 16} y={my - 5} width={32} height={10} rx={2}
+                  fill="#0a0e1a" fillOpacity={0.85} stroke="rgba(0,212,255,0.2)" strokeWidth={0.3} />
+                <text x={mx} y={my + 2} textAnchor="middle" fill="#6B9DC8"
+                  fontSize={3.5} fontFamily="Rajdhani, sans-serif">
+                  {leg.distance_mkm} Mkm  {formatTime(leg.travel_time_s)}
+                </text>
+              </g>
+            );
+          })}
+
+          {/* Stop markers */}
+          {stops.map((stop, i) => {
+            const color = stopColors[i % stopColors.length];
+            return (
+              <g key={`stop-${i}`}>
+                {/* Pulse ring */}
+                <circle cx={stop.map_x} cy={stop.map_y} r={7} fill="none"
+                  stroke={color} strokeWidth={0.4} opacity={0.3}>
+                  <animate attributeName="r" from="5" to="10" dur="2s" repeatCount="indefinite" />
+                  <animate attributeName="opacity" from="0.4" to="0" dur="2s" repeatCount="indefinite" />
+                </circle>
+                {/* Outer glow */}
+                <circle cx={stop.map_x} cy={stop.map_y} r={5} fill={color} opacity={0.1} />
+                {/* Main dot */}
+                <circle cx={stop.map_x} cy={stop.map_y} r={3.5}
+                  fill="#0a0e1a" stroke={color} strokeWidth={1.2} />
+                {/* Order number */}
+                <text x={stop.map_x} y={stop.map_y + 1.5} textAnchor="middle"
+                  fill={color} fontSize={4} fontWeight="bold" fontFamily="Rajdhani, sans-serif">
+                  {stop.order}
+                </text>
+                {/* Label */}
+                <text x={stop.map_x} y={stop.map_y - 7} textAnchor="middle"
+                  fill="#E0E8F0" fontSize={4.5} fontWeight="600" fontFamily="Rajdhani, sans-serif">
+                  {stop.location_name}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+    </div>
   );
 };
 

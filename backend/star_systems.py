@@ -844,3 +844,206 @@ def calculate_chase_advanced(your_position_id, target_position_id, your_qd_size=
         "tactical_notes": tactics,
         "chase_lines": chase_lines,
     }
+
+
+
+# ── Shopping Trip Route Planner ──────────────────────────────────────────
+
+# Mapping from common CStone store location substrings to our location IDs
+_STORE_TO_LOCATION = {
+    "area 18": "area18",
+    "area18": "area18",
+    "arccorp": "area18",
+    "new babbage": "new-babbage",
+    "new_babbage": "new-babbage",
+    "microtech": "new-babbage",
+    "lorville": "lorville",
+    "hurston": "lorville",
+    "orison": "orison",
+    "crusader": "orison",
+    "port olisar": "port-olisar",
+    "grim hex": "grim-hex",
+    "grimhex": "grim-hex",
+    "everus harbor": "everus-harbor",
+    "everus": "everus-harbor",
+    "baijini point": "baijini-point",
+    "baijini": "baijini-point",
+    "port tressler": "port-tressler",
+    "tressler": "port-tressler",
+    "levski": "levski-city",
+    "ruin station": "ruin-station",
+    "bloom": "pyro-bloom-settlement",
+}
+
+# Build a reverse lookup of location names (lowercase) -> id
+_loc_by_name_lower = {loc["name"].lower(): loc["id"] for loc in LOCATIONS}
+
+
+def _resolve_store_to_location(store_name: str):
+    """Map a CStone store name like 'Centermass @ Area 18' to a LOCATIONS entry."""
+    name_lower = store_name.lower().strip()
+
+    # Direct name match
+    if name_lower in _loc_by_name_lower:
+        return _loc_by_id[_loc_by_name_lower[name_lower]]
+
+    # Check our curated mapping (substring match)
+    for keyword, loc_id in _STORE_TO_LOCATION.items():
+        if keyword in name_lower:
+            return _loc_by_id.get(loc_id)
+
+    # Fuzzy: check if any location name is contained in the store name
+    for loc in LOCATIONS:
+        if loc["name"].lower() in name_lower:
+            return loc
+
+    # Reverse: check if the store name is contained in any location name
+    for loc in LOCATIONS:
+        if name_lower in loc["name"].lower():
+            return loc
+
+    return None
+
+
+def plan_shopping_trip(store_names: list, qd_size: int = 1):
+    """
+    Given a list of store names from CStone, resolve them to map locations
+    and compute an efficient multi-stop route using nearest-neighbor heuristic.
+    Returns ordered stops with coordinates, legs with distances and travel times.
+    """
+    speed_kms = QD_SPEEDS.get(qd_size, QD_SPEEDS.get(1, 165000))
+
+    # Deduplicate and resolve stores to locations
+    seen_ids = set()
+    stops = []
+    unresolved = []
+    for store in store_names:
+        loc = _resolve_store_to_location(store)
+        if loc and loc["id"] not in seen_ids:
+            seen_ids.add(loc["id"])
+            stops.append({"store_name": store, "location": loc})
+        elif not loc:
+            unresolved.append(store)
+
+    if len(stops) < 1:
+        return {"error": "Could not resolve any store locations to the star map"}
+
+    if len(stops) == 1:
+        loc = stops[0]["location"]
+        return {
+            "stops": [{
+                "order": 1,
+                "store_name": stops[0]["store_name"],
+                "location_name": loc["name"],
+                "location_id": loc["id"],
+                "system": loc["system"],
+                "map_x": loc["map_x"],
+                "map_y": loc["map_y"],
+                "type": loc.get("type", ""),
+            }],
+            "legs": [],
+            "total_distance_mkm": 0,
+            "total_travel_time_s": 0,
+            "qd_size": qd_size,
+            "qd_speed_kms": speed_kms,
+            "unresolved_stores": unresolved,
+            "systems": SYSTEMS,
+            "context_locations": _get_context_locations([s["location"] for s in stops]),
+        }
+
+    # Nearest-neighbor greedy route (start from the first resolved stop)
+    remaining = list(range(len(stops)))
+    ordered = [remaining.pop(0)]
+
+    while remaining:
+        current = stops[ordered[-1]]["location"]
+        best_idx = None
+        best_dist = float("inf")
+        for idx in remaining:
+            candidate = stops[idx]["location"]
+            dist = _distance_mkm(current, candidate)
+            if dist is not None and dist < best_dist:
+                best_dist = dist
+                best_idx = idx
+        if best_idx is not None:
+            ordered.append(best_idx)
+            remaining.remove(best_idx)
+        else:
+            # Cross-system fallback: just append in order
+            ordered.append(remaining.pop(0))
+
+    # Build result
+    ordered_stops = [stops[i] for i in ordered]
+    result_stops = []
+    legs = []
+    total_dist = 0
+    total_time = 0
+
+    for i, stop in enumerate(ordered_stops):
+        loc = stop["location"]
+        result_stops.append({
+            "order": i + 1,
+            "store_name": stop["store_name"],
+            "location_name": loc["name"],
+            "location_id": loc["id"],
+            "system": loc["system"],
+            "map_x": loc["map_x"],
+            "map_y": loc["map_y"],
+            "type": loc.get("type", ""),
+        })
+
+        if i > 0:
+            prev_loc = ordered_stops[i - 1]["location"]
+            dist = _distance_mkm(prev_loc, loc)
+            if dist is None:
+                dist = 50.0  # cross-system fallback estimate
+            travel_km = dist * 1_000_000
+            travel_s = round(travel_km / speed_kms) if speed_kms > 0 else 0
+            spool_s = 8  # spool-up time per jump
+
+            legs.append({
+                "from_name": prev_loc["name"],
+                "from_id": prev_loc["id"],
+                "from_x": prev_loc["map_x"],
+                "from_y": prev_loc["map_y"],
+                "to_name": loc["name"],
+                "to_id": loc["id"],
+                "to_x": loc["map_x"],
+                "to_y": loc["map_y"],
+                "distance_mkm": round(dist, 2),
+                "travel_time_s": travel_s + spool_s,
+            })
+            total_dist += dist
+            total_time += travel_s + spool_s
+
+    return {
+        "stops": result_stops,
+        "legs": legs,
+        "total_distance_mkm": round(total_dist, 2),
+        "total_travel_time_s": round(total_time),
+        "qd_size": qd_size,
+        "qd_speed_kms": speed_kms,
+        "unresolved_stores": unresolved,
+        "systems": SYSTEMS,
+        "context_locations": _get_context_locations([s["location"] for s in ordered_stops]),
+    }
+
+
+def _get_context_locations(route_locs):
+    """Return nearby landmark locations (planets, cities) for map context."""
+    # Collect systems involved
+    systems = set(loc["system"] for loc in route_locs)
+    context = []
+    seen = set(loc["id"] for loc in route_locs)
+    for loc in LOCATIONS:
+        if loc["system"] in systems and loc["id"] not in seen:
+            if loc["type"] in ("planet", "city", "star"):
+                context.append({
+                    "name": loc["name"],
+                    "id": loc["id"],
+                    "type": loc["type"],
+                    "system": loc["system"],
+                    "map_x": loc["map_x"],
+                    "map_y": loc["map_y"],
+                })
+    return context
