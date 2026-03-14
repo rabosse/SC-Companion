@@ -683,11 +683,27 @@ const LoadoutBuilder = () => {
                         <button key={item.id} onClick={() => assignItem(activeSlot.id, item)} data-testid={`equip-item-${item.id}`}
                           className="w-full glass-panel rounded-xl p-4 hover:border-cyan-500/50 transition-all text-left flex items-center justify-between group">
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
                               <span className="font-bold text-white text-sm">{item.name}</span>
                               <span className="text-[10px] px-1.5 py-0.5 rounded border" style={{ color: activeSlot.color, borderColor: `${activeSlot.color}40`, backgroundColor: `${activeSlot.color}15` }}>
                                 S{item.size}
                               </span>
+                              {item.grade && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded border border-yellow-500/30 bg-yellow-500/10 text-yellow-400">
+                                  Grade {item.grade}
+                                </span>
+                              )}
+                              {item.item_class && (
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded border ${
+                                  item.item_class === 'Military' ? 'border-red-500/30 bg-red-500/10 text-red-400' :
+                                  item.item_class === 'Stealth' ? 'border-purple-500/30 bg-purple-500/10 text-purple-400' :
+                                  item.item_class === 'Industrial' ? 'border-orange-500/30 bg-orange-500/10 text-orange-400' :
+                                  item.item_class === 'Competition' ? 'border-green-500/30 bg-green-500/10 text-green-400' :
+                                  'border-gray-500/30 bg-gray-500/10 text-gray-400'
+                                }`}>
+                                  {item.item_class}
+                                </span>
+                              )}
                             </div>
                             <div className="text-xs text-gray-500">{item.manufacturer}</div>
                             <div className="flex items-center gap-4 mt-1 text-xs text-gray-400">
