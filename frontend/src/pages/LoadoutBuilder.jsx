@@ -1,11 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../App';
 import axios from 'axios';
-import { Search, X, Check, Shield, Zap, Cpu, Box, Crosshair, AlertTriangle, Save, Copy, Share2 } from 'lucide-react';
+import { Search, X, Check, Shield, Zap, Cpu, Box, Crosshair, AlertTriangle, Save, Share2, List, PlusCircle, Trash2, Edit3, Loader2 } from 'lucide-react';
 import SpaceshipIcon from '../components/SpaceshipIcon';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import { Link } from 'react-router-dom';
 
 const SLOT_TYPES = [
   { key: 'shield', label: 'Shields', icon: Shield, color: '#00D4FF', componentType: 'Shield' },
@@ -16,6 +15,7 @@ const SLOT_TYPES = [
 
 const LoadoutBuilder = () => {
   const { API } = useAuth();
+  const [tab, setTab] = useState('my-loadouts');
   const [ships, setShips] = useState([]);
   const [fleetShipIds, setFleetShipIds] = useState(new Set());
   const [selectedShip, setSelectedShip] = useState(null);
@@ -26,73 +26,65 @@ const LoadoutBuilder = () => {
   const [shipSearch, setShipSearch] = useState('');
   const [itemSearch, setItemSearch] = useState('');
   const [savedLoadouts, setSavedLoadouts] = useState([]);
+  const [allLoadouts, setAllLoadouts] = useState([]);
   const [loadoutName, setLoadoutName] = useState('');
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [fleetOnly, setFleetOnly] = useState(false);
+  const [editingLoadoutId, setEditingLoadoutId] = useState(null);
+  const [dataLoading, setDataLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [shipsRes, compsRes, weaponsRes, fleetRes] = await Promise.all([
+        const [shipsRes, compsRes, weaponsRes, fleetRes, allLoadoutsRes] = await Promise.all([
           axios.get(`${API}/ships`),
           axios.get(`${API}/components`),
           axios.get(`${API}/weapons`),
           axios.get(`${API}/fleet/my`),
+          axios.get(`${API}/loadouts/my/all`),
         ]);
         setShips(shipsRes.data.data || []);
         setComponents(compsRes.data.data || []);
         setWeapons(weaponsRes.data.data || []);
         const fleet = fleetRes.data.data || [];
         setFleetShipIds(new Set(fleet.map(f => f.ship_id)));
+        setAllLoadouts(allLoadoutsRes.data.data || []);
       } catch {
         toast.error('Failed to load data');
-      }
+      } finally { setDataLoading(false); }
     };
     fetchData();
   }, [API]);
+
+  const refreshAllLoadouts = async () => {
+    try {
+      const res = await axios.get(`${API}/loadouts/my/all`);
+      setAllLoadouts(res.data.data || []);
+    } catch { /* ignore */ }
+  };
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const hardpoints = useMemo(() => selectedShip?.hardpoints || {}, [selectedShip]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const weaponSlots = useMemo(() => hardpoints.weapons || [], [hardpoints]);
 
-  // Build slot definitions from ship hardpoints
   const slotDefs = useMemo(() => {
     if (!selectedShip) return [];
     const defs = [];
-
     SLOT_TYPES.forEach(st => {
       const hp = hardpoints[st.key];
       if (hp && hp.count > 0) {
         for (let i = 0; i < hp.count; i++) {
-          defs.push({
-            id: `${st.key}_${i}`,
-            type: 'component',
-            componentType: st.componentType,
-            maxSize: hp.size,
-            label: `${st.label} ${hp.count > 1 ? i + 1 : ''}`.trim(),
-            icon: st.icon,
-            color: st.color,
-          });
+          defs.push({ id: `${st.key}_${i}`, type: 'component', componentType: st.componentType, maxSize: hp.size, label: `${st.label} ${hp.count > 1 ? i + 1 : ''}`.trim(), icon: st.icon, color: st.color });
         }
       }
     });
-
     weaponSlots.forEach((maxSize, i) => {
-      defs.push({
-        id: `weapon_${i}`,
-        type: 'weapon',
-        maxSize,
-        label: `Weapon Hardpoint ${i + 1}`,
-        icon: Crosshair,
-        color: '#FF0055',
-      });
+      defs.push({ id: `weapon_${i}`, type: 'weapon', maxSize, label: `Weapon Hardpoint ${i + 1}`, icon: Crosshair, color: '#FF0055' });
     });
-
     return defs;
   }, [selectedShip, hardpoints, weaponSlots]);
 
-  // Get compatible items for a slot
   const getCompatibleItems = (slot) => {
     const q = itemSearch.toLowerCase();
     if (slot.type === 'weapon') {
@@ -121,37 +113,37 @@ const LoadoutBuilder = () => {
   };
 
   const removeItem = (slotId) => {
-    setLoadout(prev => {
-      const copy = { ...prev };
-      delete copy[slotId];
-      return copy;
-    });
+    setLoadout(prev => { const copy = { ...prev }; delete copy[slotId]; return copy; });
   };
 
-  const clearLoadout = () => {
-    setLoadout({});
-    toast.success('Loadout cleared');
-  };
+  const clearLoadout = () => { setLoadout({}); toast.success('Loadout cleared'); };
 
   const selectShip = async (ship) => {
     setSelectedShip(ship);
     setLoadout({});
     setActiveSlot(null);
     setShipSearch('');
-    // Fetch saved loadouts for this ship
+    setEditingLoadoutId(null);
     try {
       const res = await axios.get(`${API}/loadouts/${ship.id}`);
       setSavedLoadouts(res.data.data || []);
-    } catch {
-      setSavedLoadouts([]);
-    }
+    } catch { setSavedLoadouts([]); }
+  };
+
+  const openLoadoutForEdit = (saved) => {
+    const ship = ships.find(s => s.id === saved.ship_id);
+    if (!ship) { toast.error('Ship not found'); return; }
+    setSelectedShip(ship);
+    setLoadout(saved.slots || {});
+    setLoadoutName(saved.loadout_name);
+    setEditingLoadoutId(saved.id);
+    setTab('builder');
+    // Also refresh that ship's loadouts
+    axios.get(`${API}/loadouts/${ship.id}`).then(r => setSavedLoadouts(r.data.data || [])).catch(() => {});
   };
 
   const saveLoadout = async () => {
-    if (!loadoutName.trim()) {
-      toast.error('Please enter a loadout name');
-      return;
-    }
+    if (!loadoutName.trim()) { toast.error('Please enter a loadout name'); return; }
     try {
       const res = await axios.post(`${API}/loadouts/save`, {
         ship_id: selectedShip.id,
@@ -163,19 +155,18 @@ const LoadoutBuilder = () => {
       toast.success(`Loadout "${loadoutName}" saved!`);
       setShowSaveDialog(false);
       setLoadoutName('');
-      // Refresh saved loadouts
+      setEditingLoadoutId(null);
       const loadoutsRes = await axios.get(`${API}/loadouts/${selectedShip.id}`);
       setSavedLoadouts(loadoutsRes.data.data || []);
-      if (shareCode) {
-        toast.success(`Share code: ${shareCode}`, { duration: 5000 });
-      }
-    } catch {
-      toast.error('Failed to save loadout');
-    }
+      await refreshAllLoadouts();
+      if (shareCode) toast.success(`Share code: ${shareCode}`, { duration: 5000 });
+    } catch { toast.error('Failed to save loadout'); }
   };
 
   const loadSavedLoadout = (saved) => {
     setLoadout(saved.slots || {});
+    setLoadoutName(saved.loadout_name);
+    setEditingLoadoutId(saved.id);
     toast.success(`Loaded "${saved.loadout_name}"`);
   };
 
@@ -183,72 +174,193 @@ const LoadoutBuilder = () => {
     try {
       await axios.delete(`${API}/loadouts/${loadoutId}`);
       setSavedLoadouts(prev => prev.filter(l => l.id !== loadoutId));
+      setAllLoadouts(prev => prev.filter(l => l.id !== loadoutId));
+      if (editingLoadoutId === loadoutId) setEditingLoadoutId(null);
       toast.success(`Deleted "${name}"`);
-    } catch {
-      toast.error('Failed to delete loadout');
-    }
+    } catch { toast.error('Failed to delete loadout'); }
   };
 
   const filteredShips = useMemo(() => {
     let result = ships;
-    if (fleetOnly) {
-      result = result.filter(s => fleetShipIds.has(s.id));
-    }
+    if (fleetOnly) result = result.filter(s => fleetShipIds.has(s.id));
     if (!shipSearch) return result;
     const q = shipSearch.toLowerCase();
     return result.filter(s => s.name.toLowerCase().includes(q) || s.manufacturer.toLowerCase().includes(q));
   }, [ships, shipSearch, fleetOnly, fleetShipIds]);
 
-  // Calculate loadout total cost
   const totalCost = Object.values(loadout).reduce((sum, item) => sum + (item.cost_auec || 0), 0);
 
-  // Ship selection view
+  if (dataLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]" data-testid="loading-indicator">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading loadout data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ========================
+  // TAB: MY LOADOUTS
+  // ========================
+  if (tab === 'my-loadouts' && !selectedShip) {
+    const grouped = {};
+    allLoadouts.forEach(l => {
+      if (!grouped[l.ship_id]) grouped[l.ship_id] = { ship_name: l.ship_name, ship_id: l.ship_id, loadouts: [] };
+      grouped[l.ship_id].loadouts.push(l);
+    });
+
+    return (
+      <div className="space-y-8" data-testid="loadout-my-loadouts">
+        <div>
+          <h1 className="text-4xl sm:text-5xl font-bold mb-2 uppercase" style={{ fontFamily: 'Rajdhani, sans-serif', color: '#00D4FF' }}>
+            Loadout Builder
+          </h1>
+          <p className="text-gray-400 text-sm">View, edit, and create ship loadouts</p>
+        </div>
+
+        {/* Tab Nav */}
+        <div className="flex gap-2" data-testid="loadout-tabs">
+          <button onClick={() => setTab('my-loadouts')} data-testid="tab-my-loadouts"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm uppercase transition-all bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+            <List className="w-4 h-4" /> My Loadouts ({allLoadouts.length})
+          </button>
+          <button onClick={() => setTab('builder')} data-testid="tab-new-loadout"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm uppercase transition-all bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10">
+            <PlusCircle className="w-4 h-4" /> New Loadout
+          </button>
+        </div>
+
+        {/* Loadouts List */}
+        {allLoadouts.length === 0 ? (
+          <div className="glass-panel rounded-2xl p-12 text-center">
+            <Save className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-gray-400 mb-2" style={{ fontFamily: 'Rajdhani, sans-serif' }}>No Saved Loadouts</h3>
+            <p className="text-gray-500 text-sm mb-6">Create your first loadout by selecting a ship and equipping components</p>
+            <button onClick={() => setTab('builder')} data-testid="create-first-loadout-btn"
+              className="px-6 py-3 rounded-xl font-bold text-black" style={{ background: 'linear-gradient(135deg, #00D4FF, #00A8CC)' }}>
+              Create Loadout
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {Object.values(grouped).map(group => {
+              const ship = ships.find(s => s.id === group.ship_id);
+              return (
+                <div key={group.ship_id} className="glass-panel rounded-2xl overflow-hidden" data-testid={`loadout-group-${group.ship_id}`}>
+                  {/* Ship Header */}
+                  <div className="flex items-center gap-4 p-4 border-b border-white/10 bg-white/[0.02]">
+                    <div className="w-16 h-12 rounded-lg overflow-hidden bg-gradient-to-br from-cyan-500/10 to-blue-600/10 shrink-0">
+                      {ship?.image ? (
+                        <img src={ship.image} alt={group.ship_name} className="w-full h-full object-cover" onError={e => { e.target.style.display = 'none'; }} />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center"><SpaceshipIcon className="w-6 h-6 text-cyan-500/30" /></div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg font-bold text-white" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{group.ship_name}</h3>
+                      <p className="text-xs text-gray-500">{ship?.manufacturer} - {group.loadouts.length} loadout{group.loadouts.length !== 1 ? 's' : ''}</p>
+                    </div>
+                  </div>
+                  {/* Loadout Rows */}
+                  <div className="divide-y divide-white/5">
+                    {group.loadouts.map(saved => {
+                      const slotCount = Object.keys(saved.slots || {}).length;
+                      const cost = Object.values(saved.slots || {}).reduce((s, item) => s + (item.cost_auec || 0), 0);
+                      return (
+                        <div key={saved.id} className="flex items-center gap-4 p-4 hover:bg-white/[0.03] transition-colors" data-testid={`loadout-row-${saved.id}`}>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-3">
+                              <span className="font-bold text-white text-sm">{saved.loadout_name}</span>
+                              {slotCount > 0 && (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-400 font-semibold">{slotCount} items</span>
+                              )}
+                              {cost > 0 && (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-yellow-500/15 text-yellow-400 font-semibold">{cost.toLocaleString()} aUEC</span>
+                              )}
+                            </div>
+                            <div className="flex flex-wrap gap-1.5 mt-1.5">
+                              {Object.entries(saved.slots || {}).slice(0, 6).map(([slotId, item]) => (
+                                <span key={slotId} className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-gray-400">{item.name}</span>
+                              ))}
+                              {Object.keys(saved.slots || {}).length > 6 && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-gray-500">+{Object.keys(saved.slots).length - 6} more</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <button onClick={() => openLoadoutForEdit(saved)} data-testid={`edit-loadout-${saved.id}`}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 transition-colors">
+                              <Edit3 className="w-3 h-3" /> Edit
+                            </button>
+                            {saved.share_code && (
+                              <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/shared/${saved.share_code}`); toast.success('Share link copied!'); }}
+                                data-testid={`share-loadout-${saved.id}`}
+                                className="p-1.5 rounded-lg hover:bg-cyan-500/20 text-cyan-500 transition-colors" title="Copy share link">
+                                <Share2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                            <button onClick={() => deleteSavedLoadout(saved.id, saved.loadout_name)} data-testid={`delete-loadout-${saved.id}`}
+                              className="p-1.5 rounded-lg hover:bg-red-500/20 text-red-500 transition-colors" title="Delete">
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ========================
+  // TAB: BUILDER - Ship Selection
+  // ========================
   if (!selectedShip) {
     return (
       <div className="space-y-8" data-testid="loadout-ship-select">
         <div>
-          <h1 className="text-4xl sm:text-5xl font-bold mb-4 uppercase" style={{ fontFamily: 'Rajdhani, sans-serif', color: '#00D4FF' }}>
+          <h1 className="text-4xl sm:text-5xl font-bold mb-2 uppercase" style={{ fontFamily: 'Rajdhani, sans-serif', color: '#00D4FF' }}>
             Loadout Builder
           </h1>
-          <p className="text-gray-400">Select a ship to customize its loadout. Only compatible parts will be shown.</p>
+          <p className="text-gray-400 text-sm">Select a ship to customize its loadout</p>
+        </div>
+
+        {/* Tab Nav */}
+        <div className="flex gap-2" data-testid="loadout-tabs">
+          <button onClick={() => setTab('my-loadouts')} data-testid="tab-my-loadouts"
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm uppercase transition-all ${tab === 'my-loadouts' ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'}`}>
+            <List className="w-4 h-4" /> My Loadouts ({allLoadouts.length})
+          </button>
+          <button onClick={() => setTab('builder')} data-testid="tab-new-loadout"
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm uppercase transition-all ${tab === 'builder' ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'}`}>
+            <PlusCircle className="w-4 h-4" /> New Loadout
+          </button>
         </div>
 
         <div className="flex items-center gap-4 max-w-lg">
           <div className="relative flex-1">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-            <input
-              type="text"
-              value={shipSearch}
-              onChange={e => setShipSearch(e.target.value)}
-              placeholder="Search ships..."
-              data-testid="ship-search-input"
-              className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 transition-all"
-            />
+            <input type="text" value={shipSearch} onChange={e => setShipSearch(e.target.value)}
+              placeholder="Search ships..." data-testid="ship-search-input"
+              className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 transition-all" />
           </div>
         </div>
 
         {/* Fleet Toggle */}
         <div className="flex gap-1.5" data-testid="fleet-toggle">
-          <button
-            onClick={() => setFleetOnly(false)}
-            data-testid="toggle-all-ships"
-            className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase transition-all ${
-              !fleetOnly
-                ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
-                : 'bg-white/5 text-gray-500 border border-white/10 hover:text-gray-300'
-            }`}
-          >
+          <button onClick={() => setFleetOnly(false)} data-testid="toggle-all-ships"
+            className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase transition-all ${!fleetOnly ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'bg-white/5 text-gray-500 border border-white/10 hover:text-gray-300'}`}>
             All Ships
           </button>
-          <button
-            onClick={() => setFleetOnly(true)}
-            data-testid="toggle-fleet-only"
-            className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase transition-all ${
-              fleetOnly
-                ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
-                : 'bg-white/5 text-gray-500 border border-white/10 hover:text-gray-300'
-            }`}
-          >
+          <button onClick={() => setFleetOnly(true)} data-testid="toggle-fleet-only"
+            className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase transition-all ${fleetOnly ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'bg-white/5 text-gray-500 border border-white/10 hover:text-gray-300'}`}>
             My Fleet ({fleetShipIds.size})
           </button>
         </div>
@@ -258,14 +370,11 @@ const LoadoutBuilder = () => {
             const hp = ship.hardpoints || {};
             const wSlots = hp.weapons || [];
             const hasSlots = wSlots.length > 0 || (hp.shield?.count > 0);
+            const shipLoadoutCount = allLoadouts.filter(l => l.ship_id === ship.id).length;
 
             return (
-              <button
-                key={ship.id}
-                onClick={() => hasSlots && selectShip(ship)}
-                data-testid={`select-ship-${ship.id}`}
-                className={`glass-panel rounded-xl p-3 text-left transition-all group ${hasSlots ? 'hover:border-cyan-500/50 cursor-pointer' : 'opacity-40 cursor-not-allowed'}`}
-              >
+              <button key={ship.id} onClick={() => hasSlots && selectShip(ship)} data-testid={`select-ship-${ship.id}`}
+                className={`glass-panel rounded-xl p-3 text-left transition-all group ${hasSlots ? 'hover:border-cyan-500/50 cursor-pointer' : 'opacity-40 cursor-not-allowed'}`}>
                 <div className="h-24 bg-gradient-to-br from-cyan-500/10 to-blue-600/10 rounded-lg overflow-hidden mb-2">
                   {ship.image ? (
                     <img src={ship.image} alt={ship.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" onError={e => { e.target.onerror = null; e.target.style.display = 'none'; }} />
@@ -275,19 +384,12 @@ const LoadoutBuilder = () => {
                 </div>
                 <div className="font-bold text-white text-sm truncate">{ship.name}</div>
                 <div className="text-xs text-gray-500 truncate">{ship.manufacturer}</div>
-                {hasSlots && (
-                  <div className="flex items-center gap-1 mt-1 flex-wrap">
-                    {wSlots.length > 0 && (
-                      <span className="text-[10px] px-1.5 py-0.5 bg-red-500/20 text-red-400 rounded">{wSlots.length}x wpn</span>
-                    )}
-                    {hp.shield?.count > 0 && (
-                      <span className="text-[10px] px-1.5 py-0.5 bg-cyan-500/20 text-cyan-400 rounded">S{hp.shield.size} shld</span>
-                    )}
-                  </div>
-                )}
-                {!hasSlots && (
-                  <div className="text-[10px] text-gray-600 mt-1">No slots</div>
-                )}
+                <div className="flex items-center gap-1 mt-1 flex-wrap">
+                  {wSlots.length > 0 && <span className="text-[10px] px-1.5 py-0.5 bg-red-500/20 text-red-400 rounded">{wSlots.length}x wpn</span>}
+                  {hp.shield?.count > 0 && <span className="text-[10px] px-1.5 py-0.5 bg-cyan-500/20 text-cyan-400 rounded">S{hp.shield.size} shld</span>}
+                  {shipLoadoutCount > 0 && <span className="text-[10px] px-1.5 py-0.5 bg-green-500/20 text-green-400 rounded">{shipLoadoutCount} saved</span>}
+                </div>
+                {!hasSlots && <div className="text-[10px] text-gray-600 mt-1">No slots</div>}
               </button>
             );
           })}
@@ -296,20 +398,26 @@ const LoadoutBuilder = () => {
     );
   }
 
-  // Loadout builder view
+  // ========================
+  // BUILDER VIEW (ship selected)
+  // ========================
   return (
     <div className="space-y-6" data-testid="loadout-builder">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-4">
-          <button onClick={() => { setSelectedShip(null); setLoadout({}); }} data-testid="back-to-ships-btn" className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+          <button onClick={() => { setSelectedShip(null); setLoadout({}); setEditingLoadoutId(null); setLoadoutName(''); }}
+            data-testid="back-to-ships-btn" className="p-2 hover:bg-white/10 rounded-lg transition-colors">
             <X className="w-6 h-6 text-gray-400" />
           </button>
           <div>
             <h1 className="text-3xl sm:text-4xl font-bold uppercase" style={{ fontFamily: 'Rajdhani, sans-serif', color: '#00D4FF' }}>
               {selectedShip.name}
             </h1>
-            <p className="text-gray-400 text-sm">{selectedShip.manufacturer} - {selectedShip.size} class</p>
+            <p className="text-gray-400 text-sm">
+              {selectedShip.manufacturer} - {selectedShip.size} class
+              {editingLoadoutId && <span className="text-cyan-400 ml-2">Editing: {loadoutName}</span>}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
@@ -320,8 +428,9 @@ const LoadoutBuilder = () => {
           )}
           {Object.keys(loadout).length > 0 && (
             <>
-              <button onClick={() => setShowSaveDialog(true)} data-testid="save-loadout-btn" className="px-3 py-1.5 bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30 transition-colors text-sm font-semibold">
-                Save Loadout
+              <button onClick={() => setShowSaveDialog(true)} data-testid="save-loadout-btn"
+                className="px-3 py-1.5 bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30 transition-colors text-sm font-semibold flex items-center gap-1.5">
+                <Save className="w-3.5 h-3.5" /> {editingLoadoutId ? 'Update' : 'Save'}
               </button>
               <button onClick={clearLoadout} data-testid="clear-loadout-btn" className="px-3 py-1.5 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors text-sm">
                 Clear All
@@ -347,39 +456,26 @@ const LoadoutBuilder = () => {
             <div className="flex justify-between"><span className="text-gray-500">Loadout Filled</span><span className="text-white">{Object.keys(loadout).length}/{slotDefs.length}</span></div>
           </div>
 
-          {/* Saved Loadouts */}
+          {/* Saved Loadouts for this ship */}
           {savedLoadouts.length > 0 && (
             <div className="p-4 border-t border-white/10">
-              <h3 className="text-sm font-semibold text-gray-400 mb-2">Saved Loadouts</h3>
+              <h3 className="text-sm font-semibold text-gray-400 mb-2">Saved Loadouts for {selectedShip.name}</h3>
               <div className="space-y-2">
                 {savedLoadouts.map(saved => (
-                  <div key={saved.id} className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
-                    <button
-                      onClick={() => loadSavedLoadout(saved)}
-                      data-testid={`load-loadout-${saved.id}`}
-                      className="text-sm text-cyan-400 hover:text-cyan-300 font-medium truncate flex-1 text-left"
-                    >
+                  <div key={saved.id} className={`flex items-center justify-between p-2 rounded-lg transition-colors ${editingLoadoutId === saved.id ? 'bg-cyan-500/10 border border-cyan-500/20' : 'bg-white/5'}`}>
+                    <button onClick={() => loadSavedLoadout(saved)} data-testid={`load-loadout-${saved.id}`}
+                      className="text-sm text-cyan-400 hover:text-cyan-300 font-medium truncate flex-1 text-left">
                       {saved.loadout_name}
                     </button>
                     <div className="flex items-center gap-1 shrink-0 ml-2">
                       {saved.share_code && (
-                        <button
-                          onClick={() => {
-                            const url = `${window.location.origin}/shared/${saved.share_code}`;
-                            navigator.clipboard.writeText(url);
-                            toast.success('Share link copied!');
-                          }}
-                          data-testid={`share-loadout-${saved.id}`}
-                          className="p-1 hover:bg-cyan-500/20 rounded text-cyan-500" title="Copy share link"
-                        >
+                        <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/shared/${saved.share_code}`); toast.success('Share link copied!'); }}
+                          data-testid={`share-loadout-${saved.id}`} className="p-1 hover:bg-cyan-500/20 rounded text-cyan-500" title="Copy share link">
                           <Share2 className="w-3 h-3" />
                         </button>
                       )}
-                      <button
-                        onClick={() => deleteSavedLoadout(saved.id, saved.loadout_name)}
-                        data-testid={`delete-loadout-${saved.id}`}
-                        className="p-1 hover:bg-red-500/20 rounded text-red-500"
-                      >
+                      <button onClick={() => deleteSavedLoadout(saved.id, saved.loadout_name)} data-testid={`delete-loadout-${saved.id}`}
+                        className="p-1 hover:bg-red-500/20 rounded text-red-500">
                         <X className="w-3 h-3" />
                       </button>
                     </div>
@@ -399,7 +495,6 @@ const LoadoutBuilder = () => {
             </div>
           )}
 
-          {/* Component Slots */}
           {SLOT_TYPES.map(st => {
             const slots = slotDefs.filter(s => s.type === 'component' && s.componentType === st.componentType);
             if (slots.length === 0) return null;
@@ -418,7 +513,6 @@ const LoadoutBuilder = () => {
             );
           })}
 
-          {/* Weapon Slots */}
           {weaponSlots.length > 0 && (
             <div>
               <h3 className="text-sm font-semibold text-gray-400 uppercase mb-2 flex items-center gap-2">
@@ -439,29 +533,19 @@ const LoadoutBuilder = () => {
       <AnimatePresence>
         {showSaveDialog && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={e => { if (e.target === e.currentTarget) setShowSaveDialog(false); }}>
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="glass-panel rounded-2xl p-6 max-w-md w-full"
-              data-testid="save-loadout-dialog"
-            >
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
+              className="glass-panel rounded-2xl p-6 max-w-md w-full" data-testid="save-loadout-dialog">
               <h2 className="text-xl font-bold mb-4" style={{ fontFamily: 'Rajdhani, sans-serif', color: '#00D4FF' }}>
-                Save Loadout
+                {editingLoadoutId ? 'Update Loadout' : 'Save Loadout'}
               </h2>
-              <input
-                type="text"
-                value={loadoutName}
-                onChange={e => setLoadoutName(e.target.value)}
-                placeholder="Loadout name (e.g. PvP Build, Mining Setup)"
-                data-testid="loadout-name-input"
+              <input type="text" value={loadoutName} onChange={e => setLoadoutName(e.target.value)}
+                placeholder="Loadout name (e.g. PvP Build, Mining Setup)" data-testid="loadout-name-input"
                 className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 transition-all mb-4"
-                autoFocus
-                onKeyDown={e => e.key === 'Enter' && saveLoadout()}
-              />
+                autoFocus onKeyDown={e => e.key === 'Enter' && saveLoadout()} />
               <div className="flex gap-3">
-                <button onClick={saveLoadout} data-testid="confirm-save-btn" className="flex-1 py-2.5 rounded-xl font-bold text-black" style={{ background: 'linear-gradient(135deg, #00D4FF, #00A8CC)' }}>
-                  Save
+                <button onClick={saveLoadout} data-testid="confirm-save-btn"
+                  className="flex-1 py-2.5 rounded-xl font-bold text-black" style={{ background: 'linear-gradient(135deg, #00D4FF, #00A8CC)' }}>
+                  {editingLoadoutId ? 'Update' : 'Save'}
                 </button>
                 <button onClick={() => setShowSaveDialog(false)} className="px-6 py-2.5 bg-white/5 text-gray-400 rounded-xl hover:bg-white/10 transition-colors">
                   Cancel
@@ -476,13 +560,8 @@ const LoadoutBuilder = () => {
       <AnimatePresence>
         {activeSlot && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={e => { if (e.target === e.currentTarget) { setActiveSlot(null); setItemSearch(''); } }}>
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="glass-panel rounded-3xl max-w-3xl w-full max-h-[80vh] overflow-hidden"
-              data-testid="item-selector-modal"
-            >
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
+              className="glass-panel rounded-3xl max-w-3xl w-full max-h-[80vh] overflow-hidden" data-testid="item-selector-modal">
               <div className="p-6 border-b border-white/10 space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
@@ -490,24 +569,17 @@ const LoadoutBuilder = () => {
                       {activeSlot.label} - Max Size {activeSlot.maxSize}
                     </h2>
                     <p className="text-sm text-gray-400">
-                      {activeSlot.type === 'weapon'
-                        ? `Only weapons size ${activeSlot.maxSize} or smaller`
-                        : `Only size ${activeSlot.maxSize} ${activeSlot.componentType} components`}
+                      {activeSlot.type === 'weapon' ? `Only weapons size ${activeSlot.maxSize} or smaller` : `Only size ${activeSlot.maxSize} ${activeSlot.componentType} components`}
                     </p>
                   </div>
                   <button onClick={() => { setActiveSlot(null); setItemSearch(''); }} className="p-2 hover:bg-white/10 rounded-lg"><X className="w-6 h-6 text-gray-400" /></button>
                 </div>
                 <div className="relative">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                  <input
-                    type="text"
-                    value={itemSearch}
-                    onChange={e => setItemSearch(e.target.value)}
-                    placeholder="Search compatible items..."
-                    data-testid="item-search-input"
+                  <input type="text" value={itemSearch} onChange={e => setItemSearch(e.target.value)}
+                    placeholder="Search compatible items..." data-testid="item-search-input"
                     className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 transition-all"
-                    autoFocus
-                  />
+                    autoFocus />
                 </div>
               </div>
               <div className="p-4 overflow-y-auto max-h-[55vh]">
@@ -517,12 +589,8 @@ const LoadoutBuilder = () => {
                   return (
                     <div className="space-y-2">
                       {items.map(item => (
-                        <button
-                          key={item.id}
-                          onClick={() => assignItem(activeSlot.id, item)}
-                          data-testid={`equip-item-${item.id}`}
-                          className="w-full glass-panel rounded-xl p-4 hover:border-cyan-500/50 transition-all text-left flex items-center justify-between group"
-                        >
+                        <button key={item.id} onClick={() => assignItem(activeSlot.id, item)} data-testid={`equip-item-${item.id}`}
+                          className="w-full glass-panel rounded-xl p-4 hover:border-cyan-500/50 transition-all text-left flex items-center justify-between group">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
                               <span className="font-bold text-white text-sm">{item.name}</span>
@@ -536,13 +604,10 @@ const LoadoutBuilder = () => {
                               {item.rate > 0 && <span>Rate: {item.rate}</span>}
                               {item.output > 0 && <span>Output: {item.output}</span>}
                               {item.speed > 0 && <span>Speed: {item.speed.toLocaleString()}</span>}
-                              {item.location && <span className="text-cyan-400">{item.location}</span>}
                             </div>
                           </div>
                           <div className="text-right shrink-0 ml-4">
-                            {item.cost_auec > 0 && (
-                              <div className="text-yellow-400 font-semibold text-sm">{item.cost_auec.toLocaleString()} aUEC</div>
-                            )}
+                            {item.cost_auec > 0 && <div className="text-yellow-400 font-semibold text-sm">{item.cost_auec.toLocaleString()} aUEC</div>}
                             <div className="opacity-0 group-hover:opacity-100 transition-opacity text-cyan-500 text-xs mt-1">Equip</div>
                           </div>
                         </button>
@@ -560,10 +625,7 @@ const LoadoutBuilder = () => {
 };
 
 const SlotRow = ({ slot, item, onSelect, onRemove }) => (
-  <div
-    className="glass-panel rounded-xl p-4 flex items-center justify-between gap-3 group"
-    data-testid={`slot-${slot.id}`}
-  >
+  <div className="glass-panel rounded-xl p-4 flex items-center justify-between gap-3 group" data-testid={`slot-${slot.id}`}>
     <div className="flex items-center gap-3 min-w-0 flex-1">
       <slot.icon className="w-5 h-5 shrink-0" style={{ color: slot.color }} />
       <div className="min-w-0 flex-1">
