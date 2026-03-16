@@ -26,9 +26,9 @@ Build a full-stack application called "Star Citizen Fleet Manager" for players t
 - [x] Complete Hardpoint Overhaul (200+ ships from Fleetyards API)
 - [x] Hierarchical Store Location Resolver (Pyro support)
 - [x] Component Class & Grade Tags + Filter Buttons in Loadout Builder
-- [x] **Weapon Damage Type Filters** (Ballistic/Energy/Distortion) in Loadout Builder (2026-03-16)
-- [x] **Weapon DPS & Ammo Sort Buttons** - Toggle sort (desc/asc/off) in weapon selection panel. DPS and Ammo tags visible on weapon cards. (2026-03-16)
-- [x] **Smart Route Planner** - Gate jumps now penalized (200 Mkm cost), so same-system stores are exhausted before jumping. Cross-system legs broken into quantum/jump sub-legs with visual distinction (orange for jumps). (2026-03-16)
+- [x] Weapon Damage Type Filters (Ballistic/Energy/Distortion) in Loadout Builder
+- [x] Weapon DPS & Ammo Sort Buttons in Loadout Builder (2026-03-16)
+- [x] **Smart Route Planner** - Same-system stores visited first via nearest-neighbor. Gate jumps forced to be the FINAL legs of the trip. Cross-system legs broken into quantum/jump sub-legs with orange visual distinction. (2026-03-16)
 
 ## Remaining/Backlog Tasks
 - [ ] (P1) RSI Fleet Import tool

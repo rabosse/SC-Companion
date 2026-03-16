@@ -1040,31 +1040,73 @@ def plan_shopping_trip(store_names: list, qd_size: int = 1, origin_id: str = Non
             "context_locations": _get_context_locations([s["location"] for s in stops]),
         }
 
-    # Build the greedy nearest-neighbor route with gate-jump penalty.
-    # _travel_cost returns a higher value for cross-system hops, so
-    # in-system destinations are always preferred over jumping gates.
-    remaining = list(range(len(stops)))
-    ordered = []
-    current_loc = origin_loc if origin_loc else stops[0]["location"]
-    if not origin_loc:
-        ordered.append(remaining.pop(0))
+    # Build route: visit ALL stops in the origin's system first (nearest-neighbor),
+    # then jump to other systems only as the final leg(s) of the trip.
+    origin_system = (origin_loc or stops[0]["location"])["system"]
 
-    while remaining:
-        best_idx = None
-        best_cost = float("inf")
-        for idx in remaining:
-            candidate = stops[idx]["location"]
-            cost = _travel_cost(current_loc, candidate)
-            if cost < best_cost:
-                best_cost = cost
-                best_idx = idx
-        if best_idx is not None:
-            ordered.append(best_idx)
-            remaining.remove(best_idx)
-            current_loc = stops[best_idx]["location"]
-        else:
-            ordered.append(remaining.pop(0))
-            current_loc = stops[ordered[-1]]["location"]
+    # Partition stops into same-system vs other-system
+    same_sys = [i for i in range(len(stops)) if stops[i]["location"]["system"] == origin_system]
+    other_sys = [i for i in range(len(stops)) if stops[i]["location"]["system"] != origin_system]
+
+    def _nn_order(indices, start_loc):
+        """Nearest-neighbor ordering within a set of stop indices."""
+        remaining = list(indices)
+        result = []
+        cur = start_loc
+        while remaining:
+            best_idx = None
+            best_dist = float("inf")
+            for idx in remaining:
+                d = _distance_mkm(cur, stops[idx]["location"])
+                if d is not None and d < best_dist:
+                    best_dist = d
+                    best_idx = idx
+            if best_idx is not None:
+                result.append(best_idx)
+                remaining.remove(best_idx)
+                cur = stops[best_idx]["location"]
+            else:
+                result.append(remaining.pop(0))
+                cur = stops[result[-1]]["location"]
+        return result, cur
+
+    # Order same-system stops first (nearest-neighbor from origin)
+    current_loc = origin_loc if origin_loc else stops[0]["location"]
+    ordered = []
+    if not origin_loc and same_sys:
+        ordered.append(same_sys.pop(0))
+        current_loc = stops[ordered[0]]["location"]
+
+    if same_sys:
+        nn_same, current_loc = _nn_order(same_sys, current_loc)
+        ordered.extend(nn_same)
+
+    # Then order other-system stops (nearest-neighbor from last same-system stop)
+    # Group by system so we don't bounce between systems
+    if other_sys:
+        by_sys = {}
+        for idx in other_sys:
+            sys_id = stops[idx]["location"]["system"]
+            by_sys.setdefault(sys_id, []).append(idx)
+        # Visit each foreign system group, nearest system first
+        while by_sys:
+            best_sys = None
+            best_cost = float("inf")
+            for sys_id, indices in by_sys.items():
+                # Cost = travel to any stop in that system
+                for idx in indices:
+                    c = _travel_cost(current_loc, stops[idx]["location"])
+                    if c < best_cost:
+                        best_cost = c
+                        best_sys = sys_id
+            if best_sys:
+                nn_other, current_loc = _nn_order(by_sys.pop(best_sys), current_loc)
+                ordered.extend(nn_other)
+            else:
+                # Fallback: just append remaining
+                for indices in by_sys.values():
+                    ordered.extend(indices)
+                by_sys.clear()
 
     # Build result
     ordered_stops = [stops[i] for i in ordered]
