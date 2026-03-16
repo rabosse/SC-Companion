@@ -24,11 +24,15 @@ Build a full-stack application called "Star Citizen Fleet Manager" for players t
 - [x] Auto-logout axios interceptor for expired tokens
 - [x] Shopping List with Visual Route Planner + Starting Location Picker + Zoomable Map
 - [x] Complete Hardpoint Overhaul (200+ ships from Fleetyards API)
-- [x] Hierarchical Store Location Resolver (Pyro support)
 - [x] Component Class & Grade Tags + Filter Buttons in Loadout Builder
 - [x] Weapon Damage Type Filters + DPS/Ammo Sort Buttons in Loadout Builder
 - [x] Smart Route Planner — gate jumps always last, same-system stores visited first
-- [x] **Liveries Page** — 98 ship series, 815 paints. Cards with paint selector pills, clickable detail modal with full paint sidebar, image swapping, acquisition tags, pricing, RSI Store links. Search, Fleet Only toggle, acquisition filters. (2026-03-16)
+- [x] **Liveries Page** — 98 ship series, 815 paints from starcitizen.tools wiki. Clickable detail modal with full paint sidebar, image swapping, acquisition tags, pricing. In-game purchase locations from CStone API (store names + aUEC prices). RSI Store links. Search, Fleet Only toggle, acquisition filters. (2026-03-16)
+
+## Key Architecture
+- `backend/livery_scraper.py` — Background scraper: wiki paint data + CStone location matching + batch image resolution
+- `backend/routes/liveries.py` — GET /api/liveries endpoint
+- `frontend/src/pages/Liveries.jsx` — Liveries page with PaintViewer cards + LiveryDetailModal
 
 ## Remaining/Backlog Tasks
 - [ ] (P1) RSI Fleet Import tool

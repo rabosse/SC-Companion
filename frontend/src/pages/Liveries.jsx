@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../App';
 import axios from 'axios';
-import { Search, ExternalLink, Loader2, Paintbrush, Filter, X } from 'lucide-react';
+import { Search, ExternalLink, Loader2, Paintbrush, Filter, X, MapPin } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -109,6 +109,25 @@ const LiveryDetailModal = ({ series, onClose }) => {
                 </a>
               )}
             </div>
+
+            {/* In-game purchase locations */}
+            {paint?.locations?.length > 0 && (
+              <div className="mt-4 pt-3 border-t border-white/5" data-testid="modal-locations">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <MapPin className="w-3.5 h-3.5 text-emerald-500" />
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">In-Game Locations</span>
+                </div>
+                <div className="space-y-1.5">
+                  {paint.locations.map((loc, i) => (
+                    <div key={i} className="flex items-center justify-between px-3 py-2 rounded-lg bg-white/[0.03] border border-white/5 text-xs"
+                      data-testid={`modal-location-${i}`}>
+                      <span className="text-gray-300">{loc.store || loc.location || loc.name}</span>
+                      {loc.price && <span className="text-emerald-400 font-semibold shrink-0 ml-2">{Number(loc.price).toLocaleString()} aUEC</span>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -236,7 +255,7 @@ const PaintViewer = ({ series, fleetShipIds, fleetOnly, onOpen }) => {
         </p>
 
         {/* Price info */}
-        <div className="flex items-center gap-3 mb-4 text-xs">
+        <div className="flex items-center gap-3 mb-2 text-xs flex-wrap">
           {paint?.price_auec && (
             <span className="text-emerald-400 font-semibold" data-testid="paint-price-auec">
               {paint.price_auec.toLocaleString()} aUEC
@@ -250,11 +269,21 @@ const PaintViewer = ({ series, fleetShipIds, fleetOnly, onOpen }) => {
           {paint?.store_url && (
             <a href={paint.store_url} target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-cyan-500 hover:text-cyan-300 transition-colors"
-              data-testid="paint-store-link">
+              data-testid="paint-store-link"
+              onClick={(e) => e.stopPropagation()}>
               <ExternalLink className="w-3 h-3" /> RSI Store
             </a>
           )}
         </div>
+
+        {/* In-game location preview */}
+        {paint?.locations?.length > 0 && (
+          <div className="flex items-center gap-1.5 mb-3 text-[10px] text-emerald-400/80" data-testid="paint-location-preview">
+            <MapPin className="w-3 h-3 shrink-0" />
+            <span className="truncate">{paint.locations[0]?.store || paint.locations[0]?.location || paint.locations[0]?.name}</span>
+            {paint.locations.length > 1 && <span className="text-gray-600 shrink-0">+{paint.locations.length - 1}</span>}
+          </div>
+        )}
 
         {/* Paint selector - horizontal scrollable pills */}
         <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1" data-testid="paint-selector"

@@ -145,6 +145,92 @@ async def _resolve_images_batch(all_files: dict) -> dict:
     return resolved
 
 
+async def _fetch_cstone_paint_locations(all_liveries: dict):
+    """Fetch in-game purchase locations for paints from CStone API."""
+    from cstone_api import _fetch_item_locations
+    CSTONE_BASE = "https://finder.cstone.space"
+
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.get(f"{CSTONE_BASE}/GetShipPaints")
+            cstone_paints = resp.json()
+        logger.info(f"Fetched {len(cstone_paints)} paints from CStone")
+    except Exception as e:
+        logger.warning(f"CStone paint fetch failed: {e}")
+        return
+
+    # Build lookup: normalize name -> cstone paint
+    def _norm(name):
+        return re.sub(r'[^a-z0-9]', '', name.lower())
+
+    cstone_by_norm = {}
+    for cp in cstone_paints:
+        norm = _norm(cp.get("Name", ""))
+        cstone_by_norm[norm] = cp
+        # Also index by codename parts
+        code = cp.get("ItemCodeName", "")
+        parts = code.replace("Paint_", "").split("_")
+        if len(parts) >= 2:
+            # e.g. "Paint_Arrow_Invictus_Green_Grey" -> match by series + paint name
+            short = _norm("_".join(parts[1:]))
+            cstone_by_norm[short] = cp
+
+    # Match and fetch locations for sold paints
+    sold_ids = set()
+    paint_to_cstone = {}
+
+    for series_name, paints in all_liveries.items():
+        series_norm = _norm(series_name)
+        for p in paints:
+            paint_norm = _norm(p["name"])
+            # Try multiple match strategies
+            matched = None
+            # 1. Direct: "{series} {paint} livery"
+            for suffix in ["livery", "paint", ""]:
+                key = _norm(f"{series_name} {p['name']} {suffix}")
+                if key in cstone_by_norm:
+                    matched = cstone_by_norm[key]
+                    break
+            # 2. Partial: series_norm + paint_norm
+            if not matched:
+                combo = series_norm + paint_norm
+                for k, v in cstone_by_norm.items():
+                    if combo in k or k in combo:
+                        matched = v
+                        break
+            if matched:
+                cid = matched["ItemId"]
+                p["cstone_id"] = cid
+                paint_to_cstone[id(p)] = matched
+                if matched.get("Sold"):
+                    sold_ids.add(cid)
+
+    # Fetch locations for sold paints
+    if sold_ids:
+        logger.info(f"Fetching locations for {len(sold_ids)} sold paints...")
+        sem = asyncio.Semaphore(8)
+        async def _fetch(item_id):
+            async with sem:
+                await asyncio.sleep(0.05)
+                return item_id, await _fetch_item_locations(item_id)
+        results = await asyncio.gather(*[_fetch(sid) for sid in sold_ids], return_exceptions=True)
+
+        loc_map = {}
+        for r in results:
+            if isinstance(r, tuple):
+                loc_map[r[0]] = r[1]
+
+        # Attach locations to paints
+        for paints in all_liveries.values():
+            for p in paints:
+                cid = p.get("cstone_id")
+                if cid and cid in loc_map:
+                    p["locations"] = loc_map[cid]
+                p.pop("cstone_id", None)
+
+    logger.info(f"Paint location matching complete. {len(sold_ids)} paints with store locations.")
+
+
 async def _load_liveries_background():
     """Background task to load all livery data."""
     global _livery_cache, _loading
@@ -181,6 +267,13 @@ async def _load_liveries_background():
 
         total_paints = sum(len(v) for v in all_liveries.values())
         logger.info(f"Livery data ready: {len(all_liveries)} series, {total_paints} paints")
+
+        # Fetch in-game purchase locations from CStone
+        try:
+            await _fetch_cstone_paint_locations(all_liveries)
+        except Exception as e:
+            logger.warning(f"CStone paint locations failed: {e}")
+
         _livery_cache = all_liveries
     except Exception as e:
         logger.error(f"Livery loading failed: {e}")
