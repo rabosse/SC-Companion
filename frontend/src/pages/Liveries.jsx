@@ -48,13 +48,16 @@ const SeriesDetailModal = ({ series, onClose }) => {
             {series.paints.map((p, idx) => {
               const pc = ACQ_COLORS[p.acquisition] || '#888';
               const isSelected = idx === selectedIdx;
+              const hasBuyableLocation = p.locations?.some(l => l.price > 0);
               return (
                 <button key={idx} onClick={() => setSelectedIdx(idx)}
                   data-testid={`modal-paint-btn-${idx}`}
                   className={`text-[11px] px-3 py-1.5 rounded-lg border font-semibold transition-all ${
                     isSelected
                       ? 'text-white ring-1 ring-offset-1 ring-offset-[#0d1117]'
-                      : 'border-white/10 bg-white/[0.03] text-gray-500 hover:text-gray-300 hover:bg-white/[0.06]'
+                      : hasBuyableLocation
+                        ? 'border-emerald-500/30 bg-emerald-500/5 text-emerald-400 hover:bg-emerald-500/10'
+                        : 'border-white/10 bg-white/[0.03] text-gray-500 hover:text-gray-300 hover:bg-white/[0.06]'
                   }`}
                   style={isSelected ? { borderColor: `${pc}50`, background: `${pc}15`, color: pc, ringColor: pc } : {}}>
                   {p.name}
