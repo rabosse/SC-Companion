@@ -28,6 +28,7 @@ const LoadoutBuilder = () => {
   const [classFilter, setClassFilter] = useState('');
   const [gradeFilter, setGradeFilter] = useState('');
   const [weaponTypeFilter, setWeaponTypeFilter] = useState('');
+  const [weaponSort, setWeaponSort] = useState(''); // '', 'dps-desc', 'dps-asc', 'ammo-desc', 'ammo-asc'
   const [savedLoadouts, setSavedLoadouts] = useState([]);
   const [allLoadouts, setAllLoadouts] = useState([]);
   const [loadoutName, setLoadoutName] = useState('');
@@ -172,7 +173,7 @@ const LoadoutBuilder = () => {
   const getCompatibleItems = (slot) => {
     const q = itemSearch.toLowerCase();
     if (slot.type === 'weapon') {
-      return weapons.filter(w => {
+      let filtered = weapons.filter(w => {
         const wSize = parseInt(w.size) || 0;
         if (wSize > slot.maxSize || wSize <= 0) return false;
         if (q && !w.name.toLowerCase().includes(q) && !w.manufacturer.toLowerCase().includes(q)) return false;
@@ -180,6 +181,15 @@ const LoadoutBuilder = () => {
         if (weaponTypeFilter && getWeaponDamageCategory(w.type) !== weaponTypeFilter) return false;
         return true;
       });
+      if (weaponSort) {
+        const [key, dir] = weaponSort.split('-');
+        filtered = [...filtered].sort((a, b) => {
+          const aVal = Number(key === 'dps' ? a.dps : a.ammo) || 0;
+          const bVal = Number(key === 'dps' ? b.dps : b.ammo) || 0;
+          return dir === 'desc' ? bVal - aVal : aVal - bVal;
+        });
+      }
+      return filtered;
     } else {
       return components.filter(c => {
         const cSize = parseInt(c.size) || 0;
@@ -764,8 +774,31 @@ const LoadoutBuilder = () => {
                       {g}
                     </button>
                   ))}
-                  {(weaponTypeFilter || gradeFilter) && (
-                    <button onClick={() => { setWeaponTypeFilter(''); setGradeFilter(''); }}
+                  <span className="text-white/10 mx-1">|</span>
+                  <span className="text-[10px] text-gray-600 uppercase font-bold">Sort</span>
+                  {[
+                    { key: 'dps', label: 'DPS' },
+                    { key: 'ammo', label: 'Ammo' },
+                  ].map(({ key, label }) => {
+                    const isActive = weaponSort.startsWith(key);
+                    const isDesc = weaponSort === `${key}-desc`;
+                    return (
+                      <button key={key}
+                        data-testid={`sort-${key}`}
+                        onClick={() => setWeaponSort(s => s === `${key}-desc` ? `${key}-asc` : s === `${key}-asc` ? '' : `${key}-desc`)}
+                        className={`text-[10px] px-2 py-1 rounded-md border font-semibold transition-all flex items-center gap-1 ${
+                          isActive
+                            ? 'border-cyan-500/60 bg-cyan-500/20 text-cyan-300'
+                            : 'border-white/10 bg-white/[0.03] text-gray-500 hover:text-gray-300 hover:bg-white/[0.06]'
+                        }`}
+                        style={isActive ? { borderColor: 'rgba(6,182,212,0.6)', backgroundColor: 'rgba(6,182,212,0.2)', color: '#22d3ee' } : {}}>
+                        {label}
+                        {isActive && <span className="text-[9px]">{isDesc ? '\u25BC' : '\u25B2'}</span>}
+                      </button>
+                    );
+                  })}
+                  {(weaponTypeFilter || gradeFilter || weaponSort) && (
+                    <button onClick={() => { setWeaponTypeFilter(''); setGradeFilter(''); setWeaponSort(''); }}
                       data-testid="filter-clear-all"
                       className="text-[10px] px-2 py-1 rounded-md border border-white/10 text-gray-500 hover:text-white hover:bg-white/10 transition-all ml-1">
                       Clear
@@ -803,6 +836,16 @@ const LoadoutBuilder = () => {
                                   'border-gray-500/30 bg-gray-500/10 text-gray-400'
                                 }`}>
                                   {item.item_class}
+                                </span>
+                              )}
+                              {activeSlot.type === 'weapon' && item.dps > 0 && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded border border-cyan-500/30 bg-cyan-500/10 text-cyan-400" data-testid={`tag-dps-${item.id}`}>
+                                  DPS {Number(item.dps).toFixed(1)}
+                                </span>
+                              )}
+                              {activeSlot.type === 'weapon' && item.ammo > 0 && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded border border-emerald-500/30 bg-emerald-500/10 text-emerald-400" data-testid={`tag-ammo-${item.id}`}>
+                                  Ammo {Number(item.ammo).toFixed(0)}
                                 </span>
                               )}
                             </div>

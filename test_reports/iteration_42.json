@@ -1,0 +1,63 @@
+{
+  "summary": "Iteration 42: Frontend testing of weapon sorting feature in Loadout Builder. DPS and Ammo sort buttons work correctly with cycle desc→asc→off. Clear button resets all filters AND sort. DPS tags visible on weapon cards. One issue found: Ammo tags not displaying because frontend uses 'item.ammo' but backend provides 'max_ammo' for ship weapons.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "LoadoutBuilder weapon cards",
+        "issue": "Ammo tags not displaying - frontend uses 'item.ammo' but backend provides 'max_ammo' field for ship weapons",
+        "selector": "[data-testid='tag-ammo-{item.id}']",
+        "priority": "MEDIUM",
+        "fix_suggestion": "Change line 846-848 in LoadoutBuilder.jsx from 'item.ammo' to 'item.max_ammo' to match backend field name"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "passed_tests": [
+    "FRONTEND: Sort label visible with 'DPS' and 'Ammo' buttons in weapon filter bar - PASS",
+    "FRONTEND: DPS sort button - 1st click shows descending (▼) - PASS",
+    "FRONTEND: DPS sort descending reorders weapons correctly (highest DPS first: 2041.7 → 1518.8 → 1012.5) - PASS",
+    "FRONTEND: DPS sort button - 2nd click shows ascending (▲) - PASS",
+    "FRONTEND: DPS sort ascending reorders weapons correctly (lowest DPS first) - PASS",
+    "FRONTEND: DPS sort button - 3rd click deactivates sort (no arrow) - PASS",
+    "FRONTEND: Ammo sort button - 1st click shows descending (▼) - PASS",
+    "FRONTEND: Ammo sort button - 2nd click shows ascending (▲) - PASS",
+    "FRONTEND: Ammo sort button - 3rd click deactivates sort - PASS",
+    "FRONTEND: DPS tags visible on weapon cards (cyan 'DPS X.X' format) - PASS",
+    "FRONTEND: Type filter (Ballistic) + DPS sort combination works together - PASS",
+    "FRONTEND: Clear button resets all filters AND sort - PASS",
+    "FRONTEND: Dashboard page unchanged - PASS",
+    "FRONTEND: Ships page unchanged - PASS",
+    "FRONTEND: Weapons page unchanged - PASS",
+    "FRONTEND: Components page unchanged - PASS",
+    "FRONTEND: Compare page unchanged - PASS"
+  ],
+  "test_report_links": [
+    "/app/test_reports/iteration_42.json"
+  ],
+  "action_items": [
+    "FIX: Change 'item.ammo' to 'item.max_ammo' in LoadoutBuilder.jsx lines 846-848 and 187-188 to display Ammo tags on weapon cards"
+  ],
+  "critical_code_review_comments": [
+    "Line 846-848: Uses 'item.ammo' but backend provides 'max_ammo' field for ship weapons",
+    "Line 187-188: Sort logic uses 'a.ammo' but should use 'a.max_ammo' for consistency"
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (skipped per request)",
+    "frontend": "94% (17/18 tests passed)"
+  },
+  "test_credentials": {
+    "username": "testsort42_{timestamp}",
+    "password": "password123"
+  },
+  "seed_data_creation": "No seed data needed - used existing weapons and ships data",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Iteration 42 verified weapon sorting feature: DPS sort (desc→asc→off) works, DPS tags visible on weapon cards, Clear button works. One bug found: Ammo tags not showing because frontend uses 'item.ammo' but backend uses 'max_ammo'. After fix, verify Ammo tags appear as green 'Ammo XX' tags.",
+  "rca_of_the_issue": "Field name mismatch between frontend and backend. Frontend LoadoutBuilder.jsx uses 'item.ammo' at lines 846, 187, 188 but backend cstone_api.py line 164 maps to 'max_ammo'. Solution: Update frontend to use 'item.max_ammo' instead of 'item.ammo'."
+}
