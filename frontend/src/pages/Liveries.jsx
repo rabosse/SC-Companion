@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../App';
 import axios from 'axios';
-import { Search, ExternalLink, Loader2, Paintbrush, MapPin, DollarSign, SlidersHorizontal, ArrowUpDown, ChevronUp, ChevronDown, X, Filter } from 'lucide-react';
+import { Search, ExternalLink, Loader2, Paintbrush, MapPin, DollarSign, SlidersHorizontal, ArrowUpDown, ChevronUp, ChevronDown, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -11,9 +11,14 @@ const ACQ_COLORS = {
   'Limited Edition': '#A855F7', 'Subscriber': '#FF6B9D', 'Special': '#888', 'Unknown': '#555',
 };
 
-const PaintDetailModal = ({ paint, onClose }) => {
-  const acqColor = ACQ_COLORS[paint.acquisition] || '#888';
-  const locations = paint.locations || [];
+/** A paint is purchasable in-game only if it has actual location data */
+const isPurchasable = (paint) => paint.locations?.length > 0;
+
+const SeriesDetailModal = ({ series, onClose }) => {
+  const [selectedIdx, setSelectedIdx] = useState(0);
+  const paint = series.paints[selectedIdx];
+  const acqColor = ACQ_COLORS[paint?.acquisition] || '#888';
+  const locations = paint?.locations || [];
   const bestPrice = locations.filter(l => l.price > 0).sort((a, b) => a.price - b.price)[0];
 
   return (
@@ -21,14 +26,15 @@ const PaintDetailModal = ({ paint, onClose }) => {
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
       onClick={onClose} data-testid="paint-detail-modal">
       <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-        className="glass-panel rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto p-6"
+        className="glass-panel rounded-2xl max-w-3xl w-full max-h-[85vh] overflow-hidden flex flex-col"
         onClick={e => e.stopPropagation()}>
+
         {/* Header */}
-        <div className="flex items-start justify-between mb-4">
+        <div className="flex items-start justify-between p-6 pb-0 shrink-0">
           <div>
             <h2 className="text-2xl font-bold text-white" style={{ fontFamily: 'Rajdhani, sans-serif' }}
-              data-testid="modal-paint-name">{paint.name}</h2>
-            <p className="text-sm text-gray-400" data-testid="modal-series-name">{paint.series}</p>
+              data-testid="modal-series-name">{series.series}</h2>
+            <p className="text-sm text-gray-400">{series.paint_count} paints available</p>
           </div>
           <button onClick={onClose} data-testid="close-paint-detail"
             className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-all">
@@ -36,77 +42,100 @@ const PaintDetailModal = ({ paint, onClose }) => {
           </button>
         </div>
 
-        {/* Badges */}
-        <div className="flex flex-wrap gap-2 mb-5">
-          <span className="px-3 py-1 rounded-lg text-xs font-bold border"
-            style={{ color: acqColor, background: `${acqColor}20`, borderColor: `${acqColor}30` }}>
-            {paint.acquisition}
-          </span>
-          {paint.price_auec && (
-            <span className="px-3 py-1 rounded-lg text-xs font-bold border text-emerald-400 bg-emerald-500/10 border-emerald-500/20">
-              {paint.price_auec.toLocaleString()} aUEC
-            </span>
-          )}
-          {paint.price_usd && (
-            <span className="px-3 py-1 rounded-lg text-xs font-bold border text-cyan-400 bg-cyan-500/10 border-cyan-500/20">
-              ${paint.price_usd.toFixed(2)} USD
-            </span>
-          )}
-        </div>
-
-        {/* Image */}
-        {paint.image_url && (
-          <div className="mb-5 rounded-xl overflow-hidden bg-black/40 border border-white/5">
-            <img src={paint.image_url} alt={paint.name} className="w-full h-64 object-contain"
-              data-testid="modal-paint-image"
-              onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; }} />
+        <div className="flex-1 overflow-y-auto p-6 pt-4 space-y-5">
+          {/* Paint selector pills */}
+          <div className="flex flex-wrap gap-1.5" data-testid="modal-paint-selector">
+            {series.paints.map((p, idx) => {
+              const pc = ACQ_COLORS[p.acquisition] || '#888';
+              const isSelected = idx === selectedIdx;
+              return (
+                <button key={idx} onClick={() => setSelectedIdx(idx)}
+                  data-testid={`modal-paint-btn-${idx}`}
+                  className={`text-[11px] px-3 py-1.5 rounded-lg border font-semibold transition-all ${
+                    isSelected
+                      ? 'text-white ring-1 ring-offset-1 ring-offset-[#0d1117]'
+                      : 'border-white/10 bg-white/[0.03] text-gray-500 hover:text-gray-300 hover:bg-white/[0.06]'
+                  }`}
+                  style={isSelected ? { borderColor: `${pc}50`, background: `${pc}15`, color: pc, ringColor: pc } : {}}>
+                  {p.name}
+                </button>
+              );
+            })}
           </div>
-        )}
 
-        {/* Description */}
-        {paint.description && (
-          <div className="mb-5">
-            <h3 className="text-xs text-gray-500 uppercase font-bold mb-2">Description</h3>
-            <p className="text-sm text-gray-300 leading-relaxed" data-testid="modal-description">{paint.description}</p>
+          {/* Selected paint badges */}
+          <div className="flex flex-wrap gap-2">
+            <span className="px-3 py-1 rounded-lg text-xs font-bold border"
+              style={{ color: acqColor, background: `${acqColor}20`, borderColor: `${acqColor}30` }}>
+              {paint?.acquisition}
+            </span>
+            {isPurchasable(paint) && bestPrice && (
+              <span className="px-3 py-1 rounded-lg text-xs font-bold border text-emerald-400 bg-emerald-500/10 border-emerald-500/20">
+                {bestPrice.price.toLocaleString()} aUEC
+              </span>
+            )}
+            {paint?.price_usd && (
+              <span className="px-3 py-1 rounded-lg text-xs font-bold border text-cyan-400 bg-cyan-500/10 border-cyan-500/20">
+                ${paint.price_usd.toFixed(2)} USD
+              </span>
+            )}
           </div>
-        )}
 
-        {/* RSI Store link */}
-        {paint.store_url && (
-          <div className="mb-5">
+          {/* Image */}
+          {paint?.image_url && (
+            <div className="rounded-xl overflow-hidden bg-black/40 border border-white/5">
+              <AnimatePresence mode="wait">
+                <motion.img key={paint.image_url} src={paint.image_url} alt={paint.name}
+                  className="w-full h-64 object-contain"
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  data-testid="modal-paint-image"
+                  onError={(e) => { e.target.onerror = null; e.target.parentElement.style.display = 'none'; }} />
+              </AnimatePresence>
+            </div>
+          )}
+
+          {/* Description */}
+          {paint?.description && (
+            <div>
+              <h3 className="text-xs text-gray-500 uppercase font-bold mb-2">Description</h3>
+              <p className="text-sm text-gray-300 leading-relaxed" data-testid="modal-description">{paint.description}</p>
+            </div>
+          )}
+
+          {/* RSI Store link */}
+          {paint?.store_url && (
             <a href={paint.store_url} target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/20 transition-all text-sm font-semibold"
               data-testid="modal-store-link">
               <ExternalLink className="w-4 h-4" /> View on RSI Pledge Store
             </a>
-          </div>
-        )}
-
-        {/* Purchase Locations */}
-        <div>
-          <h3 className="text-xs text-gray-500 uppercase font-bold mb-3 flex items-center gap-2">
-            <MapPin className="w-3.5 h-3.5" /> In-Game Purchase Locations
-          </h3>
-          {locations.length > 0 ? (
-            <div className="space-y-2 max-h-60 overflow-y-auto">
-              {locations.map((loc, i) => (
-                <div key={i} className={`flex items-center justify-between text-sm p-2.5 rounded-lg ${bestPrice && loc.price === bestPrice.price ? 'bg-green-500/10 border border-green-500/20' : 'bg-white/5'}`}
-                  data-testid={`paint-location-${i}`}>
-                  <span className="text-gray-300 flex-1 mr-4">{loc.store || loc.location || loc.name}</span>
-                  {loc.price > 0 && (
-                    <span className={`font-bold whitespace-nowrap ${bestPrice && loc.price === bestPrice.price ? 'text-green-400' : 'text-yellow-400'}`}
-                      style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                      {loc.price.toLocaleString()} aUEC
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-gray-500 italic">
-              {paint.acquisition === 'In-Game' ? 'Location data not available yet' : 'Not sold in-game'}
-            </p>
           )}
+
+          {/* Purchase Locations */}
+          <div>
+            <h3 className="text-xs text-gray-500 uppercase font-bold mb-3 flex items-center gap-2">
+              <MapPin className="w-3.5 h-3.5" /> In-Game Purchase Locations
+            </h3>
+            {isPurchasable(paint) ? (
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {locations.map((loc, i) => (
+                  <div key={i} className={`flex items-center justify-between text-sm p-2.5 rounded-lg ${bestPrice && loc.price === bestPrice.price ? 'bg-green-500/10 border border-green-500/20' : 'bg-white/5'}`}
+                    data-testid={`paint-location-${i}`}>
+                    <span className="text-gray-300 flex-1 mr-4">{loc.store || loc.location || loc.name}</span>
+                    {loc.price > 0 && (
+                      <span className={`font-bold whitespace-nowrap ${bestPrice && loc.price === bestPrice.price ? 'text-green-400' : 'text-yellow-400'}`}
+                        style={{ fontFamily: 'Rajdhani, sans-serif' }}>
+                        {loc.price.toLocaleString()} aUEC
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500 italic">Not purchasable in-game</p>
+            )}
+          </div>
         </div>
       </motion.div>
     </motion.div>
@@ -157,56 +186,59 @@ export default function Liveries() {
     return () => { if (interval) clearInterval(interval); };
   }, [token]);
 
-  // Flatten all paints into individual items
-  const allPaints = useMemo(() => {
-    const flat = [];
-    for (const series of liveries) {
-      for (const paint of series.paints) {
-        flat.push({ ...paint, series: series.series, _seriesLower: series.series.toLowerCase() });
-      }
-    }
-    return flat;
-  }, [liveries]);
-
   const fleetSet = useMemo(() => new Set(fleetShipIds.map(id => id.toLowerCase().replace(/-/g, ' '))), [fleetShipIds]);
 
-  const filtered = useMemo(() => {
-    let result = allPaints;
+  // Enrich series with summary info
+  const enriched = useMemo(() => {
+    return liveries.map(s => {
+      const purchasablePaints = s.paints.filter(isPurchasable);
+      const allLocations = purchasablePaints.flatMap(p => p.locations || []);
+      const bestPrice = allLocations.filter(l => l.price > 0).sort((a, b) => a.price - b.price)[0];
+      const acqSet = new Set(s.paints.map(p => p.acquisition));
+      const firstImagePaint = s.paints.find(p => p.image_url) || s.paints[0];
+      return { ...s, purchasablePaints, bestPrice, acqSet, firstImagePaint };
+    });
+  }, [liveries]);
 
+  const filtered = useMemo(() => {
+    let result = enriched;
     if (search) {
       const q = search.toLowerCase();
-      result = result.filter(p => p.name.toLowerCase().includes(q) || p.series.toLowerCase().includes(q));
+      result = result.filter(s =>
+        s.series.toLowerCase().includes(q) ||
+        s.paints.some(p => p.name.toLowerCase().includes(q))
+      );
     }
     if (acqFilter !== 'all') {
-      result = result.filter(p => p.acquisition === acqFilter);
+      result = result.filter(s => s.acqSet.has(acqFilter));
     }
     if (fleetOnly) {
-      result = result.filter(p => {
-        const sl = p._seriesLower;
+      result = result.filter(s => {
+        const sl = s.series.toLowerCase();
         return [...fleetSet].some(fid => fid.includes(sl) || sl.includes(fid.split(' ')[0]));
       });
     }
-
     const dir = sortAsc ? 1 : -1;
     const sortFns = {
-      series: (a, b) => dir * a.series.localeCompare(b.series) || a.name.localeCompare(b.name),
-      name: (a, b) => dir * a.name.localeCompare(b.name),
-      price: (a, b) => dir * ((a.price_auec || 999999) - (b.price_auec || 999999)),
-      acquisition: (a, b) => dir * a.acquisition.localeCompare(b.acquisition),
+      series: (a, b) => dir * a.series.localeCompare(b.series),
+      paints: (a, b) => dir * (a.paint_count - b.paint_count),
+      price: (a, b) => dir * ((a.bestPrice?.price || 999999) - (b.bestPrice?.price || 999999)),
     };
     if (sortFns[sortBy]) result = [...result].sort(sortFns[sortBy]);
     return result;
-  }, [allPaints, search, acqFilter, fleetOnly, fleetSet, sortBy, sortAsc]);
+  }, [enriched, search, acqFilter, fleetOnly, fleetSet, sortBy, sortAsc]);
 
   const acqTypes = useMemo(() => {
     const counts = {};
-    for (const p of allPaints) {
-      counts[p.acquisition] = (counts[p.acquisition] || 0) + 1;
+    for (const s of liveries) {
+      for (const p of s.paints) {
+        counts[p.acquisition] = (counts[p.acquisition] || 0) + 1;
+      }
     }
     return Object.entries(counts).sort((a, b) => b[1] - a[1]);
-  }, [allPaints]);
+  }, [liveries]);
 
-  const totalPaints = allPaints.length;
+  const totalPaints = liveries.reduce((sum, s) => sum + s.paint_count, 0);
 
   if (loading) {
     return (
@@ -228,7 +260,7 @@ export default function Liveries() {
           Livery Catalog
         </h1>
         <p className="text-gray-400 text-sm" data-testid="livery-count">
-          {filtered.length} of {totalPaints} paints across {liveries.length} ship series
+          {filtered.length} ships · {totalPaints} paints
         </p>
       </div>
 
@@ -267,10 +299,9 @@ export default function Liveries() {
             <span className="text-xs text-gray-500 font-semibold uppercase">Sort:</span>
             <select value={sortBy} onChange={e => setSortBy(e.target.value)} data-testid="sort-dropdown"
               className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-white font-semibold focus:outline-none focus:border-cyan-500 transition-all">
-              <option value="series" className="bg-gray-900">Ship Series</option>
-              <option value="name" className="bg-gray-900">Paint Name</option>
-              <option value="price" className="bg-gray-900">Price (aUEC)</option>
-              <option value="acquisition" className="bg-gray-900">Acquisition</option>
+              <option value="series" className="bg-gray-900">Ship Name</option>
+              <option value="paints" className="bg-gray-900">Paint Count</option>
+              <option value="price" className="bg-gray-900">Best Price</option>
             </select>
             <button onClick={() => setSortAsc(!sortAsc)} data-testid="sort-direction-toggle"
               className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/5 border border-white/10 text-gray-400 hover:text-white transition-all">
@@ -282,104 +313,83 @@ export default function Liveries() {
         </div>
       </div>
 
-      {/* Paint Cards Grid */}
+      {/* Ship Series Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" data-testid="liveries-grid">
-        {filtered.map((paint, index) => {
-          const acqColor = ACQ_COLORS[paint.acquisition] || '#888';
-          const hasLocations = paint.locations?.length > 0;
-          const bestLoc = hasLocations ? paint.locations.filter(l => l.price > 0).sort((a, b) => a.price - b.price)[0] : null;
+        {filtered.map((series, index) => {
+          const hasInGame = series.purchasablePaints.length > 0;
+          const previewPaint = series.firstImagePaint;
 
           return (
-            <motion.div key={`${paint.series}-${paint.name}-${index}`}
+            <motion.div key={series.series}
               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
               transition={{ delay: Math.min(index * 0.015, 0.5) }}
               className="glass-panel rounded-2xl p-5 hover:scale-[1.02] transition-transform duration-300 cursor-pointer"
-              data-testid={`paint-card-${index}`}
-              onClick={() => setDetail(paint)}>
+              data-testid={`series-card-${series.series.toLowerCase().replace(/\s+/g, '-')}`}
+              onClick={() => setDetail(series)}>
 
-              {/* Top row: icon + badges */}
+              {/* Top row: icon + paint count */}
               <div className="flex items-center justify-between mb-3">
-                <Paintbrush className="w-6 h-6" style={{ color: acqColor }} />
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded border"
-                    style={{ color: acqColor, borderColor: `${acqColor}30`, background: `${acqColor}10` }}>
-                    {paint.acquisition}
-                  </span>
-                </div>
+                <Paintbrush className="w-6 h-6 text-cyan-500" />
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded border border-white/10 bg-white/5 text-gray-400">
+                  {series.paint_count} {series.paint_count === 1 ? 'paint' : 'paints'}
+                </span>
               </div>
 
-              {/* Paint name + series */}
-              <h3 className="text-base font-bold text-white mb-0.5 truncate" style={{ fontFamily: 'Rajdhani, sans-serif' }}
-                data-testid={`paint-name-${index}`}>{paint.name}</h3>
-              <p className="text-xs text-gray-500 mb-3" data-testid={`paint-series-${index}`}>{paint.series}</p>
+              {/* Ship series name */}
+              <h3 className="text-base font-bold text-white mb-1 truncate" style={{ fontFamily: 'Rajdhani, sans-serif' }}
+                data-testid={`series-name-${index}`}>{series.series}</h3>
+
+              {/* Acquisition types summary */}
+              <div className="flex flex-wrap items-center gap-1 mb-3">
+                {[...series.acqSet].map(acq => {
+                  const c = ACQ_COLORS[acq] || '#888';
+                  return (
+                    <span key={acq} className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
+                      style={{ color: c, background: `${c}12` }}>
+                      {acq}
+                    </span>
+                  );
+                })}
+              </div>
 
               {/* Image preview */}
-              {paint.image_url && (
+              {previewPaint?.image_url && (
                 <div className="mb-3 rounded-xl overflow-hidden bg-black/30 border border-white/5 h-32">
-                  <img src={paint.image_url} alt={paint.name} className="w-full h-full object-cover"
+                  <img src={previewPaint.image_url} alt={series.series} className="w-full h-full object-cover"
                     onError={(e) => { e.target.onerror = null; e.target.parentElement.style.display = 'none'; }} />
                 </div>
               )}
 
-              {/* Description (truncated) */}
-              {paint.description && (
-                <p className="text-xs text-gray-500 mb-3 line-clamp-2">{paint.description}</p>
-              )}
-
-              {/* Price tags */}
-              <div className="flex flex-wrap items-center gap-1.5 mb-3">
-                {paint.price_auec && (
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full text-emerald-400 bg-emerald-500/10">
-                    {paint.price_auec.toLocaleString()} aUEC
-                  </span>
-                )}
-                {paint.price_usd && (
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full text-cyan-400 bg-cyan-500/10">
-                    ${paint.price_usd.toFixed(2)}
-                  </span>
-                )}
-                {paint.store_url && (
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full text-cyan-400 bg-cyan-500/10">
-                    RSI Store
-                  </span>
-                )}
-              </div>
-
-              {/* Purchase location / availability indicator */}
+              {/* Purchase info */}
               <div className="border-t border-white/10 pt-3 space-y-1.5">
-                {hasLocations ? (
+                {hasInGame ? (
                   <>
-                    <div className="flex items-center gap-2 text-xs" data-testid={`paint-available-${index}`}>
+                    <div className="flex items-center gap-2 text-xs" data-testid={`series-available-${index}`}>
                       <MapPin className="w-3.5 h-3.5 shrink-0 text-green-400" />
                       <span className="text-green-400 font-medium">Available in-game</span>
-                      {bestLoc && (
+                      {series.bestPrice && (
                         <span className="text-green-400 font-bold ml-auto whitespace-nowrap" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                          {bestLoc.price.toLocaleString()} aUEC
+                          from {series.bestPrice.price.toLocaleString()} aUEC
                         </span>
                       )}
                     </div>
-                    {paint.locations.slice(0, 2).map((loc, li) => (
-                      <div key={li} className="flex items-center gap-2 text-[10px] pl-5" data-testid={`paint-loc-${index}-${li}`}>
+                    {/* Show top 2 locations from best-priced paint */}
+                    {series.purchasablePaints[0]?.locations?.slice(0, 2).map((loc, li) => (
+                      <div key={li} className="flex items-center gap-2 text-[10px] pl-5">
                         <span className="text-gray-500 truncate">{loc.store || loc.location || loc.name}</span>
                         {loc.price > 0 && (
                           <span className="text-gray-400 font-semibold whitespace-nowrap ml-auto">{loc.price.toLocaleString()} aUEC</span>
                         )}
                       </div>
                     ))}
-                    {paint.locations.length > 2 && (
-                      <p className="text-[10px] text-gray-600 pl-5">+{paint.locations.length - 2} more locations</p>
+                    {(series.purchasablePaints[0]?.locations?.length || 0) > 2 && (
+                      <p className="text-[10px] text-gray-600 pl-5">+{series.purchasablePaints[0].locations.length - 2} more locations</p>
                     )}
                   </>
                 ) : (
                   <div className="flex items-center gap-2 text-xs">
-                    <DollarSign className={`w-3.5 h-3.5 shrink-0 ${paint.acquisition === 'RSI Store' ? 'text-cyan-500' : 'text-gray-600'}`} />
-                    <span className={paint.acquisition === 'RSI Store' ? 'text-cyan-400 font-medium' : 'text-gray-600'}>
-                      {paint.acquisition === 'RSI Store' ? 'RSI Pledge Store only' :
-                       paint.acquisition === 'In-Game' ? 'In-game (location data pending)' :
-                       paint.acquisition === 'Event Reward' ? 'Event reward' :
-                       paint.acquisition === 'Subscriber' ? 'Subscriber exclusive' :
-                       'Not sold in-game'}
-                    </span>
+                    <DollarSign className="w-3.5 h-3.5 shrink-0 text-gray-600" />
+                    <span className="text-gray-600">Not purchasable in-game</span>
                   </div>
                 )}
               </div>
@@ -391,13 +401,13 @@ export default function Liveries() {
       {filtered.length === 0 && (
         <div className="text-center py-12" data-testid="no-paints-message">
           <Paintbrush className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-          <p className="text-gray-400">No paints found matching your criteria</p>
+          <p className="text-gray-400">No ships found matching your criteria</p>
         </div>
       )}
 
       {/* Detail Modal */}
       <AnimatePresence>
-        {detail && <PaintDetailModal paint={detail} onClose={() => setDetail(null)} />}
+        {detail && <SeriesDetailModal series={detail} onClose={() => setDetail(null)} />}
       </AnimatePresence>
     </div>
   );
