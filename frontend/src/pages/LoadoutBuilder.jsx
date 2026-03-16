@@ -184,8 +184,8 @@ const LoadoutBuilder = () => {
       if (weaponSort) {
         const [key, dir] = weaponSort.split('-');
         filtered = [...filtered].sort((a, b) => {
-          const aVal = Number(key === 'dps' ? a.dps : a.ammo) || 0;
-          const bVal = Number(key === 'dps' ? b.dps : b.ammo) || 0;
+          const aVal = Number(key === 'dps' ? a.dps : (a.ammo || a.max_ammo)) || 0;
+          const bVal = Number(key === 'dps' ? b.dps : (b.ammo || b.max_ammo)) || 0;
           return dir === 'desc' ? bVal - aVal : aVal - bVal;
         });
       }
@@ -843,9 +843,9 @@ const LoadoutBuilder = () => {
                                   DPS {Number(item.dps).toFixed(1)}
                                 </span>
                               )}
-                              {activeSlot.type === 'weapon' && item.ammo > 0 && (
+                              {activeSlot.type === 'weapon' && (item.ammo > 0 || item.max_ammo > 0) && (
                                 <span className="text-[10px] px-1.5 py-0.5 rounded border border-emerald-500/30 bg-emerald-500/10 text-emerald-400" data-testid={`tag-ammo-${item.id}`}>
-                                  Ammo {Number(item.ammo).toFixed(0)}
+                                  Ammo {Number(item.ammo || item.max_ammo).toFixed(0)}
                                 </span>
                               )}
                             </div>
@@ -1395,17 +1395,20 @@ const ShoppingRouteMap = ({ route }) => {
             const mx = (leg.from_x + leg.to_x) / 2;
             const my = (leg.from_y + leg.to_y) / 2;
             const isFromOrigin = origin && leg.from_id === origin.id;
+            const isJump = leg.type === 'jump';
+            const legColor = isJump ? '#FF6B35' : isFromOrigin ? '#22D3EE' : '#00D4FF';
             return (
               <g key={`leg-${i}`}>
                 <line x1={leg.from_x} y1={leg.from_y} x2={leg.to_x} y2={leg.to_y}
-                  stroke={isFromOrigin ? '#22D3EE' : '#00D4FF'} strokeWidth={1.5 * s} opacity={0.15} filter="url(#routeGlow)" />
+                  stroke={legColor} strokeWidth={1.5 * s} opacity={0.15} filter="url(#routeGlow)" />
                 <line x1={leg.from_x} y1={leg.from_y} x2={leg.to_x} y2={leg.to_y}
-                  stroke={isFromOrigin ? '#22D3EE' : '#00D4FF'} strokeWidth={0.8 * s} strokeDasharray={`${4 * s},${3 * s}`} opacity={0.7} />
+                  stroke={legColor} strokeWidth={0.8 * s}
+                  strokeDasharray={isJump ? `${2 * s},${2 * s}` : `${4 * s},${3 * s}`} opacity={0.7} />
                 <rect x={mx - 18 * s} y={my - 5 * s} width={36 * s} height={10 * s} rx={2 * s}
-                  fill="#0a0e1a" fillOpacity={0.85} stroke="rgba(0,212,255,0.2)" strokeWidth={0.3 * s} />
-                <text x={mx} y={my + 2.5 * s} textAnchor="middle" fill="#6B9DC8"
+                  fill="#0a0e1a" fillOpacity={0.85} stroke={isJump ? 'rgba(255,107,53,0.3)' : 'rgba(0,212,255,0.2)'} strokeWidth={0.3 * s} />
+                <text x={mx} y={my + 2.5 * s} textAnchor="middle" fill={isJump ? '#FF9966' : '#6B9DC8'}
                   fontSize={3.8 * s} fontFamily="Rajdhani, sans-serif">
-                  {leg.distance_mkm} Mkm · {formatTime(leg.travel_time_s)}
+                  {isJump ? 'JUMP' : `${leg.distance_mkm} Mkm`} · {formatTime(leg.travel_time_s)}
                 </text>
               </g>
             );

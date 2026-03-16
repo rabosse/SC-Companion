@@ -946,10 +946,44 @@ def get_starting_locations():
     return results
 
 
+def _travel_cost(loc_a, loc_b):
+    """
+    Calculate a travel cost between two locations that accounts for gate jumps.
+    In-system travel uses the normal distance.  Cross-system travel adds a heavy
+    penalty because gate jumps (spool + jump tunnel + spool on the other side)
+    take significantly more time than intra-system quantum travel.
+    """
+    GATE_JUMP_PENALTY = 200.0  # Mkm-equivalent penalty per gate jump
+
+    if loc_a["system"] == loc_b["system"]:
+        d = _distance_mkm(loc_a, loc_b)
+        return d if d is not None else 30.0
+
+    # Cross-system: estimate as distance-to-gateway + jump penalty + gateway-to-dest
+    jumps = _find_jump_route(loc_a["system"], loc_b["system"])
+    if not jumps:
+        return 9999.0  # Unreachable
+
+    total = 0.0
+    cur = loc_a
+    for gw_origin_id, gw_dest_id, jump_dist in jumps:
+        gw_origin = _loc_by_id[gw_origin_id]
+        gw_dest = _loc_by_id[gw_dest_id]
+        leg = _distance_mkm(cur, gw_origin)
+        total += (leg if leg is not None else 20.0)
+        total += GATE_JUMP_PENALTY  # Heavy penalty for the jump itself
+        cur = gw_dest
+    final = _distance_mkm(cur, loc_b)
+    total += (final if final is not None else 20.0)
+    return total
+
+
 def plan_shopping_trip(store_names: list, qd_size: int = 1, origin_id: str = None):
     """
     Given a list of store names from CStone, resolve them to map locations
     and compute an efficient multi-stop route using nearest-neighbor heuristic.
+    Gate jumps are heavily penalized so the algorithm exhausts all same-system
+    stops before jumping to another system.
     If origin_id is provided, use that location as the starting point.
     Returns ordered stops with coordinates, legs with distances and travel times.
     """
@@ -1006,49 +1040,31 @@ def plan_shopping_trip(store_names: list, qd_size: int = 1, origin_id: str = Non
             "context_locations": _get_context_locations([s["location"] for s in stops]),
         }
 
-    # Build the greedy nearest-neighbor route
-    # If origin is provided, start from origin; otherwise start from first store
-    if origin_loc:
-        # Start routing from origin — find nearest store to origin first
-        remaining = list(range(len(stops)))
-        ordered = []
-        current_loc = origin_loc
-        while remaining:
-            best_idx = None
-            best_dist = float("inf")
-            for idx in remaining:
-                candidate = stops[idx]["location"]
-                dist = _distance_mkm(current_loc, candidate)
-                if dist is not None and dist < best_dist:
-                    best_dist = dist
-                    best_idx = idx
-            if best_idx is not None:
-                ordered.append(best_idx)
-                remaining.remove(best_idx)
-                current_loc = stops[best_idx]["location"]
-            else:
-                ordered.append(remaining.pop(0))
-                current_loc = stops[ordered[-1]]["location"]
-    else:
-        remaining = list(range(len(stops)))
-        ordered = [remaining.pop(0)]
+    # Build the greedy nearest-neighbor route with gate-jump penalty.
+    # _travel_cost returns a higher value for cross-system hops, so
+    # in-system destinations are always preferred over jumping gates.
+    remaining = list(range(len(stops)))
+    ordered = []
+    current_loc = origin_loc if origin_loc else stops[0]["location"]
+    if not origin_loc:
+        ordered.append(remaining.pop(0))
 
     while remaining:
-        current = stops[ordered[-1]]["location"]
         best_idx = None
-        best_dist = float("inf")
+        best_cost = float("inf")
         for idx in remaining:
             candidate = stops[idx]["location"]
-            dist = _distance_mkm(current, candidate)
-            if dist is not None and dist < best_dist:
-                best_dist = dist
+            cost = _travel_cost(current_loc, candidate)
+            if cost < best_cost:
+                best_cost = cost
                 best_idx = idx
         if best_idx is not None:
             ordered.append(best_idx)
             remaining.remove(best_idx)
+            current_loc = stops[best_idx]["location"]
         else:
-            # Cross-system fallback: just append in order
             ordered.append(remaining.pop(0))
+            current_loc = stops[ordered[-1]]["location"]
 
     # Build result
     ordered_stops = [stops[i] for i in ordered]
@@ -1056,6 +1072,65 @@ def plan_shopping_trip(store_names: list, qd_size: int = 1, origin_id: str = Non
     legs = []
     total_dist = 0
     total_time = 0
+
+    def _build_leg(from_loc, to_loc):
+        """Build one or more leg entries between two locations, adding gateway hops for cross-system."""
+        result_legs = []
+        if from_loc["system"] == to_loc["system"]:
+            dist = _distance_mkm(from_loc, to_loc) or 5.0
+            travel_km = dist * 1_000_000
+            travel_s = round(travel_km / speed_kms) if speed_kms > 0 else 0
+            result_legs.append({
+                "from_name": from_loc["name"], "from_id": from_loc["id"],
+                "from_x": from_loc["map_x"], "from_y": from_loc["map_y"],
+                "to_name": to_loc["name"], "to_id": to_loc["id"],
+                "to_x": to_loc["map_x"], "to_y": to_loc["map_y"],
+                "distance_mkm": round(dist, 2),
+                "travel_time_s": travel_s + 8,
+                "type": "quantum",
+            })
+        else:
+            jumps = _find_jump_route(from_loc["system"], to_loc["system"])
+            cur = from_loc
+            for gw_a_id, gw_b_id, jdist in jumps:
+                gw_a = _loc_by_id[gw_a_id]
+                gw_b = _loc_by_id[gw_b_id]
+                # Leg to gateway
+                d1 = _distance_mkm(cur, gw_a) or 20.0
+                t1 = round(d1 * 1_000_000 / speed_kms) if speed_kms > 0 else 0
+                result_legs.append({
+                    "from_name": cur["name"], "from_id": cur["id"],
+                    "from_x": cur["map_x"], "from_y": cur["map_y"],
+                    "to_name": gw_a["name"], "to_id": gw_a["id"],
+                    "to_x": gw_a["map_x"], "to_y": gw_a["map_y"],
+                    "distance_mkm": round(d1, 2),
+                    "travel_time_s": t1 + 8,
+                    "type": "quantum",
+                })
+                # Gate jump
+                result_legs.append({
+                    "from_name": gw_a["name"], "from_id": gw_a["id"],
+                    "from_x": gw_a["map_x"], "from_y": gw_a["map_y"],
+                    "to_name": gw_b["name"], "to_id": gw_b["id"],
+                    "to_x": gw_b["map_x"], "to_y": gw_b["map_y"],
+                    "distance_mkm": round(jdist, 2),
+                    "travel_time_s": 60,  # ~60s for gate traverse
+                    "type": "jump",
+                })
+                cur = gw_b
+            # Final leg from last gateway to destination
+            d_final = _distance_mkm(cur, to_loc) or 20.0
+            t_final = round(d_final * 1_000_000 / speed_kms) if speed_kms > 0 else 0
+            result_legs.append({
+                "from_name": cur["name"], "from_id": cur["id"],
+                "from_x": cur["map_x"], "from_y": cur["map_y"],
+                "to_name": to_loc["name"], "to_id": to_loc["id"],
+                "to_x": to_loc["map_x"], "to_y": to_loc["map_y"],
+                "distance_mkm": round(d_final, 2),
+                "travel_time_s": t_final + 8,
+                "type": "quantum",
+            })
+        return result_legs
 
     # If origin provided, add it as the starting point
     origin_result = None
@@ -1068,28 +1143,13 @@ def plan_shopping_trip(store_names: list, qd_size: int = 1, origin_id: str = Non
             "map_y": origin_loc["map_y"],
             "type": origin_loc.get("type", ""),
         }
-        # Add leg from origin to first stop
+        # Add leg(s) from origin to first stop
         first_stop_loc = ordered_stops[0]["location"]
-        dist = _distance_mkm(origin_loc, first_stop_loc)
-        if dist is None:
-            dist = 50.0
-        travel_km = dist * 1_000_000
-        travel_s = round(travel_km / speed_kms) if speed_kms > 0 else 0
-        spool_s = 8
-        legs.append({
-            "from_name": origin_loc["name"],
-            "from_id": origin_loc["id"],
-            "from_x": origin_loc["map_x"],
-            "from_y": origin_loc["map_y"],
-            "to_name": first_stop_loc["name"],
-            "to_id": first_stop_loc["id"],
-            "to_x": first_stop_loc["map_x"],
-            "to_y": first_stop_loc["map_y"],
-            "distance_mkm": round(dist, 2),
-            "travel_time_s": travel_s + spool_s,
-        })
-        total_dist += dist
-        total_time += travel_s + spool_s
+        origin_legs = _build_leg(origin_loc, first_stop_loc)
+        for lg in origin_legs:
+            legs.append(lg)
+            total_dist += lg["distance_mkm"]
+            total_time += lg["travel_time_s"]
 
     for i, stop in enumerate(ordered_stops):
         loc = stop["location"]
@@ -1107,27 +1167,11 @@ def plan_shopping_trip(store_names: list, qd_size: int = 1, origin_id: str = Non
 
         if i > 0:
             prev_loc = ordered_stops[i - 1]["location"]
-            dist = _distance_mkm(prev_loc, loc)
-            if dist is None:
-                dist = 50.0  # cross-system fallback estimate
-            travel_km = dist * 1_000_000
-            travel_s = round(travel_km / speed_kms) if speed_kms > 0 else 0
-            spool_s = 8  # spool-up time per jump
-
-            legs.append({
-                "from_name": prev_loc["name"],
-                "from_id": prev_loc["id"],
-                "from_x": prev_loc["map_x"],
-                "from_y": prev_loc["map_y"],
-                "to_name": loc["name"],
-                "to_id": loc["id"],
-                "to_x": loc["map_x"],
-                "to_y": loc["map_y"],
-                "distance_mkm": round(dist, 2),
-                "travel_time_s": travel_s + spool_s,
-            })
-            total_dist += dist
-            total_time += travel_s + spool_s
+            stop_legs = _build_leg(prev_loc, loc)
+            for lg in stop_legs:
+                legs.append(lg)
+                total_dist += lg["distance_mkm"]
+                total_time += lg["travel_time_s"]
 
     all_route_locs = [s["location"] for s in ordered_stops]
     if origin_loc:
