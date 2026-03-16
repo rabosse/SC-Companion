@@ -2,221 +2,93 @@
 The user wants to build a full-stack application called Star Citizen Fleet Manager. The core purpose is to allow players to track their ships and ground vehicles from the game Star Citizen.
 
 **PRODUCT REQUIREMENTS:**
--   **Data Accuracy Mandate:** The primary source for all stats must be , supplemented by  for a complete vehicle list.
+-   **Data Accuracy Mandate:** The primary source for all stats must be , supplemented by  for a complete vehicle list. This has been updated to use  as the primary source for ship hardpoints due to superior accuracy.
 -   User authentication (Username/Password) and the ability to manage a personal Fleet.
 -   Display ships, ground vehicles, components, and weapons with detailed information.
 -   Ship and vehicle pages must display correct, official images and handle variants properly, including non-flight-ready ships flagged accordingly.
 -   Implement a ship comparison tool.
--   Implement a loadout builder with savable and shareable loadouts.
+-   Implement a loadout builder with savable and shareable loadouts. This includes a Shopping List feature with a cost breakdown and a visual route planner to the cheapest purchase locations.
 -   Display fleet statistics on a dashboard with advanced sorting and filtering.
 -   Users must be able to add and remove an unlimited number of vehicles from their fleet.
--   Components and Weapons pages should have filtering and sorting.
+-   Components and Weapons pages should have filtering, sorting, and clickable cards that show a detailed modal with stats and purchase locations.
 -   Implement a Wikelo section detailing his contracts and required items.
 -   Display ship/vehicle purchase locations (in-game and RSI store).
 -   Implement a route planner (including chase and interdiction).
 -   Implement real-time price tracking for in-game items.
+-   Fix incorrect ship hardpoints and add missing components (like Radars).
+-   Loadout builder item selection must have tags for component  and  (Military, Stealth, etc.) and allow filtering by these tags.
+-   Loadout builder weapon selection must have tags for damage type, DPS, and ammo, and allow filtering and sorting by these attributes.
 
 **User's preferred language**: English
 
 **what currently exists?**
-The application is a full-stack React/FastAPI app with a MongoDB database, featuring user auth, fleet management, and detailed viewers for ships, gear, and weapons. The agent recently completed a major data-sourcing task, adding all missing ships (including non-flight-ready ones) and implementing advanced filtering and sorting on the main Ships page.
-
-Following this, the agent undertook an extensive and ultimately unsuccessful effort to debug a production deployment failure. After multiple attempts to fix blocking startup calls, memory usage, and health check configurations, the agent, with input from support subagents, concluded the issue is likely platform-related and advised the user to contact Emergent support.
-
-The user, frustrated with the deployment issues, pivoted to requesting new frontend features. The agent was implementing these when the session ended.
+The application is a full-stack React/FastAPI app with a MongoDB database. It features user authentication, fleet management, and detailed viewers for ships, gear, and weapons. The agent has successfully implemented a complex Shopping List feature with a visual, zoomable, and pannable route planner that optimizes the shopping route from a user-selected starting location. A major data overhaul was completed, correcting all ship weapon hardpoints by using Fleetyards.net as a new, more accurate data source. The loadout builder has been significantly enhanced with component/weapon tags and filtering capabilities.
 
 **Last working item**:
-The agent was working on two user-requested frontend features: 1) A toggle on the Loadout Builder to filter by Fleet Ships Only, and 2) Fixing the Favorite Manufacturer display on the Dashboard and color-coordinating the fleet list. The implementation caused a compilation error, resulting in a blank Dashboard page.
+The agent just finished implementing filters for the weapon selection panel in the loadout builder (Ballistics, Laser, Distortion) as requested by the user. The user's latest request is to also add sorting capabilities for those weapons.
 
--   **Last item agent was working:** Debugging a frontend compilation error that appeared after modifying , , and .
--   **Status:** BLOCKED
+-   **Last item agent was working:** Adding sorting functionality (by DPS and Ammo count) to the weapon selection panel in . The filtering part is complete, but the sorting is not yet implemented.
+-   **Status:** NOT STARTED
 -   **Agent Testing Done:** N
--   **Which testing method agent to use?** Frontend testing agent or screenshot tool, after the compilation error is resolved.
+-   **Which testing method agent to use?** Frontend testing agent to verify the addition of Sort by DPS and Sort by Ammo buttons and confirm that the weapon list reorders correctly when they are clicked.
 -   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: (P0) Frontend Compilation Error (HIGHEST PRIORITY)**
-    -   **Description:** The application's frontend is not rendering; the Dashboard page is blank. This occurred immediately after implementing the new Dashboard and Loadout Builder features.
-    -   **Attempted fixes:** The agent was about to check the browser console logs when the session ended.
+-   **Issue 1: (P0) Add Sorting to Weapon Selection Panel**
+    -   **Description:** The user wants to sort weapons in the loadout builder by DPS and Ammo Count, in addition to the newly added filters.
+    -   **Attempted fixes:** None. This is a new request.
     -   **Next debug checklist:**
-        1.  Check frontend logs for compilation errors: ==> /var/log/supervisor/frontend.err.log <==
-(node:264) [DEP_WEBPACK_DEV_SERVER_ON_AFTER_SETUP_MIDDLEWARE] DeprecationWarning: 'onAfterSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
-(Use `node --trace-deprecation ...` to show where the warning was created)
-(node:264) [DEP_WEBPACK_DEV_SERVER_ON_BEFORE_SETUP_MIDDLEWARE] DeprecationWarning: 'onBeforeSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
-(node:82) [DEP_WEBPACK_DEV_SERVER_ON_AFTER_SETUP_MIDDLEWARE] DeprecationWarning: 'onAfterSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
-(Use `node --trace-deprecation ...` to show where the warning was created)
-(node:82) [DEP_WEBPACK_DEV_SERVER_ON_BEFORE_SETUP_MIDDLEWARE] DeprecationWarning: 'onBeforeSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
-(node:71) [DEP_WEBPACK_DEV_SERVER_ON_AFTER_SETUP_MIDDLEWARE] DeprecationWarning: 'onAfterSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
-(Use `node --trace-deprecation ...` to show where the warning was created)
-(node:71) [DEP_WEBPACK_DEV_SERVER_ON_BEFORE_SETUP_MIDDLEWARE] DeprecationWarning: 'onBeforeSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
-(node:2228) [DEP_WEBPACK_DEV_SERVER_ON_AFTER_SETUP_MIDDLEWARE] DeprecationWarning: 'onAfterSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
-(Use `node --trace-deprecation ...` to show where the warning was created)
-(node:2228) [DEP_WEBPACK_DEV_SERVER_ON_BEFORE_SETUP_MIDDLEWARE] DeprecationWarning: 'onBeforeSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
-(node:5781) [DEP_WEBPACK_DEV_SERVER_ON_AFTER_SETUP_MIDDLEWARE] DeprecationWarning: 'onAfterSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
-(Use `node --trace-deprecation ...` to show where the warning was created)
-(node:5781) [DEP_WEBPACK_DEV_SERVER_ON_BEFORE_SETUP_MIDDLEWARE] DeprecationWarning: 'onBeforeSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
-(node:6010) [DEP_WEBPACK_DEV_SERVER_ON_AFTER_SETUP_MIDDLEWARE] DeprecationWarning: 'onAfterSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
-(Use `node --trace-deprecation ...` to show where the warning was created)
-(node:6010) [DEP_WEBPACK_DEV_SERVER_ON_BEFORE_SETUP_MIDDLEWARE] DeprecationWarning: 'onBeforeSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
-(node:10771) [DEP_WEBPACK_DEV_SERVER_ON_AFTER_SETUP_MIDDLEWARE] DeprecationWarning: 'onAfterSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
-(Use `node --trace-deprecation ...` to show where the warning was created)
-(node:10771) [DEP_WEBPACK_DEV_SERVER_ON_BEFORE_SETUP_MIDDLEWARE] DeprecationWarning: 'onBeforeSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
-(node:11390) [DEP_WEBPACK_DEV_SERVER_ON_AFTER_SETUP_MIDDLEWARE] DeprecationWarning: 'onAfterSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
-(Use `node --trace-deprecation ...` to show where the warning was created)
-(node:11390) [DEP_WEBPACK_DEV_SERVER_ON_BEFORE_SETUP_MIDDLEWARE] DeprecationWarning: 'onBeforeSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
-(node:11630) [DEP_WEBPACK_DEV_SERVER_ON_AFTER_SETUP_MIDDLEWARE] DeprecationWarning: 'onAfterSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
-(Use `node --trace-deprecation ...` to show where the warning was created)
-(node:11630) [DEP_WEBPACK_DEV_SERVER_ON_BEFORE_SETUP_MIDDLEWARE] DeprecationWarning: 'onBeforeSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
-(node:12265) [DEP_WEBPACK_DEV_SERVER_ON_AFTER_SETUP_MIDDLEWARE] DeprecationWarning: 'onAfterSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
-(Use `node --trace-deprecation ...` to show where the warning was created)
-(node:12265) [DEP_WEBPACK_DEV_SERVER_ON_BEFORE_SETUP_MIDDLEWARE] DeprecationWarning: 'onBeforeSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
-(node:12398) [DEP_WEBPACK_DEV_SERVER_ON_AFTER_SETUP_MIDDLEWARE] DeprecationWarning: 'onAfterSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
-(Use `node --trace-deprecation ...` to show where the warning was created)
-(node:12398) [DEP_WEBPACK_DEV_SERVER_ON_BEFORE_SETUP_MIDDLEWARE] DeprecationWarning: 'onBeforeSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
-
-==> /var/log/supervisor/frontend.out.log <==
- HTTP  2026-03-12 12:30:38 AM 10.208.138.75 GET /favicon.ico
- HTTP  2026-03-12 12:30:38 AM 10.208.138.75 Returned 200 in 1 ms
- HTTP  2026-03-12 12:30:39 AM 10.208.138.75 GET /
- HTTP  2026-03-12 12:30:39 AM 10.208.138.75 Returned 200 in 0 ms
- HTTP  2026-03-12 12:32:06 AM 10.208.138.76 GET /favicon.ico
- HTTP  2026-03-12 12:32:06 AM 10.208.138.76 Returned 200 in 0 ms
- HTTP  2026-03-12 12:32:07 AM 10.208.138.75 GET /favicon.ico
- HTTP  2026-03-12 12:32:07 AM 10.208.138.75 Returned 200 in 1 ms
- HTTP  2026-03-12 12:32:08 AM 10.208.138.75 GET /favicon.ico
- HTTP  2026-03-12 12:32:08 AM 10.208.138.75 Returned 200 in 1 ms
- HTTP  2026-03-12 12:32:11 AM 10.208.138.76 GET /favicon.ico
- HTTP  2026-03-12 12:32:11 AM 10.208.138.76 Returned 200 in 0 ms
- HTTP  2026-03-12 12:36:24 AM 10.208.138.76 GET /health
- HTTP  2026-03-12 12:36:24 AM 10.208.138.76 Returned 200 in 1 ms
- HTTP  2026-03-12 12:36:24 AM 10.208.138.76 GET /health
- HTTP  2026-03-12 12:36:24 AM 10.208.138.76 Returned 200 in 0 ms
- HTTP  2026-03-12 12:36:24 AM 10.208.138.75 GET /health
- HTTP  2026-03-12 12:36:24 AM 10.208.138.75 Returned 200 in 0 ms
- HTTP  2026-03-12 12:36:24 AM 10.208.138.75 GET /health
- HTTP  2026-03-12 12:36:24 AM 10.208.138.75 Returned 200 in 1 ms
- HTTP  2026-03-12 12:36:24 AM 10.208.138.75 GET /health
- HTTP  2026-03-12 12:36:24 AM 10.208.138.75 Returned 200 in 0 ms
- HTTP  2026-03-12 12:36:24 AM 10.208.138.76 GET /health
- HTTP  2026-03-12 12:36:24 AM 10.208.138.76 Returned 200 in 1 ms
- HTTP  2026-03-12 12:36:24 AM 10.208.138.76 GET /health
- HTTP  2026-03-12 12:36:24 AM 10.208.138.76 Returned 200 in 1 ms
- HTTP  2026-03-12 12:36:24 AM 10.208.138.75 GET /health
- HTTP  2026-03-12 12:36:24 AM 10.208.138.75 Returned 200 in 0 ms
- HTTP  2026-03-12 12:36:24 AM 10.208.138.76 GET /health
- HTTP  2026-03-12 12:36:24 AM 10.208.138.76 Returned 200 in 0 ms
- HTTP  2026-03-12 12:36:25 AM 10.208.138.76 GET /health
- HTTP  2026-03-12 12:36:25 AM 10.208.138.76 Returned 200 in 0 ms
- HTTP  2026-03-12 12:36:47 AM 10.208.138.75 GET /health
- HTTP  2026-03-12 12:36:47 AM 10.208.138.75 Returned 200 in 1 ms
- HTTP  2026-03-12 12:36:47 AM 10.208.138.75 GET /health
- HTTP  2026-03-12 12:36:47 AM 10.208.138.75 Returned 200 in 0 ms
- HTTP  2026-03-12 12:36:47 AM 10.208.138.75 GET /health
- HTTP  2026-03-12 12:36:47 AM 10.208.138.75 Returned 200 in 0 ms
- HTTP  2026-03-12 12:36:48 AM 10.208.138.76 GET /health
- HTTP  2026-03-12 12:36:48 AM 10.208.138.76 Returned 200 in 0 ms
- HTTP  2026-03-12 12:36:48 AM 10.208.138.75 GET /health
- HTTP  2026-03-12 12:36:48 AM 10.208.138.75 Returned 200 in 1 ms
- HTTP  2026-03-12 12:36:48 AM 10.208.138.76 GET /health
- HTTP  2026-03-12 12:36:48 AM 10.208.138.76 Returned 200 in 0 ms
- HTTP  2026-03-12 12:36:48 AM 10.208.138.76 GET /health
- HTTP  2026-03-12 12:36:48 AM 10.208.138.76 Returned 200 in 1 ms
- HTTP  2026-03-12 12:36:48 AM 10.208.138.75 GET /health
- HTTP  2026-03-12 12:36:48 AM 10.208.138.75 Returned 200 in 1 ms
- HTTP  2026-03-12 12:36:48 AM 10.208.138.76 GET /health
- HTTP  2026-03-12 12:36:48 AM 10.208.138.76 Returned 200 in 1 ms
- HTTP  2026-03-12 12:36:48 AM 10.208.138.75 GET /health
- HTTP  2026-03-12 12:36:48 AM 10.208.138.75 Returned 200 in 1 ms
-yarn run v1.22.22
-$ node start.js
-[FRONTEND] Build exists, trying lightweight serve...
- INFO  Accepting connections at http://localhost:3000
- HTTP  2026-03-12 5:29:13 AM 10.208.138.75 GET /
- HTTP  2026-03-12 5:29:13 AM 10.208.138.75 Returned 200 in 16 ms
- HTTP  2026-03-12 5:29:13 AM 10.208.138.76 GET /static/css/main.a478b6b0.css
- HTTP  2026-03-12 5:29:13 AM 10.208.138.76 Returned 200 in 3 ms
- HTTP  2026-03-12 5:29:13 AM 10.208.138.76 GET /static/js/main.8819796d.js
- HTTP  2026-03-12 5:29:13 AM 10.208.138.76 Returned 200 in 7 ms
- HTTP  2026-03-12 5:29:13 AM 10.208.138.75 GET /
- HTTP  2026-03-12 5:29:13 AM 10.208.138.75 Returned 200 in 2 ms
- HTTP  2026-03-12 5:29:13 AM 10.208.138.75 GET /static/js/main.8819796d.js
- HTTP  2026-03-12 5:29:13 AM 10.208.138.75 Returned 200 in 1 ms
- HTTP  2026-03-12 5:29:13 AM 10.208.138.76 GET /static/css/main.a478b6b0.css
- HTTP  2026-03-12 5:29:13 AM 10.208.138.76 Returned 200 in 0 ms
- HTTP  2026-03-12 5:29:19 AM 10.208.138.76 GET /ships
- HTTP  2026-03-12 5:29:19 AM 10.208.138.76 Returned 200 in 1 ms
- HTTP  2026-03-12 5:29:19 AM 10.208.138.76 GET /static/js/main.8819796d.js
- HTTP  2026-03-12 5:29:19 AM 10.208.138.76 Returned 200 in 1 ms
- HTTP  2026-03-12 5:29:19 AM 10.208.138.75 GET /static/css/main.a478b6b0.css
- HTTP  2026-03-12 5:29:19 AM 10.208.138.75 Returned 200 in 3 ms
- HTTP  2026-03-12 5:29:28 AM 10.208.138.76 GET /dashboard
- HTTP  2026-03-12 5:29:28 AM 10.208.138.76 Returned 200 in 1 ms
- HTTP  2026-03-12 5:29:28 AM 10.208.138.75 GET /static/css/main.a478b6b0.css
- HTTP  2026-03-12 5:29:28 AM 10.208.138.75 Returned 200 in 1 ms
- HTTP  2026-03-12 5:29:28 AM 10.208.138.76 GET /static/js/main.8819796d.js
- HTTP  2026-03-12 5:29:28 AM 10.208.138.76 Returned 200 in 1 ms
- HTTP  2026-03-12 5:29:36 AM 10.208.138.76 GET /
- HTTP  2026-03-12 5:29:36 AM 10.208.138.76 Returned 200 in 1 ms
- HTTP  2026-03-12 5:29:37 AM 10.208.138.76 GET /?x_request_source=preview
- HTTP  2026-03-12 5:29:37 AM 10.208.138.76 Returned 200 in 2 ms
- HTTP  2026-03-12 5:29:37 AM 10.208.138.76 GET /static/css/main.a478b6b0.css
- HTTP  2026-03-12 5:29:37 AM 10.208.138.76 Returned 200 in 0 ms
- HTTP  2026-03-12 5:29:37 AM 10.208.138.76 GET /static/js/main.8819796d.js
- HTTP  2026-03-12 5:29:37 AM 10.208.138.76 Returned 200 in 1 ms
- HTTP  2026-03-12 5:29:44 AM 10.208.138.75 GET /
- HTTP  2026-03-12 5:29:44 AM 10.208.138.75 Returned 200 in 1 ms
- HTTP  2026-03-12 5:29:44 AM 10.208.138.75 GET /?x_request_source=preview
- HTTP  2026-03-12 5:29:44 AM 10.208.138.75 Returned 200 in 0 ms
- HTTP  2026-03-12 5:29:44 AM 10.208.138.76 GET /static/js/main.8819796d.js
- HTTP  2026-03-12 5:29:44 AM 10.208.138.76 Returned 200 in 0 ms
- HTTP  2026-03-12 5:29:44 AM 10.208.138.76 GET /static/css/main.a478b6b0.css
- HTTP  2026-03-12 5:29:44 AM 10.208.138.76 Returned 200 in 1 ms
-yarn run v1.22.22
-$ node start.js
-[FRONTEND] Build exists, trying lightweight serve...
- INFO  Accepting connections at http://localhost:3000.
-        2.  Review recent changes in , , and  for syntax errors, incorrect prop passing, or state management issues.
-    -   **Why fix this issue and what will be achieved with the fix?** This is a hard blocker. Fixing it will render the application usable again and allow for the verification of the two newly requested features.
-    -   **Status:** IN PROGRESS
+        1.  In , add state to manage the current sort order (e.g., ).
+        2.  Add Sort by DPS and Sort by Ammo buttons to the filter bar section for weapons.
+        3.  Modify the  function. After filtering, add a  method that uses  to reorder the  array based on  or .
+    -   **Why fix this issue and what will be achieved with the fix?** This will complete the user's request for enhancing the weapon selection panel, making it much easier for users to find the best weapon for their needs.
+    -   **Status:** NOT STARTED
     -   **Is recurring issue?** N
     -   **Should Test frontend/backend/both after fix?** Frontend
-    -   **Blocked on other issue:** No
+    -   **Blocked on other issue:** None.
 
 **In progress Task List**:
--   **Task 1: (P0) Verify Loadout and Dashboard UI Changes**
-    -   **Where to resume:** After fixing the compilation error (Issue 1), verify that both new features are working as intended.
-    -   **What will be achieved with this?** The Loadout Builder will be more user-friendly for players with large fleets, and the Dashboard will provide a more visually intuitive overview of the user's fleet composition.
-    -   **Status:** IN PROGRESS (Blocked by Frontend Compilation Error)
-    -   **Should Test frontend/backend/both after fix?** Frontend
-    -   **Blocked on something:** Issue 1
+-   **Task 1: (P0) Enhance Loadout Builder Weapon Selection**
+    -   **Description:** Add filtering and sorting to the weapon selection UI.
+    -   **Where to resume:** .
+    -   **What will be achieved with this?** A powerful and intuitive weapon selection experience for the user.
+    -   **Status:** IN PROGRESS (Filtering is DONE, Sorting is PENDING).
+    -   **Should Test frontend/backend/both after fix?** Frontend.
+    -   **Blocked on something:** None.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   (P1) **Full Application Re-validation:** After the current frontend fixes are verified, run the testing agent to ensure no regressions were introduced.
+    -   (P1) **RSI Fleet Import:** Implement a tool to import a user's fleet from their RSI account.
 -   **Future Tasks:**
-    -   (P2) **RSI Fleet Import:** Implement a tool to import a user's fleet from their RSI account.
-    -   (P3) **Rare Item Locations:** Add a section for rare armor and FPS weapon locations.
-    -   (P4) **Iconography Update:** Replace all boat icons with spaceship icons.
+    -   (P2) **Wikelo Section:** Implement a Wikelo section detailing his contracts and required items.
+    -   (P3) **Chase/Interdiction Route Planner:** Enhance the route planner to include chase and interdiction scenarios.
+    -   (P4) **Real-time Price Tracking:** Implement real-time price tracking for in-game items.
 
 **Completed work in this session**
--   **Comprehensive Ship Database (DONE):** Added all missing ships from the official wiki, including 22 non-flight-ready concepts, to the  endpoint.
--   **Ship Page Feature Overhaul (DONE):**
-    -   Added a Not Flight Ready badge to concept ships.
-    -   Fixed incorrect variant grouping for ships like the Avenger.
-    -   Filtered out all ground vehicles from the Ships page.
-    -   Added new filter dropdowns for **Flight Status, Size, Type, Manufacturer, and SCU** on .
--   **Production Deployment Hardening (ATTEMPTED):** Made extensive code changes to improve production stability, including non-blocking startup, lazy database connections, and a memory-optimized frontend server script. Despite these fixes, the deployment issue persisted.
+-   **Loadout Builder - Component Filters & Tags (DONE):** Added  and  tags to components and implemented working filter buttons.
+-   **Loadout Builder - Weapon Filters & Tags (DONE):** Added damage type (, , ), , and  tags to weapons and implemented working filters for damage type.
+-   **Shopping List - Feature Complete (DONE):**
+    -   Implemented Route button to trigger route calculation, preventing auto-reloads.
+    -   Fixed state management so the store list correctly reorders to match the optimized route.
+    -   Made the SVG route map fully zoomable and pannable with on-screen controls.
+-   **Ship Hardpoint - Major Overhaul (RESOLVED):**
+    -   Switched data source to the Fleetyards.net API for weapon hardpoints, which is far more accurate.
+    -   Wrote a script to fetch, parse, and format this data.
+    -   Replaced the entire  dictionary in  with the new, correct data, resolving a persistent user complaint.
+-   **Shopping List - Data Resolution Fix (RESOLVED):** Updated the backend location resolver to correctly parse hierarchical store locations (e.g., from the Pyro system), allowing the route planner to find them.
 
 **Earlier issues found/mentioned but not fixed**
 -   **Issue 1: Production Deployment Failure**
-    -   **Description:** The application fails to deploy to the production environment, consistently resulting in an HTTP 520 error and a container that never becomes ready.
-    -   **Debug checklist:** The previous agent concluded this is a platform-level resource issue (total dependency size is ~963MB) and cannot be solved with code changes alone. The user was advised to contact Emergent support.
+    -   **Description:** The application fails to deploy to the production environment (HTTP 520 error).
+    -   **Debug checklist:** Previous investigations concluded this is a platform-level resource issue, not a code issue. The user was advised to contact Emergent support. This has not been re-addressed.
     -   **Why to solve this issue and what will be achieved with this?** This is critical for the project to go live.
     -   **Should Test frontend/backend/both after fix:** Both
     -   **Is recurring issue?** Y
 
 **Known issue recurrence from previous fork**
--   None.
+-   **Issue recurrence in previous fork:** Shopping Route does not change when the starting location is changed, there is also no button and Some of the ship weapon slots are STILL WRONG.
+-   **Recurrence count:** 1
+-   **Status:** RESOLVED. The agent successfully addressed both recurring issues in this session. The shopping route button/state was fixed by lifting state up in React. The hardpoint inaccuracies were definitively resolved by switching to the Fleetyards.net API as the source of truth.
 
 **Code Architecture**
 
@@ -225,68 +97,75 @@ $ node start.js
 -   **Frontend**: React, Tailwind CSS, Shadcn UI
 -   **Backend**: FastAPI, Pydantic
 -   **Database**: MongoDB
--   **Production Optimization**: Differentiating dev () vs. prod () builds, non-blocking startup tasks, lazy-loading database connections ().
+-   **State Management**: Lifting state up was used in React to resolve issues where sibling components (, ) needed to share and update a common state (the route plan).
+-   **Data Aggregation**: The system now relies on cross-referencing multiple external APIs (CStone, SCTools, and now Fleetyards) to build a canonical dataset for ships and components.
+-   **Interactive SVG**: The route map is an SVG rendered in React, with zoom/pan functionality implemented by manipulating the  attribute via React state (, ).
 
 **key DB schema**
 -   **users**: 
 -   **saved_loadouts**: 
 
 **changes in tech stack**
--   The  package was added to the frontend to provide a lightweight, low-memory web server for production builds.
+-   None.
 
 **All files of reference**
--   : Recently modified and is the likely source of the current compilation error.
--   : Also recently modified for the new toggle feature.
--   : Modified to handle manufacturer color-coordination.
--   : Contains significant changes for production hardening (non-blocking startup).
--   : Contains the lazy-loading proxy for the MongoDB connection.
--    & : Implement the logic to switch between the React dev server and the lightweight production  command.
+-   : The central file for all recent feature work. It contains the logic for the loadout item selection panel, filters, tags, and the shopping list modal.
+-   : Contains the  dictionary, which is now sourced from the Fleetyards API. This is the source of truth for weapon hardpoints.
+-   : Contains the API endpoints for the visual route planner.
+-   : Contains the core logic for calculating the optimal shopping route.
 
 **Areas that need refactoring**:
--   A temporary shell script  may exist in the root or frontend directory from a previous failed attempt at fixing the deployment. It should be deleted to avoid confusion.
+-    has become extremely large (over 1000 lines) and complex. It manages state for the ship, loadout, item selection, component/weapon filters, shopping list modal, and route planning. It should be broken down into smaller, more focused components (e.g., , , , ).
 
 **key api endpoints**
--   : Serves all ship data with advanced filtering logic.
--   : A root-level health check endpoint added for the deployment environment.
+-   : (POST) Accepts a list of store names and an optional  to generate an optimized shopping route.
+-   : (GET) Returns a list of all dockable locations for the Start From dropdown.
+-   : Gets all components. Data now includes  and .
+-   : Gets all weapons. Data now includes , , and damage .
 
 **Critical Info for New Agent**
--   **User Frustration is High:** The user is extremely unhappy about the failed deployments and wasted credits. Do not attempt to re-address the deployment issue unless explicitly asked. Focus only on the user's last request.
--   **Your immediate priority is to fix the frontend compilation error.** The app is currently broken.
--   Once the error is fixed, verify the two new features (Loadout toggle, Dashboard colors) work correctly.
--   The previous agent concluded the deployment failure is a **platform-level resource issue**, not a code issue. If the user brings it up again, gently reiterate this finding and the recommendation to contact Emergent support with their Job ID.
+-   **User's Priority:** The immediate task is to add sorting (by DPS, by Ammo) to the weapon selection panel in .
+-   ** is the hot zone:** This file has been the focus of the last several user requests. Be prepared to work within this large component, but consider proposing a refactor after the current task is complete.
+-   **Hardpoint Source of Truth:** All ship weapon hardpoint data is now derived from Fleetyards.net via a script and stored in . If the user reports inaccuracies, this is the first place to check. Do not revert to old data sources.
+-   **UI Change Constraint:** The user has repeatedly stated: The rest of the front end MUST NOT CHANGE. Confine all UI changes to the specific area being worked on (currently the loadout builder).
 
 **documents and test reports created in this job**
--   /app/test_reports/iteration_5.json
--   /app/memory/PRD.md
+-   /app/test_reports/iteration_22.json
+-   /app/test_reports/iteration_21.json
+-   /app/test_reports/iteration_20.json
+-   /app/test_reports/iteration_19.json
+-   /app/test_reports/iteration_18.json
+-   /app/memory/PRD.md (updated)
 
 **Last 10 User Messages and any pending HUMAN messages**
-10.  - **In Progress**: This is the current task, which is blocked by a compilation error.
-9.   (Agent Message) - **Acknowledged**: Agent relayed support's findings on the deployment failure.
-8.   - **Resolved**: User expressed extreme frustration. The agent escalated to the support subagent.
-7.   - **Resolved**: User's frustration mounted. The agent initiated another investigation.
-6.   - **Completed**: User instruction to proceed with deployment attempts.
-5.   - **Completed**: User repeatedly asked the agent to use the deployment tool, which failed to identify the root cause.
-4.   - **In Progress**: User first reported the deployment failure.
-3.   - **Completed**: User requested deployment after the ship data features were finished.
-2.   - **Completed**: User requested several improvements to the Ships page, all of which were implemented.
-1.   - **Completed**: User clarified requirements for variant grouping.
+1.   - **In Progress:** The agent implemented the filtering and tagging. The sorting part is pending.
+2.   - **Completed:** User approved adding filter buttons for component grade/class.
+3.   - **Completed:** Agent added the requested tags and then proposed and added filter buttons.
+4.   - **Resolved:** A major user report covering two critical issues. The agent fixed the shopping route state and button, and completely overhauled the ship hardpoint data using a better source (Fleetyards), resolving both problems.
+5.   - **Completed:** Agent implemented a fully zoomable and pannable SVG map for the shopping route.
+6.   - **Resolved:** This was the first report of the shopping list UI bug, which the agent fixed by lifting state.
+7.   - **Completed:** User approved adding a starting location picker to the shopping list.
+8.   - **Completed:** Agent successfully tested and validated the start location feature.
+9.   - **Completed:** User instruction to proceed.
+10.  - **Completed:** User approved the plan to implement the Shopping list feature.
 
 **Project Health Check:**
--   **Broken**: Production Deployment, Frontend Rendering.
+-   **Broken**: Production Deployment.
+-   **Mocked**: None.
 
 **3rd Party Integrations**
 -   **finder.cstone.space**: Used via API for pricing, store locations, and base item data.
--   **starcitizen.tools API**: Used via API for detailed technical specifications and a complete vehicle list.
+-   **starcitizen.tools API**: Used via API for detailed technical specifications and component data.
+-   **Fleetyards.net API**: The new primary source for accurate ship weapon hardpoint data.
 
 **Testing status**
--   **Testing agent used after significant changes**: YES
--   **Troubleshoot agent used after agent stuck in loop**: YES
+-   **Testing agent used after significant changes**: YES. The agent has consistently used the testing agent after each major feature implementation and bug fix, leading to high-quality, verified code.
+-   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: []
--   **Known regressions**: The entire frontend is currently failing to compile/render.
+-   **Known regressions**: None.
 
 **Credentials to test flow:**
 -   Register a new user through the application's UI. Any username and password will work (e.g.,  / ).
 
 **What agent forgot to execute**
--   The agent did not resolve the frontend compilation error before the session ended.
--   The agent may have left an unused  file in the repository after choosing a different implementation strategy for the production startup script.</analysis>
+-   The agent implemented weapon *filtering* as requested but has not yet implemented the *sorting* by DPS and Ammo count from the same user request. This is the immediate next step.</analysis>

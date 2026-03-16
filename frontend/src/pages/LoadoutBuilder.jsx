@@ -27,6 +27,7 @@ const LoadoutBuilder = () => {
   const [itemSearch, setItemSearch] = useState('');
   const [classFilter, setClassFilter] = useState('');
   const [gradeFilter, setGradeFilter] = useState('');
+  const [weaponTypeFilter, setWeaponTypeFilter] = useState('');
   const [savedLoadouts, setSavedLoadouts] = useState([]);
   const [allLoadouts, setAllLoadouts] = useState([]);
   const [loadoutName, setLoadoutName] = useState('');
@@ -159,6 +160,15 @@ const LoadoutBuilder = () => {
     return defs;
   }, [selectedShip, hardpoints, weaponSlots]);
 
+  const getWeaponDamageCategory = (type) => {
+    if (!type) return '';
+    const t = type.toLowerCase();
+    if (t.includes('ballistic') || t.includes('massdriver') || t.includes('scattergun')) return 'Ballistic';
+    if (t.includes('distortion')) return 'Distortion';
+    if (t.includes('laser') || t.includes('neutron') || t.includes('plasma')) return 'Energy';
+    return '';
+  };
+
   const getCompatibleItems = (slot) => {
     const q = itemSearch.toLowerCase();
     if (slot.type === 'weapon') {
@@ -166,8 +176,8 @@ const LoadoutBuilder = () => {
         const wSize = parseInt(w.size) || 0;
         if (wSize > slot.maxSize || wSize <= 0) return false;
         if (q && !w.name.toLowerCase().includes(q) && !w.manufacturer.toLowerCase().includes(q)) return false;
-        if (classFilter && (w.item_class || '') !== classFilter) return false;
         if (gradeFilter && (w.grade || '') !== gradeFilter) return false;
+        if (weaponTypeFilter && getWeaponDamageCategory(w.type) !== weaponTypeFilter) return false;
         return true;
       });
     } else {
@@ -656,7 +666,7 @@ const LoadoutBuilder = () => {
       {/* Item Selector Modal */}
       <AnimatePresence>
         {activeSlot && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={e => { if (e.target === e.currentTarget) { setActiveSlot(null); setItemSearch(''); setClassFilter(''); setGradeFilter(''); } }}>
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={e => { if (e.target === e.currentTarget) { setActiveSlot(null); setItemSearch(''); setClassFilter(''); setGradeFilter(''); setWeaponTypeFilter(''); } }}>
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
               className="glass-panel rounded-3xl max-w-3xl w-full max-h-[80vh] overflow-hidden" data-testid="item-selector-modal">
               <div className="p-6 border-b border-white/10 space-y-3">
@@ -678,7 +688,8 @@ const LoadoutBuilder = () => {
                     className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 transition-all"
                     autoFocus />
                 </div>
-                {/* Class & Grade Filters */}
+                {/* Class & Grade Filters (components) / Type & DPS Filters (weapons) */}
+                {activeSlot.type !== 'weapon' ? (
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-[10px] text-gray-600 uppercase font-bold">Class</span>
                   {['Military', 'Stealth', 'Industrial', 'Competition', 'Civilian'].map(cls => (
@@ -717,6 +728,51 @@ const LoadoutBuilder = () => {
                     </button>
                   )}
                 </div>
+                ) : (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[10px] text-gray-600 uppercase font-bold">Type</span>
+                  {[
+                    { key: 'Ballistic', color: 'amber' },
+                    { key: 'Energy', color: 'cyan' },
+                    { key: 'Distortion', color: 'violet' },
+                  ].map(({ key, color }) => (
+                    <button key={key} onClick={() => setWeaponTypeFilter(f => f === key ? '' : key)}
+                      data-testid={`filter-wtype-${key.toLowerCase()}`}
+                      className={`text-[10px] px-2 py-1 rounded-md border font-semibold transition-all ${
+                        weaponTypeFilter === key
+                          ? `border-${color}-500/60 bg-${color}-500/20 text-${color}-300`
+                          : 'border-white/10 bg-white/[0.03] text-gray-500 hover:text-gray-300 hover:bg-white/[0.06]'
+                      }`}
+                      style={weaponTypeFilter === key ? {
+                        borderColor: key === 'Ballistic' ? 'rgba(245,158,11,0.6)' : key === 'Energy' ? 'rgba(6,182,212,0.6)' : 'rgba(139,92,246,0.6)',
+                        backgroundColor: key === 'Ballistic' ? 'rgba(245,158,11,0.2)' : key === 'Energy' ? 'rgba(6,182,212,0.2)' : 'rgba(139,92,246,0.2)',
+                        color: key === 'Ballistic' ? '#fbbf24' : key === 'Energy' ? '#22d3ee' : '#a78bfa',
+                      } : {}}>
+                      {key}
+                    </button>
+                  ))}
+                  <span className="text-white/10 mx-1">|</span>
+                  <span className="text-[10px] text-gray-600 uppercase font-bold">Grade</span>
+                  {['A', 'B', 'C', 'D'].map(g => (
+                    <button key={g} onClick={() => setGradeFilter(f => f === g ? '' : g)}
+                      data-testid={`filter-grade-${g.toLowerCase()}`}
+                      className={`text-[10px] w-6 h-6 rounded-md border font-bold transition-all flex items-center justify-center ${
+                        gradeFilter === g
+                          ? 'border-yellow-500/60 bg-yellow-500/20 text-yellow-300'
+                          : 'border-white/10 bg-white/[0.03] text-gray-500 hover:text-gray-300 hover:bg-white/[0.06]'
+                      }`}>
+                      {g}
+                    </button>
+                  ))}
+                  {(weaponTypeFilter || gradeFilter) && (
+                    <button onClick={() => { setWeaponTypeFilter(''); setGradeFilter(''); }}
+                      data-testid="filter-clear-all"
+                      className="text-[10px] px-2 py-1 rounded-md border border-white/10 text-gray-500 hover:text-white hover:bg-white/10 transition-all ml-1">
+                      Clear
+                    </button>
+                  )}
+                </div>
+                )}
               </div>
               <div className="p-4 overflow-y-auto max-h-[55vh]">
                 {(() => {
