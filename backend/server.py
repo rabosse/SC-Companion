@@ -37,6 +37,7 @@ from routes.starmap import router as starmap_router
 from routes.gear import router as gear_router
 from routes.prices import router as prices_router
 from routes.wikelo import router as wikelo_router
+from routes.liveries import router as liveries_router
 
 app.include_router(auth_router)
 app.include_router(ships_router)
@@ -46,6 +47,7 @@ app.include_router(starmap_router)
 app.include_router(gear_router)
 app.include_router(prices_router)
 app.include_router(wikelo_router)
+app.include_router(liveries_router)
 
 
 # Startup: delay ALL background work by 30 seconds to let health checks pass first
@@ -102,6 +104,13 @@ async def startup_event():
                 await batch_fetch_locations(sold_ids)
         except Exception as e:
             logger.error(f"Ship locations failed: {e}")
+
+        try:
+            from livery_scraper import _load_liveries_background
+            await _load_liveries_background()
+            logger.info("Livery data prefetched")
+        except Exception as e:
+            logger.error(f"Prefetch liveries failed: {e}")
 
         logger.info("Background prefetch complete")
 

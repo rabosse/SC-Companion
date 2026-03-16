@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../App';
-import { Users, Box, Crosshair, LogOut, Menu, X, Briefcase, GitCompareArrows, Wrench, Globe, Navigation, Shield, TrendingUp, Star } from 'lucide-react';
+import { Users, Box, Crosshair, LogOut, Menu, X, Briefcase, GitCompareArrows, Wrench, Globe, Navigation, Shield, TrendingUp, Star, Paintbrush } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import SpaceshipIcon from './SpaceshipIcon';
 
@@ -32,6 +32,7 @@ const Layout = ({ children }) => {
     { path: '/fleet', label: 'My Fleet', icon: Briefcase },
     { path: '/ships', label: 'Ships', icon: SpaceshipIcon },
     { path: '/vehicles', label: 'Vehicles', icon: Users },
+    { path: '/liveries', label: 'Liveries', icon: Paintbrush },
     { path: '/components', label: 'Components', icon: Box },
     { path: '/weapons', label: 'Weapons', icon: Crosshair },
     { path: '/compare', label: 'Compare', icon: GitCompareArrows },
