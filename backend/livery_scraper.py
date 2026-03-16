@@ -23,7 +23,7 @@ async def _search_paint_pages() -> list[str]:
         while True:
             resp = await client.get(WIKI_API, params={
                 "action": "query", "list": "search",
-                "srsearch": "intitle:Paints series",
+                "srsearch": "intitle:/Paints",
                 "srnamespace": "0", "srlimit": "50", "sroffset": str(offset),
                 "format": "json",
             })
@@ -72,7 +72,9 @@ def _parse_paints_wikitext(wikitext: str, series_name: str) -> list[dict]:
 
                 auec_match = re.search(r'([\d,]+)', auec_cell)
                 if auec_match and "not available" not in auec_cell.lower():
-                    paint["price_auec"] = int(auec_match.group(1).replace(',', ''))
+                    val = auec_match.group(1).replace(',', '')
+                    if val:
+                        paint["price_auec"] = int(val)
 
                 url_match = re.search(r'\[(https?://[^\s\]]+)\s+([^\]]+)\]', usd_cell)
                 if url_match:
