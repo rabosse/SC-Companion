@@ -150,6 +150,7 @@ export default function Liveries() {
   const [fleetOnly, setFleetOnly] = useState(false);
   const [fleetShipIds, setFleetShipIds] = useState([]);
   const [acqFilter, setAcqFilter] = useState('all');
+  const [buyableOnly, setBuyableOnly] = useState(false);
   const [sortBy, setSortBy] = useState('series');
   const [sortAsc, setSortAsc] = useState(true);
   const [detail, setDetail] = useState(null);
@@ -212,6 +213,9 @@ export default function Liveries() {
     if (acqFilter !== 'all') {
       result = result.filter(s => s.acqSet.has(acqFilter));
     }
+    if (buyableOnly) {
+      result = result.filter(s => s.purchasablePaints.length > 0);
+    }
     if (fleetOnly) {
       result = result.filter(s => {
         const sl = s.series.toLowerCase();
@@ -226,7 +230,7 @@ export default function Liveries() {
     };
     if (sortFns[sortBy]) result = [...result].sort(sortFns[sortBy]);
     return result;
-  }, [enriched, search, acqFilter, fleetOnly, fleetSet, sortBy, sortAsc]);
+  }, [enriched, search, acqFilter, buyableOnly, fleetOnly, fleetSet, sortBy, sortAsc]);
 
   const acqTypes = useMemo(() => {
     const counts = {};
@@ -293,6 +297,10 @@ export default function Liveries() {
               Fleet Only
             </button>
           </div>
+          <button onClick={() => setBuyableOnly(b => !b)} data-testid="buyable-toggle"
+            className={`px-3 py-2.5 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-1.5 ${buyableOnly ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-white/5 text-gray-500 border border-white/10 hover:text-gray-300'}`}>
+            <MapPin className="w-3.5 h-3.5" /> In-Game Buyable
+          </button>
         </div>
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
           <div className="flex items-center gap-2">
