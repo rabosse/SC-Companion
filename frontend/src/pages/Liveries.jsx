@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../App';
 import axios from 'axios';
-import { Search, ExternalLink, Loader2, Paintbrush, Filter } from 'lucide-react';
+import { Search, ExternalLink, Loader2, Paintbrush, Filter, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -16,7 +16,139 @@ const ACQUISITION_COLORS = {
   'Unknown': { border: 'border-white/10', bg: 'bg-white/5', text: 'text-gray-500' },
 };
 
-const PaintViewer = ({ series, fleetShipIds, fleetOnly }) => {
+const LiveryDetailModal = ({ series, onClose }) => {
+  const [selectedIdx, setSelectedIdx] = useState(0);
+  const paint = series.paints[selectedIdx];
+  const colors = ACQUISITION_COLORS[paint?.acquisition] || ACQUISITION_COLORS['Unknown'];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      data-testid="livery-detail-modal"
+      onClick={onClose}
+    >
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.95, opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="relative w-full max-w-5xl max-h-[85vh] bg-[#0c1018] border border-white/10 rounded-2xl overflow-hidden flex flex-col md:flex-row"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Close button */}
+        <button onClick={onClose} data-testid="modal-close-btn"
+          className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-black/60 backdrop-blur-sm border border-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors">
+          <X className="w-4 h-4" />
+        </button>
+
+        {/* Left: Image + details */}
+        <div className="flex-1 flex flex-col min-w-0">
+          <div className="h-64 md:h-80 relative overflow-hidden bg-gradient-to-br from-slate-900 to-slate-800 shrink-0">
+            <AnimatePresence mode="wait">
+              {paint?.image_url ? (
+                <motion.img
+                  key={paint.image_url}
+                  src={paint.image_url}
+                  alt={`${series.series} - ${paint.name}`}
+                  className="w-full h-full object-contain bg-black/40"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; }}
+                  data-testid="modal-livery-image"
+                />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Paintbrush className="w-16 h-16 text-white/10" />
+                </div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Paint details */}
+          <div className="p-5 flex-1 overflow-y-auto">
+            <h2 className="text-2xl font-black text-white mb-1" style={{ fontFamily: 'Rajdhani, sans-serif' }}
+              data-testid="modal-series-name">
+              {series.series}
+            </h2>
+            <div className="flex items-center gap-2 mb-3 flex-wrap">
+              <span className="text-base text-cyan-400 font-semibold" data-testid="modal-paint-name">
+                {paint?.name}
+              </span>
+              <span className={`text-[11px] px-2.5 py-0.5 rounded-full border font-semibold ${colors.border} ${colors.bg} ${colors.text}`}
+                data-testid="modal-acquisition-tag">
+                {paint?.acquisition}
+              </span>
+            </div>
+
+            <p className="text-sm text-gray-400 mb-4 leading-relaxed" data-testid="modal-description">
+              {paint?.description || 'No description available.'}
+            </p>
+
+            <div className="flex items-center gap-4 text-sm flex-wrap">
+              {paint?.price_auec && (
+                <span className="text-emerald-400 font-semibold" data-testid="modal-price-auec">
+                  {paint.price_auec.toLocaleString()} aUEC
+                </span>
+              )}
+              {paint?.price_usd && (
+                <span className="text-cyan-400 font-semibold" data-testid="modal-price-usd">
+                  ${paint.price_usd.toFixed(2)}
+                </span>
+              )}
+              {paint?.store_url && (
+                <a href={paint.store_url} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/20 transition-all text-sm font-semibold"
+                  data-testid="modal-store-link">
+                  <ExternalLink className="w-3.5 h-3.5" /> View on RSI Store
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Paint list sidebar */}
+        <div className="w-full md:w-64 lg:w-72 border-t md:border-t-0 md:border-l border-white/10 flex flex-col shrink-0 bg-[#080c12]">
+          <div className="p-3 border-b border-white/10 shrink-0">
+            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+              All Paints ({series.paint_count})
+            </h4>
+          </div>
+          <div className="flex-1 overflow-y-auto p-2 space-y-1" data-testid="modal-paint-list">
+            {series.paints.map((p, idx) => {
+              const pc = ACQUISITION_COLORS[p.acquisition] || ACQUISITION_COLORS['Unknown'];
+              const isSelected = idx === selectedIdx;
+              return (
+                <button
+                  key={idx}
+                  onClick={() => setSelectedIdx(idx)}
+                  data-testid={`modal-paint-item-${idx}`}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg border transition-all flex items-center justify-between gap-2 ${
+                    isSelected
+                      ? `${pc.border} ${pc.bg} ${pc.text}`
+                      : 'border-transparent hover:bg-white/[0.04] text-gray-400 hover:text-gray-200'
+                  }`}
+                >
+                  <span className="text-xs font-semibold truncate">{p.name}</span>
+                  <span className={`text-[9px] px-1.5 py-0.5 rounded-full border shrink-0 font-semibold ${pc.border} ${pc.bg} ${pc.text}`}>
+                    {p.acquisition === 'In-Game' ? 'Game' : p.acquisition === 'RSI Store' ? 'Store' : p.acquisition === 'Event Reward' ? 'Event' : p.acquisition === 'Limited Edition' ? 'Ltd' : p.acquisition === 'Subscriber' ? 'Sub' : '?'}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+const PaintViewer = ({ series, fleetShipIds, fleetOnly, onOpen }) => {
   const [selectedIdx, setSelectedIdx] = useState(0);
   const paint = series.paints[selectedIdx];
   const colors = ACQUISITION_COLORS[paint?.acquisition] || ACQUISITION_COLORS['Unknown'];
@@ -34,8 +166,9 @@ const PaintViewer = ({ series, fleetShipIds, fleetOnly }) => {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="glass-panel rounded-2xl overflow-hidden group"
+      className="glass-panel rounded-2xl overflow-hidden group cursor-pointer"
       data-testid={`livery-card-${series.series.toLowerCase().replace(/\s+/g, '-')}`}
+      onClick={() => onOpen(series)}
     >
       {/* Image area */}
       <div className="h-56 relative overflow-hidden bg-gradient-to-br from-slate-900 to-slate-800">
@@ -124,7 +257,8 @@ const PaintViewer = ({ series, fleetShipIds, fleetOnly }) => {
         </div>
 
         {/* Paint selector - horizontal scrollable pills */}
-        <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1" data-testid="paint-selector">
+        <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1" data-testid="paint-selector"
+          onClick={(e) => e.stopPropagation()}>
           {series.paints.map((p, idx) => {
             const pc = ACQUISITION_COLORS[p.acquisition] || ACQUISITION_COLORS['Unknown'];
             return (
@@ -156,6 +290,7 @@ export default function Liveries() {
   const [fleetOnly, setFleetOnly] = useState(false);
   const [fleetShipIds, setFleetShipIds] = useState([]);
   const [acqFilter, setAcqFilter] = useState('');
+  const [modalSeries, setModalSeries] = useState(null);
 
   useEffect(() => {
     let interval;
@@ -306,7 +441,8 @@ export default function Liveries() {
       {!loading && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5" data-testid="liveries-grid">
           {filteredLiveries.map((series) => (
-            <PaintViewer key={series.series} series={series} fleetShipIds={fleetShipIds} fleetOnly={fleetOnly} />
+            <PaintViewer key={series.series} series={series} fleetShipIds={fleetShipIds} fleetOnly={fleetOnly}
+              onOpen={(s) => setModalSeries(s)} />
           ))}
         </div>
       )}
@@ -318,6 +454,13 @@ export default function Liveries() {
           <p className="text-gray-500">No liveries found matching your search.</p>
         </div>
       )}
+
+      {/* Detail Modal */}
+      <AnimatePresence>
+        {modalSeries && (
+          <LiveryDetailModal series={modalSeries} onClose={() => setModalSeries(null)} />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
